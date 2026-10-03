@@ -57,7 +57,14 @@ export const buildingStyle = {
   bitumenRoof: "#747876",
   greenRoof: "#788361",
   flowerPetal: "#c17e84",
+  /** Bridges and other floating spans: concrete sides, asphalt deck, shaded underside. */
   bridge: "#9aa0a6",
+  bridgeDeck: "#5f6367",
+  bridgeUnderside: "#6d7176",
+  /** Landmark kind 2 (Messe Basel Halle 1): woven aluminium bands, glazed ground floor. */
+  metalBand: "#c3c8cd",
+  metalGlass: "#3f5560",
+  soffit: "#3a3f45",
   /** Artistic probabilities, not estimates of actual Basel coverage. */
   shutterShare: 0.65,
   flowerShare: 0.08,

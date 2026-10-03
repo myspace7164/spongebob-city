@@ -8,7 +8,7 @@ Done: `scripts/convert-basel-map.py` writes a `_BUILDING` attribute per building
 
 Verified: 49 unit tests, 3 converter tests, type check, build; screenshot on current main shows the facades with the team's latest characters.
 
-Known issue (left by choice): the Messe hall part that spans Riehenring is one object with the hall in Basel's data, so it shows windows like a facade. Fix idea: grey any building faces that lie over a road and start well above the building base.
+Bridges: Basel labels 42 objects as bridges (`Bru_` materials, e.g. Mittlere Rheinbrücke, Wettsteinbrücke, Markthallenbrücke). The converter now also flags 45 unlabelled objects with no vertex within 1.5 m of the terrain (the span over Riehenring, station canopies, walkways). Bridges render without windows: asphalt deck, concrete sides with seams, darker underside. Landmark override: `LANDMARKS` in the converter gives the Messe Basel Halle 1 (`mesh-5335`, unlabelled in the data; its upper volume floats over Messeplatz behind the Riehenring start) kind 2, rendered as twisted aluminium bands over a glazed ground floor with a dark underside. More landmarks (Münster, Rathaus) can be added the same way.
 
 Later options (Codex research): Basel GWR dataset 100230 (construction period, storeys, category via EGID) could pick facade families per real building; swissBUILDINGS3D 3.0 has EGID-linked roof/facade elements; MapBS 3D and Wikimedia Commons photos for landmark textures need licence checks per image. Not imported.
 
