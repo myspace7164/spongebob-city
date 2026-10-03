@@ -136,18 +136,34 @@ function startGame(): void {
       "Graphics connection lost. Reload this page to restart.";
   });
   async function addAssets(): Promise<void> {
+    const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
     for (const [name, config] of Object.entries({
       character: gameConfig.character,
       level: gameConfig.level,
     })) {
       if (!config.url) continue;
+      if (name === "level") {
+        canvas.dataset.level = "loading";
+        levelStatus.textContent = "Loading Basel buildings…";
+      }
       try {
         const model = await loadModel(config);
         if (name === "character") {
           world.character.remove(world.placeholder);
           world.character.add(model);
-        } else scene.add(model);
+        } else {
+          scene.add(model);
+          cityView.useImportedLevel();
+          canvas.dataset.level = "loaded";
+          levelStatus.textContent =
+            "Basel buildings loaded · fictional mission square";
+        }
       } catch (error) {
+        if (name === "level") {
+          canvas.dataset.level = "fallback";
+          levelStatus.textContent =
+            "Basel map unavailable · using the original scenery";
+        }
         message.textContent = `Could not load the ${name} model. Check config/game.ts and reload.`;
         console.error(error);
       }

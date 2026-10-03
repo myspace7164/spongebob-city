@@ -8,4 +8,5 @@ Every dataset, API, notable library and AI tool used, with licence. Feeds the so
 | Sponge-city mission and named characters | User-supplied concept | Concept supplied for this prototype; cartoon characters are third-party fictional characters | Gameplay and procedural character representations |
 | Climate and water coefficients | Original synthetic gameplay values in config/city.ts | Project-authored; illustrative, not empirical | Mission balancing and outcome metrics |
 | Basel stage set | Procedural geometry inspired by the supplied Barfüsserplatz setting | Original project geometry; no survey/map data or imported art | Mission environment |
+| Basel building model | User-supplied SM_Stadtmodell3D / 3D_Stadtmodell.obj and matching MTL; OBJ header identifies geolab as generator | Redistribution licence not yet confirmed; accompanying Begleitinfo.pdf contains an HTTP 403 page rather than licence information | Local GLB building scenery around the fictional mission; see public/models/README.md |
 | Three.js | https://github.com/mrdoob/three.js | MIT | 3D renderer and glTF loader |

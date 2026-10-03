@@ -75,8 +75,10 @@ npm run test:browser
 - `src/ui/theme.css`: palette and visual theme.
 - `config/game.ts`: movement, camera, renderer and optional GLB paths.
 
+The supplied Basel model loads by default. While it loads, the original scenery remains playable; if loading fails, the original buildings remain. To use only procedural scenery, clear `level.url` in `config/game.ts`.
+
 Optional Blender exports go into `public/models/`. Set `character.url` or `level.url` in `config/game.ts`, with scale and rotation. Use a feet-centred origin, Y up and front facing +Z. An empty URL retains procedural visuals; failed loads report an error and keep the fallback. Imported models and buildings are visual only; movement uses the flat ground with mission bounds.
 
 ## Limits and sources
 
-One playable mission, procedural characters, cyclic weather and a sabotage machine. No campaign, persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. The square is a fictional stage set rather than a surveyed Basel map. See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
+One playable mission, procedural characters, imported Basel building scenery, cyclic weather and a sabotage machine. No campaign, persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. The mission square remains fictional; imported Basel buildings surround it. The map is centred on the supplied dataset rather than geographically aligned to Barfüsserplatz. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
