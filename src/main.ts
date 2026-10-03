@@ -61,6 +61,10 @@ import {
   effectivePlayerVisualScale,
   modifierMultiplier,
 } from "./game/level-modifiers.ts";
+import {
+  restoreHatCollection,
+  saveHatCollection,
+} from "./game/hat-collection.ts";
 import { purchaseHat } from "./game/hats.ts";
 import { HatShopUI } from "./ui/hat-shop.ts";
 import { CollisionDebugView } from "./game/collision-debug.ts";
@@ -82,7 +86,7 @@ function startGame(): void {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
-    powerPreference: "low-power",
+    powerPreference: "high-performance",
   });
   renderer.setPixelRatio(Math.min(devicePixelRatio, gameConfig.maxPixelRatio));
   const scene = new THREE.Scene();
@@ -111,6 +115,9 @@ function startGame(): void {
     if (document.hidden) audio.update(false, false);
   });
   let city = createCampaign();
+  restoreHatCollection(city, localStorage);
+  world.equipHat(city.campaign?.equippedHat ?? null);
+  canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";
   const spawnPlayer = () => {
     const player = createPlayer();
     // Built levels may set their own spawn point and facing.
@@ -213,6 +220,9 @@ function startGame(): void {
     remotePlayers.clear();
     receivedCode = null;
     city = createCampaign();
+    restoreHatCollection(city, localStorage);
+    world.equipHat(city.campaign?.equippedHat ?? null);
+    canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";
     checkpoint = structuredClone(city);
     player = spawnPlayer();
     storyPending = true;
@@ -239,6 +249,7 @@ function startGame(): void {
       world.equipHat(nextHat);
       canvas.dataset.equippedHat = nextHat ?? "none";
     }
+    if (hatShop.open) hatShop.render();
     city.selected = selected;
     if (!changedLevel && !freshRoom) {
       ledger.earned = city.funding.earned;
@@ -296,13 +307,21 @@ function startGame(): void {
   const hatShop = new HatShopUI(
     () => city.budget,
     () => city.campaign?.equippedHat ?? null,
+    () => city.campaign?.ownedHats ?? [],
     (id: HatId) => {
+      if (network.room) {
+        void network.action({ equippedHat: id });
+        return true;
+      }
       if (!purchaseHat(city, id)) return false;
+      saveHatCollection(city, localStorage);
       world.equipHat(id);
       canvas.dataset.equippedHat = id;
       checkpoint.budget = city.budget;
-      if (checkpoint.campaign) checkpoint.campaign.equippedHat = id;
-      if (network.room) void network.action({ equippedHat: id });
+      if (checkpoint.campaign) {
+        checkpoint.campaign.equippedHat = id;
+        checkpoint.campaign.ownedHats = [...(city.campaign?.ownedHats ?? [])];
+      }
       ui.render(city, targetId, inReach());
       return true;
     },
@@ -341,8 +360,14 @@ function startGame(): void {
       return;
     }
     audio.update(false, false);
+    const ownedHats = [...(city.campaign?.ownedHats ?? [])];
+    const equippedHat = city.campaign?.equippedHat ?? null;
     city =
       city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
+    if (city.campaign) {
+      city.campaign.ownedHats = ownedHats;
+      city.campaign.equippedHat = equippedHat;
+    }
     if (city.campaign?.activeModifier) city.campaign.activeModifier = null;
     world.equipHat(city.campaign?.equippedHat ?? null);
     canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";

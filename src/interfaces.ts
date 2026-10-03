@@ -176,7 +176,8 @@ export interface CampaignProgress {
   wheelPending: boolean;
   pendingModifier: LevelModifierId | null;
   activeModifier: LevelModifierId | null;
-  /** Purchased headwear is temporary and cleared on a lost run. */
+  /** Purchased hats remain available across levels and retries. */
+  ownedHats?: HatId[];
   equippedHat: HatId | null;
 }
 export type HatId =

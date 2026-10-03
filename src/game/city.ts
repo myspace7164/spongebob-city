@@ -519,6 +519,5 @@ export function updateCity(
     s.campaign.activeModifier = null;
     s.campaign.pendingModifier = null;
     s.campaign.wheelPending = false;
-    s.campaign.equippedHat = null;
   }
 }

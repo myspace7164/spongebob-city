@@ -331,11 +331,17 @@ function footballCap(hat: THREE.Group): void {
   );
 }
 
-/** Buy once per selection; coins come from the existing spendable city wallet. */
+/** Buy once, then equip owned hats without spending more coins. */
 export function purchaseHat(state: CityState, id: HatId): boolean {
   if (!state.campaign || state.outcome !== "playing") return false;
-  if (state.budget < hatDefinition(id).price) return false;
-  state.budget -= hatDefinition(id).price;
+  const owned = (state.campaign.ownedHats ??= state.campaign.equippedHat
+    ? [state.campaign.equippedHat]
+    : []);
+  if (!owned.includes(id)) {
+    if (state.budget < hatDefinition(id).price) return false;
+    state.budget -= hatDefinition(id).price;
+    owned.push(id);
+  }
   state.campaign.equippedHat = id;
   return true;
 }

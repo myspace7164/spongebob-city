@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { gameConfig } from "../config/game.ts";
+import { purchaseHat } from "../src/game/hats.ts";
 import { hats } from "../config/hats.ts";
 import {
   createCampaign,
@@ -275,7 +276,16 @@ export class Rooms {
       )
         throw new Error("Unknown hat.");
       if (room.city.campaign) {
-        room.city.campaign.equippedHat = command.equippedHat;
+        if (command.equippedHat === null) room.city.campaign.equippedHat = null;
+        else if (!purchaseHat(room.city, command.equippedHat))
+          throw new Error("Not enough coins for that hat.");
+        room.checkpoint.budget = room.city.budget;
+        if (room.checkpoint.campaign) {
+          room.checkpoint.campaign.ownedHats = [
+            ...(room.city.campaign.ownedHats ?? []),
+          ];
+          room.checkpoint.campaign.equippedHat = room.city.campaign.equippedHat;
+        }
         room.revision++;
       }
     }
@@ -286,10 +296,16 @@ export class Rooms {
         throw new Error("Only the room leader can retry.");
       if (room.city.outcome === "playing")
         throw new Error("Finish this attempt before retrying.");
+      const ownedHats = [...(room.city.campaign?.ownedHats ?? [])];
+      const equippedHat = room.city.campaign?.equippedHat ?? null;
       room.city =
         room.city.outcome === "won"
           ? createCampaign()
           : structuredClone(room.checkpoint);
+      if (room.city.campaign) {
+        room.city.campaign.ownedHats = ownedHats;
+        room.city.campaign.equippedHat = equippedHat;
+      }
       room.run = randomUUID();
       this.newLevel(room);
       return;

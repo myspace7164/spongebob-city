@@ -23,7 +23,7 @@ function previewSvg(id: HatId): string {
   return `<svg viewBox="0 0 120 88" role="img" aria-label="${hats.find((hat) => hat.id === id)!.name} preview" focusable="false">${previews[id]}</svg>`;
 }
 
-/** Responsive catalogue and purchase feedback for run-only cosmetics. */
+/** Responsive catalogue and purchase feedback for owned cosmetics. */
 export class HatShopUI {
   private panel = element<HTMLElement>("hat-shop");
   private cards = element<HTMLElement>("hat-cards");
@@ -34,6 +34,7 @@ export class HatShopUI {
   constructor(
     private coins: () => number,
     private equipped: () => HatId | null,
+    private owned: () => readonly HatId[],
     private purchase: (id: HatId) => boolean,
     private close: () => void,
   ) {
@@ -95,28 +96,34 @@ export class HatShopUI {
         const card = button.closest<HTMLElement>(".hat-card")!;
         const hat = hats.find((item) => item.id === card.dataset.hat)!;
         const isEquipped = equipped === hat.id;
-        const canAfford = this.coins() >= hat.price;
+        const isOwned = this.owned().includes(hat.id);
+        const canAfford = isOwned || this.coins() >= hat.price;
+        card.toggleAttribute("data-owned", isOwned);
         card.toggleAttribute("data-equipped", isEquipped);
         button.disabled = isEquipped || !canAfford;
         button.textContent = isEquipped
           ? "✓ EQUIPPED"
-          : canAfford
-            ? `BUY · ${hat.price.toLocaleString("en-US")}`
-            : "NOT ENOUGH COINS";
+          : isOwned
+            ? "EQUIP · OWNED"
+            : canAfford
+              ? `BUY · ${hat.price.toLocaleString("en-US")}`
+              : "NOT ENOUGH COINS";
         button.setAttribute(
           "aria-label",
           isEquipped
             ? `${hat.name} equipped`
-            : canAfford
-              ? `Buy ${hat.name} for ${hat.price} coins`
-              : `Not enough coins for ${hat.name}`,
+            : isOwned
+              ? `Equip owned ${hat.name}`
+              : canAfford
+                ? `Buy ${hat.name} for ${hat.price} coins`
+                : `Not enough coins for ${hat.name}`,
         );
       });
   }
 
   private buy(id: HatId): void {
     if (this.purchase(id)) {
-      this.status.textContent = `${hats.find((hat) => hat.id === id)!.name} equipped for this run!`;
+      this.status.textContent = `${hats.find((hat) => hat.id === id)!.name} equipped! You keep every hat you buy.`;
     } else {
       this.status.textContent = "Not enough coins for that hat.";
     }
