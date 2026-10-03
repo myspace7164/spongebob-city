@@ -4,6 +4,7 @@ import type { CityPlot, CityState, CityTool, PlayerState } from "../interfaces";
 import { cityMetrics, spongeCapacity, weather } from "./city";
 import { currentLevel, validDrain } from "./campaign";
 import { ball, box, label, makeCharacter, themeColor } from "./characters";
+import { createCityFireView } from "./city-fire-view";
 
 function dispose(group: THREE.Group): void {
   group.traverse((object) => {
@@ -79,6 +80,7 @@ function plotProps(group: THREE.Group, plot: CityPlot): void {
 export function createCityView(scene: THREE.Scene, state: CityState) {
   const root = new THREE.Group();
   scene.add(root);
+  const updateFireView = createCityFireView(root);
   const plotViews = state.plots.map((p) => {
     const tile = new THREE.Group();
     tile.position.set(p.x, 0, p.z);
@@ -345,6 +347,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           0.2 + p.surface / 1500,
         );
       });
+      updateFireView(s.fires, s.plots, origin, ground, s.elapsed);
       const targetPlot = s.plots.find((p) => p.id === targetId);
       border.visible = !!targetPlot;
       if (targetPlot) {

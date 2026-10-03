@@ -1,4 +1,5 @@
 import { Mesh, type Group } from "three";
+import { cityConfig } from "../../config/city";
 import type { ModelConfig } from "../interfaces";
 
 /** Load a Blender glTF/GLB export without changing gameplay or collision rules. */
@@ -15,10 +16,13 @@ export function updateSpongeWaterState(
   model: Group,
   sponge: number,
   capacity: number,
+  temperature = 27,
 ): void {
-  const fill = Math.max(0, Math.min(1, capacity > 0 ? sponge / capacity : 0));
-  const dry = fill <= 0.5 ? 1 - fill * 2 : 0;
-  const waterFull = fill > 0.5 ? (fill - 0.5) * 2 : 0;
+  const { dry, waterFull } = spongeWaterMorphWeights(
+    sponge,
+    capacity,
+    temperature,
+  );
   let morphMeshes = 0;
   model.traverse((object) => {
     if (
@@ -39,4 +43,22 @@ export function updateSpongeWaterState(
       "The Blender character is missing Dry and WaterFull morph targets.",
     );
   }
+}
+
+export function spongeWaterMorphWeights(
+  sponge: number,
+  capacity: number,
+  temperature: number,
+): { dry: number; waterFull: number } {
+  const fill = Math.max(0, Math.min(1, capacity > 0 ? sponge / capacity : 0));
+  const waterDry = fill <= 0.5 ? 1 - fill * 2 : 0;
+  const waterFull = fill > 0.5 ? (fill - 0.5) * 2 : 0;
+  const heatDry = Math.max(
+    0,
+    Math.min(1, (temperature - cityConfig.heatSystem.dryThresholdCelsius) / 8),
+  );
+  return {
+    dry: waterDry + (1 - waterDry) * heatDry,
+    waterFull: waterFull * (1 - heatDry),
+  };
 }

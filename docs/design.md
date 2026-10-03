@@ -20,7 +20,7 @@ Dry periods alternate with thunderstorms. Each plot holds surface water, soil mo
 
 Patrick can remove several nearby asphalt slabs. Sandy sells a capacity/bubble upgrade. Thaddäus comments on shade and Mr. Krabs tracks the construction budget. Dr. Beton's Asphaltinator reseals an exposed green plot periodically; nearby karate disables it temporarily.
 
-The HUD shows heat, flood danger, sponge capacity, weather, budget and mission progress. Each level has its own construction, reuse, heat/flood and storm achievements. Prolonged maximum danger loses the mission. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
+The HUD shows city temperature and heat risk, flood danger, sponge capacity, weather, budget and mission progress. Asphalt and Dr. Beton's sealing slowly increase temperature; rain, watered trees, green plots, ponds and shade cool it. SpongeBob's Dry morph starts blending above 36°C, fires begin above 40°C, and temperatures over 60°C lose the mission; prolonged critical flooding also causes a loss. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
 
 ## Structure and limits
 

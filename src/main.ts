@@ -245,7 +245,12 @@ function startGame(): void {
         const model = await loadModel(config);
         if (name === "character") {
           characterModel = model;
-          updateSpongeWaterState(model, city.sponge, spongeCapacity(city));
+          updateSpongeWaterState(
+            model,
+            city.sponge,
+            spongeCapacity(city),
+            city.temperature,
+          );
           world.useCharacter(model);
         } else {
           styleBuildings(model);
@@ -379,7 +384,12 @@ function startGame(): void {
     if (!active) audio.update(false, false);
     placeScenery();
     if (characterModel)
-      updateSpongeWaterState(characterModel, city.sponge, spongeCapacity(city));
+      updateSpongeWaterState(
+        characterModel,
+        city.sponge,
+        spongeCapacity(city),
+        city.temperature,
+      );
     world.update(
       player,
       groundAt(player.position.x, player.position.z),
