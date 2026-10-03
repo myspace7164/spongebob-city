@@ -124,10 +124,15 @@ function conformToGround(
   lift: number,
 ): void {
   const positions = geometry.getAttribute("position");
+  const c = Math.cos(plot.rotationY ?? 0),
+    s = Math.sin(plot.rotationY ?? 0);
   for (let i = 0; i < positions.count; i++)
     positions.setY(
       i,
-      ground(plot.x + positions.getX(i), plot.z + positions.getZ(i)) -
+      ground(
+        plot.x + c * positions.getX(i) + s * positions.getZ(i),
+        plot.z - s * positions.getX(i) + c * positions.getZ(i),
+      ) -
         baseHeight +
         lift,
     );
@@ -964,7 +969,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           view.baseGroundColor.copy(zoneGround(p));
         }
         view.tile.position.set(p.x - origin.x, baseHeight, p.z - origin.z);
-        const conformedSignature = `${p.x}/${p.z}/${baseHeight}/${groundVersion}`;
+        view.tile.rotation.y = p.rotationY ?? 0;
+        const conformedSignature = `${p.x}/${p.z}/${p.rotationY ?? 0}/${baseHeight}/${groundVersion}`;
         if (view.conformedSignature !== conformedSignature) {
           view.conformedSignature = conformedSignature;
           conformToGround(view.ground.geometry, p, baseHeight, ground, 0.018);
@@ -1016,6 +1022,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           baseHeight,
           targetPlot.z - origin.z,
         );
+        border.rotation.y = targetPlot.rotationY ?? 0;
+        buildPreview.rotation.y = targetPlot.rotationY ?? 0;
         conformToGround(border.geometry, targetPlot, baseHeight, ground, 0.04);
         const nextPreviewSignature = buildKind
           ? `${targetPlot.id}/${s.selected}/${validBuild ? "valid" : "invalid"}`

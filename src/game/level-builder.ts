@@ -22,6 +22,42 @@ export const plotFootprint = (_site?: SiteType): [number, number] => [
   spotSize,
 ];
 
+/** Point expressed along a field's own axes. */
+export function spotLocal(
+  spot: LevelSpot,
+  x: number,
+  z: number,
+): [number, number] {
+  const c = Math.cos(spot.rotationY ?? 0),
+    s = Math.sin(spot.rotationY ?? 0);
+  const dx = x - spot.x,
+    dz = z - spot.z;
+  return [c * dx - s * dz, s * dx + c * dz];
+}
+
+/** Separating-axis check for oriented field squares; touching edges are allowed. */
+function spotsOverlap(a: LevelSpot, b: LevelSpot): boolean {
+  const angles = [a.rotationY ?? 0, b.rotationY ?? 0];
+  for (const angle of angles)
+    for (const axis of [angle, angle + Math.PI / 2]) {
+      const ux = Math.cos(axis),
+        uz = -Math.sin(axis);
+      const radius = (spot: LevelSpot) => {
+        const [w, d] = plotFootprint(spot.site);
+        const delta = (spot.rotationY ?? 0) - axis;
+        return (
+          (w * Math.abs(Math.cos(delta)) + d * Math.abs(Math.sin(delta))) / 2
+        );
+      };
+      if (
+        Math.abs((b.x - a.x) * ux + (b.z - a.z) * uz) >=
+        radius(a) + radius(b) - 1e-8
+      )
+        return false;
+    }
+  return true;
+}
+
 export const siteTypes: readonly SiteType[] = [
   "parking",
   "verge",
@@ -82,8 +118,12 @@ export function autoBounds(
     zs = [start[1]];
   for (const spot of spots) {
     const [w, d] = plotFootprint(spot.site);
-    xs.push(spot.x - w / 2, spot.x + w / 2);
-    zs.push(spot.z - d / 2, spot.z + d / 2);
+    const c = Math.abs(Math.cos(spot.rotationY ?? 0)),
+      s = Math.abs(Math.sin(spot.rotationY ?? 0));
+    const hx = (w * c + d * s) / 2,
+      hz = (w * s + d * c) / 2;
+    xs.push(spot.x - hx, spot.x + hx);
+    zs.push(spot.z - hz, spot.z + hz);
   }
   return {
     minX: round(Math.min(...xs) - margin),
@@ -130,12 +170,7 @@ export function checkLayout(
   if (missing < 0) problems.push(`Remove ${-missing} spot(s).`);
   spots.forEach((a, i) =>
     spots.slice(i + 1).forEach((b, k) => {
-      const [aw, ad] = plotFootprint(a.site),
-        [bw, bd] = plotFootprint(b.site);
-      if (
-        Math.abs(a.x - b.x) < (aw + bw) / 2 &&
-        Math.abs(a.z - b.z) < (ad + bd) / 2
-      )
+      if (spotsOverlap(a, b))
         problems.push(`Spots #${i + 1} and #${i + k + 2} overlap.`);
     }),
   );
@@ -209,12 +244,15 @@ export function validateBuiltLevel(
   const spots = level.spots.map((spot) => {
     if (!finite(spot.x) || !finite(spot.z) || !siteTypes.includes(spot.site!))
       throw new Error("Invalid spot");
+    if (spot.rotationY !== undefined && !finite(spot.rotationY))
+      throw new Error("Invalid spot rotation");
     if (spot.builds && !spot.builds.every((t) => buildTools.includes(t)))
       throw new Error("Unknown technique");
     return {
       x: round(spot.x),
       z: round(spot.z),
       site: spot.site,
+      ...(spot.rotationY !== undefined ? { rotationY: spot.rotationY } : {}),
       ...(spot.builds ? { builds: [...spot.builds] } : {}),
     };
   });
@@ -269,9 +307,10 @@ const walkable = new Set(["sidewalk", "paved", "green", "island", "other"]);
 /** Distance from a point to a spot's square (0 inside). */
 function toSquare(spot: LevelSpot, x: number, z: number): number {
   const [w, d] = plotFootprint(spot.site);
+  const [lx, lz] = spotLocal(spot, x, z);
   return Math.hypot(
-    Math.max(Math.abs(x - spot.x) - w / 2, 0),
-    Math.max(Math.abs(z - spot.z) - d / 2, 0),
+    Math.max(Math.abs(lx) - w / 2, 0),
+    Math.max(Math.abs(lz) - d / 2, 0),
   );
 }
 

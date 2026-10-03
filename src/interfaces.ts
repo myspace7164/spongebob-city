@@ -68,6 +68,8 @@ export interface CityPlot {
   id: number;
   x: number;
   z: number;
+  /** Three.js Y rotation in play coordinates, in radians; absent means zero. */
+  rotationY?: number;
   kind: PlotKind;
   surface: number;
   moisture: number;
@@ -102,6 +104,8 @@ export type NpcId = "patrick" | "krabs" | "sandy" | "squidward" | "beton";
 export interface LevelSpot {
   x: number;
   z: number;
+  /** Three.js Y rotation in play coordinates, in radians; absent means zero. */
+  rotationY?: number;
   site?: SiteType;
   builds?: CityTool[];
 }

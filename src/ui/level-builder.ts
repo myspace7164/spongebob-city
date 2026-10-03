@@ -34,6 +34,7 @@ import {
   siteFromView,
   siteTypes,
   spotBuilds,
+  spotLocal,
   unionBounds,
 } from "../game/level-builder";
 import { playToMap, worldToMap } from "../game/streets";
@@ -62,6 +63,7 @@ type Tool = "spots" | "spawn" | "npcs";
 type Point = [number, number];
 /** A spot while building, in map-local metres (stable across level poses). */
 interface DraftSpot {
+  rotationY?: number;
   x: number;
   z: number;
   site: SiteType;
@@ -130,6 +132,7 @@ export function createLevelBuilder(host: BuilderHost) {
   let tool: Tool = "spots";
   let type: SiteType = "verge";
   let selected: number | null = null;
+  let placementRotation = 0;
   let state: Snapshot = {
     spots: [],
     origin: [0, 0],
@@ -310,6 +313,14 @@ export function createLevelBuilder(host: BuilderHost) {
               `<button type="button" data-type="${t}"><span class="swatch" style="background:${typeColours[t]}"></span><kbd>${i + 1}</kbd> ${typeNames[t]}</button>`,
           )
           .join("")}</div>
+        <fieldset id="lb-rotation"><legend id="lb-rotation-label">Next spot</legend>
+          <div class="lb-actions">
+            <button type="button" id="lb-rotate-left">Rotate left 15°</button>
+            <button type="button" id="lb-rotate-right">Rotate right 15°</button>
+          </div>
+          <label class="lb-row">Angle ° <input id="lb-angle" type="number" step="any" /></label>
+          <button type="button" id="lb-new-spot">Place a new spot</button>
+        </fieldset>
         <fieldset id="lb-techniques"><legend>Selected spot</legend><div></div></fieldset>
         <p class="small">All spots (click to select and fly there):</p>
         <ol id="lb-spots"></ol>
@@ -376,7 +387,8 @@ export function createLevelBuilder(host: BuilderHost) {
           (spot) =>
             Number.isFinite(spot.x) &&
             Number.isFinite(spot.z) &&
-            siteTypes.includes(spot.site),
+            siteTypes.includes(spot.site) &&
+            (spot.rotationY === undefined || Number.isFinite(spot.rotationY)),
         ) ||
         !draft.npcs ||
         !Object.entries(draft.npcs).every(
@@ -453,6 +465,7 @@ export function createLevelBuilder(host: BuilderHost) {
           x,
           z,
           site: s.site ?? "verge",
+          rotationY: (s.rotationY ?? 0) - p.rotationY,
           ...(s.builds ? { builds: [...s.builds] } : {}),
         };
       }),
@@ -463,6 +476,7 @@ export function createLevelBuilder(host: BuilderHost) {
     // Load the land cover for this area now, so auto-placing is instant later.
     void ensureGround([origin, spawn, ...Object.values(npcs)]);
     selected = null;
+    placementRotation = -draft().site.heading;
     normalView();
     void refreshVersions();
   }
@@ -477,7 +491,13 @@ export function createLevelBuilder(host: BuilderHost) {
     const toPlay = ([x, z]: Point) => mapToPlay(site, x, z);
     const spots: LevelSpot[] = state.spots.map((s) => {
       const [x, z] = toPlay([s.x, s.z]);
-      return { x, z, site: s.site, ...(s.builds ? { builds: s.builds } : {}) };
+      return {
+        x,
+        z,
+        rotationY: (s.rotationY ?? -site.heading) + site.heading,
+        site: s.site,
+        ...(s.builds ? { builds: s.builds } : {}),
+      };
     });
     const start = toPlay(state.spawn);
     const [lx, lz] = sub(
@@ -593,7 +613,8 @@ export function createLevelBuilder(host: BuilderHost) {
       );
       tile.name = `builder-spot-${i + 1}`;
       tile.position.set(s.x, y(s.x, s.z) + 0.2, s.z);
-      tile.rotation.y = -level.site.heading;
+      tile.rotation.y = s.rotationY ?? -level.site.heading;
+      tile.userData.spotIndex = i;
       markers.add(tile);
       tag(`#${i + 1} ${typeNames[s.site]}`, s.x, s.z, 2.2);
     });
@@ -685,6 +706,21 @@ export function createLevelBuilder(host: BuilderHost) {
           `<li><button type="button" data-spot="${i}" aria-pressed="${i === selected}"><span class="swatch" style="background:${typeColours[s.site]}"></span>#${i + 1} ${typeNames[s.site]}</button></li>`,
       )
       .join("");
+    $("lb-rotation-label").textContent =
+      selected === null ? "Next spot" : `Selected spot #${selected + 1}`;
+    const angleInput = $<HTMLInputElement>("lb-angle");
+    if (document.activeElement !== angleInput)
+      angleInput.value = String(
+        Math.round(
+          ((((selected === null
+            ? placementRotation
+            : (state.spots[selected].rotationY ?? -level.site.heading)) +
+            level.site.heading) *
+            180) /
+            Math.PI) *
+            1000,
+        ) / 1000,
+      );
     const box = $("lb-techniques").querySelector("div")!;
     const spot = selected === null ? undefined : state.spots[selected];
     box.innerHTML = spot
@@ -698,7 +734,7 @@ export function createLevelBuilder(host: BuilderHost) {
         `<button type="button" id="lb-delete" class="lb-danger">🗑 Delete spot #${selected! + 1}</button>`
       : `<p class="small">Click a spot to select it. Unsealing always works.</p>`;
     const problems = [
-      ...checkLayout(state.spots, cityLevels[levelIndex].goals),
+      ...checkLayout(level.spots, cityLevels[levelIndex].goals),
       ...checkCharacters(level.site, level.spots),
     ];
     $("lb-problems").innerHTML = problems.length
@@ -724,7 +760,7 @@ export function createLevelBuilder(host: BuilderHost) {
   }
 
   // ---- Mouse picking ----
-  function pick(event: MouseEvent): Point | null {
+  function mouseRay(event: MouseEvent): THREE.Raycaster {
     const rect = host.canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -732,6 +768,20 @@ export function createLevelBuilder(host: BuilderHost) {
     );
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, host.camera);
+    return ray;
+  }
+  function meshSpotAt(event: MouseEvent): number {
+    markers.updateWorldMatrix(true, true);
+    const tiles = markers.children.filter(
+      (o) => o.userData.spotIndex !== undefined,
+    );
+    return (
+      mouseRay(event).intersectObjects(tiles, false)[0]?.object.userData
+        .spotIndex ?? -1
+    );
+  }
+  function pick(event: MouseEvent): Point | null {
+    const ray = mouseRay(event);
     const p = new THREE.Vector3();
     const step = Math.max(0.25, view.distance / 200);
     for (let t = 0.5; t < 800; t += step) {
@@ -743,13 +793,24 @@ export function createLevelBuilder(host: BuilderHost) {
   const spotAt = (at: Point) =>
     state.spots.findIndex((s) => {
       const [w, d] = plotFootprint(s.site);
-      return Math.abs(s.x - at[0]) <= w / 2 && Math.abs(s.z - at[1]) <= d / 2;
+      const [x, z] = spotLocal(
+        { ...s, rotationY: s.rotationY ?? -draft().site.heading },
+        ...at,
+      );
+      return Math.abs(x) <= w / 2 && Math.abs(z) <= d / 2;
     });
   const npcAt = (at: Point) =>
     npcIds.find((id) => state.npcs[id] && len(sub(state.npcs[id]!, at)) < 1.4);
 
   let drag:
-    | { kind: "spot"; index: number; offset: Point }
+    | {
+        kind: "spot";
+        index: number;
+        offset: Point;
+        x: number;
+        y: number;
+        moved: boolean;
+      }
     | { kind: "spawn" }
     | { kind: "npc"; id: NpcId }
     | { kind: "rotate" | "pan"; x: number; y: number; moved: boolean }
@@ -769,7 +830,12 @@ export function createLevelBuilder(host: BuilderHost) {
       drag = { kind: "pan", x: e.clientX, y: e.clientY, moved: false };
       return;
     }
-    const at = pick(e);
+    const meshHit = tool === "spots" ? meshSpotAt(e) : -1;
+    const at =
+      pick(e) ??
+      (meshHit >= 0
+        ? ([state.spots[meshHit].x, state.spots[meshHit].z] as Point)
+        : null);
     if (!at) {
       status(
         "That click didn't hit the ground. Zoom in (wheel) or turn the view (right-drag).",
@@ -777,13 +843,15 @@ export function createLevelBuilder(host: BuilderHost) {
       return;
     }
     if (tool === "spots") {
-      const hit = spotAt(at);
+      const hit = meshHit;
       if (hit >= 0) {
-        remember();
         selected = hit;
         drag = {
           kind: "spot",
           index: hit,
+          x: e.clientX,
+          y: e.clientY,
+          moved: false,
           offset: sub([state.spots[hit].x, state.spots[hit].z], at),
         };
         status(
@@ -791,9 +859,21 @@ export function createLevelBuilder(host: BuilderHost) {
         );
       } else if (state.spots.length < 16) {
         remember();
-        state.spots.push({ x: at[0], z: at[1], site: type });
+        state.spots.push({
+          x: at[0],
+          z: at[1],
+          site: type,
+          rotationY: placementRotation,
+        });
         selected = state.spots.length - 1;
-        drag = { kind: "spot", index: selected, offset: [0, 0] };
+        drag = {
+          kind: "spot",
+          index: selected,
+          offset: [0, 0],
+          x: e.clientX,
+          y: e.clientY,
+          moved: true,
+        };
         status(
           `Spot #${selected + 1} placed (${typeNames[type]}). ${16 - state.spots.length} left to place.`,
         );
@@ -838,6 +918,11 @@ export function createLevelBuilder(host: BuilderHost) {
     const at = pick(e);
     if (!at) return;
     if (drag?.kind === "spot") {
+      if (!drag.moved) {
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return;
+        remember();
+        drag.moved = true;
+      }
       state.spots[drag.index].x = at[0] + drag.offset[0];
       state.spots[drag.index].z = at[1] + drag.offset[1];
       render();
@@ -854,7 +939,7 @@ export function createLevelBuilder(host: BuilderHost) {
     if (ghost.visible) {
       const [w, d] = plotFootprint(type);
       ghost.scale.set(w, 1, d);
-      ghost.rotation.y = -draft().site.heading;
+      ghost.rotation.y = placementRotation;
       ghost.position.set(at[0], groundMap(...at) + 0.25, at[1]);
       (ghost.material as THREE.MeshBasicMaterial).color.set(typeColours[type]);
     }
@@ -865,8 +950,7 @@ export function createLevelBuilder(host: BuilderHost) {
     drag = null;
     if (ended.kind === "rotate" && !ended.moved && tool === "spots") {
       // A right-click without dragging deletes the spot under the mouse.
-      const at = pick(e);
-      const hit = at ? spotAt(at) : -1;
+      const hit = meshSpotAt(e);
       if (hit >= 0) {
         remember();
         state.spots.splice(hit, 1);
@@ -977,7 +1061,7 @@ export function createLevelBuilder(host: BuilderHost) {
     }
   }
   async function applyDraft() {
-    const problems = checkLayout(state.spots, []);
+    const problems = checkLayout(draft().spots, []);
     if (problems.length) return status(`Not applied: ${problems.join(" ")}`);
     if (
       !window.confirm(
@@ -1080,6 +1164,36 @@ export function createLevelBuilder(host: BuilderHost) {
     delete state.spots[selected].builds;
     render();
   });
+  function rotateSpot(radians: number) {
+    if (!Number.isFinite(radians)) return;
+    if (selected === null) placementRotation = radians;
+    else {
+      remember();
+      state.spots[selected].rotationY = radians;
+    }
+    ghost.rotation.y = radians;
+    render();
+  }
+  const currentRotation = () =>
+    selected === null
+      ? placementRotation
+      : (state.spots[selected].rotationY ?? -draft().site.heading);
+  $("lb-rotate-left").addEventListener("click", () =>
+    rotateSpot(currentRotation() + Math.PI / 12),
+  );
+  $("lb-rotate-right").addEventListener("click", () =>
+    rotateSpot(currentRotation() - Math.PI / 12),
+  );
+  $("lb-angle").addEventListener("change", () => {
+    const degrees = $<HTMLInputElement>("lb-angle").valueAsNumber;
+    rotateSpot((degrees * Math.PI) / 180 - draft().site.heading);
+  });
+  $("lb-new-spot").addEventListener("click", () => {
+    placementRotation = currentRotation();
+    selected = null;
+    status("Click free ground to place a spot with this angle.");
+    render();
+  });
   $("lb-auto").addEventListener("click", () => void autoPlace("on request"));
   $("lb-normal-view").addEventListener("click", normalView);
   $("lb-overview").addEventListener("click", overviewView);
@@ -1090,7 +1204,7 @@ export function createLevelBuilder(host: BuilderHost) {
   $("lb-restore").addEventListener("click", () => void restoreVersion());
   $("lb-exit").addEventListener("click", () => host.backToGame());
   $("lb-test").addEventListener("click", () => {
-    const problems = checkLayout(state.spots, []);
+    const problems = checkLayout(draft().spots, []);
     if (problems.length)
       return status(`Cannot test yet: ${problems.join(" ")}`);
     host.testPlay(cityLevels[levelIndex].id, draft());

@@ -17,6 +17,7 @@ import {
   parseLevelFile,
   siteFromView,
   spotBuilds,
+  spotLocal,
   validateBuiltLevel,
 } from "../src/game/level-builder.ts";
 import { playToMap, sceneryPose, worldToMap } from "../src/game/streets.ts";
@@ -216,4 +217,59 @@ test("an area becomes walkable bounds that always include the spots", () => {
   assert.deepEqual(area, { minX: -15, maxX: 15, minZ: -110, maxZ: 8 });
   const both = unionBounds(area, { minX: -20, maxX: 10, minZ: -50, maxZ: 12 });
   assert.deepEqual(both, { minX: -20, maxX: 15, minZ: -110, maxZ: 12 });
+});
+
+test("rotated fields use oriented footprints for picking, bounds and overlap", () => {
+  const rotationY = Math.PI / 4;
+  const field = { x: 0, z: 0, rotationY };
+  const [lx, lz] = spotLocal(field, 3, 0);
+  assert.ok(Math.abs(lx) < 2.35 && Math.abs(lz) < 2.35);
+  assert.deepEqual(autoBounds([field], [0, 0], 0), {
+    minX: -3.3,
+    maxX: 3.3,
+    minZ: -3.3,
+    maxZ: 3.3,
+  });
+  // The diagonal corner reaches beyond the old axis-aligned square.
+  assert.ok(
+    checkLayout([field, { x: 5, z: 0 }], []).some((p) => p.includes("overlap")),
+  );
+  // Overlapping AABBs alone do not imply overlapping oriented squares.
+  assert.ok(
+    !checkLayout([field, { x: 5, z: 5, rotationY }], []).some((p) =>
+      p.includes("overlap"),
+    ),
+  );
+});
+
+test("field rotation survives validation and saved-version serialization", () => {
+  for (const rotationY of [0, Math.PI / 12, Math.PI / 4]) {
+    const level = validateBuiltLevel(
+      "erlenmatt",
+      {
+        location: "Rotation test",
+        site: { ...riehenringSite, start: [0, 0] },
+        spots: grid("verge").map((s) => ({ ...s, rotationY })),
+      },
+      ids,
+    );
+    assert.equal(level.spots[0].rotationY, rotationY);
+    assert.deepEqual(
+      parseLevelFile(levelFileSource({ erlenmatt: level })).erlenmatt,
+      level,
+    );
+  }
+  assert.throws(
+    () =>
+      validateBuiltLevel(
+        "erlenmatt",
+        {
+          location: "Rotation test",
+          site: { ...riehenringSite, start: [0, 0] },
+          spots: grid("verge").map((s) => ({ ...s, rotationY: Infinity })),
+        },
+        ids,
+      ),
+    /rotation/,
+  );
 });

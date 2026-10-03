@@ -89,6 +89,7 @@ test("builder markers align with the campaign map and default to the game camera
     scenery.rotation.y = pose.rotationY;
     const camera = new THREE.PerspectiveCamera(55, 1.5, 0.1, 150);
     const canvas = document.querySelector("#game") as HTMLCanvasElement;
+    let played: any;
     const builder = createLevelBuilder({
       scenery,
       camera,
@@ -99,7 +100,9 @@ test("builder markers align with the campaign map and default to the game camera
       normalView: () => ({ x: 0, z: 0, yaw: 0, pitch: 0.28 }),
       terrain: () => null,
       groundAt: pose.groundAt,
-      testPlay: () => {},
+      testPlay: (_id: string, draft: any) => {
+        played = draft;
+      },
       backToGame: () => {},
       showGameScene: () => {},
     });
@@ -118,7 +121,91 @@ test("builder markers align with the campaign map and default to the game camera
     );
     document.querySelector<HTMLButtonElement>("#lb-normal-view")!.click();
     builder.updateCamera(0);
+    // Click the visible mesh, then rotate, delete and undo without moving it.
+    const rect = canvas.getBoundingClientRect();
+    const click = () => {
+      scene.updateMatrixWorld(true);
+      const tile = scenery.getObjectByName("builder-spot-3");
+      const screen = tile.getWorldPosition(new THREE.Vector3()).project(camera);
+      const event = {
+        clientX: rect.left + ((screen.x + 1) * rect.width) / 2,
+        clientY: rect.top + ((1 - screen.y) * rect.height) / 2,
+        button: 0,
+        bubbles: true,
+      };
+      canvas.dispatchEvent(new MouseEvent("mousedown", event));
+      window.dispatchEvent(new MouseEvent("mouseup", event));
+    };
+    click();
+    const press = (id: string) =>
+      document.querySelector<HTMLButtonElement>(id)!.click();
+    const angle = document.querySelector<HTMLInputElement>("#lb-angle")!;
+    if (
+      !document.querySelector("#lb-rotation-label")!.textContent!.includes("#3")
+    )
+      throw new Error("Mesh click did not select field 3");
+    press("#lb-rotate-left");
+    const steppedAngle = Number(angle.value);
+    press("#lb-undo");
+    click();
+    const undoneAngle = Number(angle.value);
+    angle.value = "45";
+    angle.dispatchEvent(new Event("change", { bubbles: true }));
+    const rotated = scenery.getObjectByName("builder-spot-3");
+    const rotatedWorld = rotated.getWorldPosition(new THREE.Vector3());
+    const worldAngle = rotated.rotation.y + scenery.rotation.y;
+    press("#lb-save-draft");
+    press("#lb-delete");
+    const deletedCount = document.querySelectorAll("#lb-spots button").length;
+    press("#lb-undo");
+    click();
+    const restoredAngle = Number(angle.value);
+    press("#lb-rotate-right");
+    press("#lb-load-draft");
+    click();
+    const loadedAngle = Number(angle.value);
+    // Carry the selected angle into a replacement field's placement preview.
+    press("#lb-new-spot");
+    click();
+    press("#lb-delete");
+    const screen = world.clone().project(camera);
+    const event = {
+      clientX: rect.left + ((screen.x + 1) * rect.width) / 2,
+      clientY: rect.top + ((1 - screen.y) * rect.height) / 2,
+      button: 0,
+      bubbles: true,
+    };
+    canvas.dispatchEvent(new MouseEvent("mousemove", event));
+    canvas.dispatchEvent(new MouseEvent("mousedown", event));
+    window.dispatchEvent(new MouseEvent("mouseup", event));
+    const placedAngle = Number(angle.value);
+    const countAfterPlacement =
+      document.querySelectorAll("#lb-spots button").length;
+    // Use a well-spaced draft to verify Test play's map-to-play angle conversion.
+    press("#lb-save-draft");
+    const key = Object.keys(localStorage).find((k) =>
+      k.startsWith("spongebob-city:level-builder:draft:"),
+    )!;
+    const saved = JSON.parse(localStorage.getItem(key)!);
+    saved.state.spots.forEach((spot: any, i: number) => {
+      spot.x = (i % 4) * 15;
+      spot.z = Math.floor(i / 4) * 15;
+    });
+    localStorage.setItem(key, JSON.stringify(saved));
+    press("#lb-load-draft");
+    press("#lb-test");
     return {
+      placedAngle,
+      countAfterPlacement,
+      playedAngle: played?.spots[15].rotationY,
+
+      steppedAngle,
+      undoneAngle,
+      worldAngle,
+      deletedCount,
+      restoredAngle,
+      loadedAngle,
+      movedDistance: rotatedWorld.distanceTo(world),
       name: document.querySelector<HTMLInputElement>("#lb-name")!.value,
       expectedName: level.location,
       marker: [world.x, world.z],
@@ -129,6 +216,16 @@ test("builder markers align with the campaign map and default to the game camera
       returnedDistance: camera.position.distanceTo(target),
     };
   });
+  expect(result.placedAngle).toBeCloseTo(45, 2);
+  expect(result.countAfterPlacement).toBe(16);
+  expect(result.playedAngle).toBeCloseTo(Math.PI / 4, 3);
+  expect(result.steppedAngle).toBeCloseTo(15, 2);
+  expect(result.undoneAngle).toBeCloseTo(0, 2);
+  expect(result.worldAngle).toBeCloseTo(Math.PI / 4, 3);
+  expect(result.movedDistance).toBeCloseTo(0, 5);
+  expect(result.deletedCount).toBe(15);
+  expect(result.restoredAngle).toBeCloseTo(45, 2);
+  expect(result.loadedAngle).toBeCloseTo(45, 2);
   expect(result.name).toBe(result.expectedName);
   expect(result.marker[0]).toBeCloseTo(result.expectedMarker[0], 5);
   expect(result.marker[1]).toBeCloseTo(result.expectedMarker[1], 5);

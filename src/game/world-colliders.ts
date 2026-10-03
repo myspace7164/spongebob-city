@@ -42,6 +42,7 @@ export function gameplayColliders(
           1.45,
           y,
           y + 2.7,
+          plot.rotationY ?? 0,
         ),
       );
     else if (plot.kind === "pond")
@@ -71,8 +72,8 @@ export function gameplayColliders(
         solids.push(
           circleCollider(
             `shade-post-${plot.id}-${side}`,
-            plot.x + side * 1.5,
-            plot.z,
+            plot.x + side * 1.5 * Math.cos(plot.rotationY ?? 0),
+            plot.z - side * 1.5 * Math.sin(plot.rotationY ?? 0),
             0.12,
             y,
             y + 2.6,
@@ -87,6 +88,7 @@ export function gameplayColliders(
           0.35,
           y + 0.45,
           y + 0.78,
+          plot.rotationY ?? 0,
         ),
       );
     }

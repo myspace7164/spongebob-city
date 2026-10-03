@@ -90,3 +90,5 @@ Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or area
 - CampaignProgress.ownedHats records purchases once; ownership and selection survive losses, retries and level transitions. Co-op purchases use the authoritative room wallet.
 - Solo hat ownership and selection persist in browser storage; co-op collections stay with the authoritative room. Scene transforms update only ancestors needed for anchors, leaving one recursive update to the renderer.
 - The level builder opens with the normal game camera and uses the active campaign's scenery transform; previews return to the original session. Builder levels use their own site for map geography so Test play and applied layouts are not moved by campaign location randomization.
+
+- 2026-10-04: Add optional `rotationY` (Three.js Y angle in play coordinates, radians) to LevelSpot and CityPlot; omitted angles remain zero. Builder drafts keep map-local orientation and convert it for gameplay, with 15° controls, exact angles, mesh selection and undo.
