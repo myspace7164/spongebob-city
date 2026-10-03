@@ -332,3 +332,6 @@ export interface CollisionObstacle {
   halfX?: number;
   halfZ?: number;
 }
+
+/** Cosmetic simulation-time ambient poses; no gameplay effects. */
+export type AmbientActivity = "walk" | "sip" | "roll" | "smoke" | "cheer";

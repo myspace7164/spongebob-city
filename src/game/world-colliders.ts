@@ -1,3 +1,5 @@
+import { riversideBuddy as buddyConfig } from "../../config/riverside-buddy.ts";
+import { riversideBuddyPose } from "./riverside-buddy.ts";
 import { cast } from "../../config/characters.ts";
 import { castPosition } from "./cast.ts";
 import { cityConfig } from "../../config/city.ts";
@@ -105,6 +107,19 @@ export function gameplayColliders(
       ),
     );
   }
+  const buddy = riversideBuddyPose(state);
+  const buddyGround = groundAt(buddy.x, buddy.z);
+  solids.push(
+    circleCollider(
+      "character-buddy",
+      buddy.x,
+      buddy.z,
+      buddyConfig.collisionRadius,
+      buddyGround,
+      buddyGround + 2.25,
+      "character",
+    ),
+  );
   const villain = state.saboteur;
   const machineGround = groundAt(villain.x, villain.z);
   solids.push(

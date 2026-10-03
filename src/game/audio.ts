@@ -1,3 +1,5 @@
+import { riversideBuddy as buddyConfig } from "../../config/riverside-buddy.ts";
+import { riversideBuddyPose } from "./riverside-buddy.ts";
 import { cast, characterConfig } from "../../config/characters.ts";
 import { castPosition, characterAudibility } from "./cast.ts";
 import { citySounds, levelSounds } from "../../config/audio.ts";
@@ -257,12 +259,14 @@ export class CityAudio {
       this.stopCharacters();
       return;
     }
+    const buddy = riversideBuddyPose(s);
     const sources = [
       ...cast.map((actor, index) => ({
         id: actor.id as string,
         pitch: actor.pitch as number,
         ...castPosition(s, index),
       })),
+      { id: "buddy", pitch: buddyConfig.voicePitch, x: buddy.x, z: buddy.z },
       { id: "beton", pitch: 65, x: s.saboteur.x, z: s.saboteur.z },
       { id: "sponge", pitch: 420, x: listener.x, z: listener.z },
     ];
@@ -276,7 +280,9 @@ export class CityAudio {
         const speaking =
           source.id === "sponge"
             ? playerSpeaking
-            : (s.elapsed + index * 1.3) % 6 < 1.8;
+            : source.id === "buddy"
+              ? buddy.speaking
+              : (s.elapsed + index * 1.3) % 6 < 1.8;
         if (!audible || !speaking) {
           const old = this.characterVoices.get(source.id);
           if (old) {

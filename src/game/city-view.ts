@@ -1,3 +1,4 @@
+import { createRiversideBuddy } from "./riverside-buddy-view.ts";
 import { cast } from "../../config/characters.ts";
 import { castPosition } from "./cast.ts";
 import * as THREE from "three";
@@ -561,6 +562,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     const limbs = npc.children.filter((part) => part.name.endsWith("-mesh"));
     return { npc, limbs };
   });
+  const buddy = createRiversideBuddy();
+  root.add(buddy.root);
   const machine = new THREE.Group();
   machine.name = "roaming-asphaltinator";
   machine.position.set(c.machine.x, 0, c.machine.z + 2);
@@ -697,6 +700,9 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       root.updateMatrixWorld(true);
       const ground = (x: number, z: number) => groundAt(x, z);
       playerGround = ground(player.position.x, player.position.z);
+      buddy.update(s, ground);
+      buddy.root.position.x -= origin.x;
+      buddy.root.position.z -= origin.z;
       actors.forEach(({ npc, limbs }, index) => {
         const pose = castPosition(s, index);
         npc.position.set(
