@@ -102,3 +102,8 @@ temp/
 # Browser test artifacts
 /test-results/
 /playwright-report/
+
+# Hosted account storage (including SQLite WAL/session files)
+/data/
+*.sqlite-wal
+*.sqlite-shm

@@ -1,3 +1,12 @@
+import { isToolAvailable } from "./progression";
+import {
+  createPowerups,
+  isPowerupActive,
+  collectPowerups,
+  updatePowerups,
+  powerupMultiplier,
+} from "./powerups";
+import { powerupConfig } from "../../config/powerups";
 import { updateWater } from "./city-water";
 import { advanceCampaign, currentLevel, levelPosition } from "./campaign";
 import { cityConfig as c, cityTools, plotCooling } from "../../config/city";
@@ -15,6 +24,7 @@ import type {
 
 export function createCity(): CityState {
   return {
+    powerups: createPowerups(),
     plots: Array.from({ length: c.plotCount }, (_, id) => ({
       id,
       x: ((id % 4) - 1.5) * c.plotSpacing,
@@ -132,7 +142,20 @@ export function performCityAction(
   bubbles = false,
 ): string {
   if (s.outcome !== "playing") return s.feedback;
-  s.feedback = act(s, action, position, plotId, amount, bubbles);
+  const tool = cityTools.find((tool) => tool.id === action);
+  if (tool && !isToolAvailable(s, tool.id))
+    return (s.feedback = `${tool.name} unlocks in a later level. Use the available tools for this mission.`);
+  s.feedback = act(
+    s,
+    action,
+    position,
+    plotId,
+    action === "absorb" || action === "spray"
+      ? (amount ?? (action === "spray" ? c.sprayRate : c.absorbRate)) *
+          powerupMultiplier(s, "rhine")
+      : amount,
+    bubbles,
+  );
   return s.feedback;
 }
 function act(
@@ -146,7 +169,7 @@ function act(
   if (action === "power" || action === "maximum") {
     const maximum = action === "maximum";
     if (maximum && s.reused < c.maximumUnlock)
-      return `Reuse ${c.maximumUnlock} L to unlock MAXIMUM SCHWAMM!`;
+      return `Reuse ${c.maximumUnlock} L to unlock MAXIMUM SPONGE!`;
     const cooldown = maximum ? s.maximumCooldown : s.powerCooldown;
     if (cooldown > 0) return `Ability recharging: ${Math.ceil(cooldown)}s.`;
     if (maximum) {
@@ -157,8 +180,8 @@ function act(
       s.powerCooldown = c.powerCooldown;
     }
     return maximum
-      ? "MAXIMUM SCHWAMM! Whole-square absorption for 8 seconds!"
-      : "POREN-POWER! Temporary capacity: 1,400 L.";
+      ? "MAXIMUM SPONGE! Whole-square absorption for 8 seconds!"
+      : "PORE POWER! Temporary capacity: 1,400 L.";
   }
   if (action === "upgrade") {
     if (distance(levelPosition(s, c.sandy), position) > c.reach)
@@ -182,7 +205,7 @@ function act(
     return "KARATE! Asphaltinator disabled for 45 seconds. Protect the green plots!";
   }
   if (action === "patrick") {
-    if (s.patrickCooldown > 0)
+    if (s.patrickCooldown > 0 && !isPowerupActive(s, "patrick"))
       return `Patrick is resting: ${Math.ceil(s.patrickCooldown)}s.`;
     const plots = s.plots.filter(
       (p) =>
@@ -200,9 +223,13 @@ function act(
     return `Patrick: SMASH! ${plots.length * c.plotArea} m² unsealed. Now plant and water!`;
   }
   const p = s.plots.find((p) => p.id === plotId);
-  if (bubbles && !s.upgraded)
+  if (bubbles && !s.upgraded && !isPowerupActive(s, "bubbles"))
     return "Sandy unlocks bubble irrigation at her workshop (E, 250 coins).";
-  if (!p || distance(p, position) > (bubbles ? c.bubbleReach : c.reach))
+  if (
+    !p ||
+    distance(p, position) >
+      (bubbles ? c.bubbleReach : c.reach * powerupMultiplier(s, "bell"))
+  )
     return "Aim at a plot and move closer (highlighted plots are in reach).";
   if (action === "absorb") {
     const litres = absorb(s, p, amount);
@@ -232,7 +259,7 @@ function act(
   if (action === "karate" && p.kind !== "asphalt")
     return "Already unsealed. Choose a tree, rain garden or other upgrade.";
   if (action === "tree" && p.kind !== "soil")
-    return "Trees need unsealed soil. Use karate (3) or Patrick (P) first.";
+    return "Trees need unsealed soil. Use karate (3) or a Patrick boost first.";
   if (
     action !== "karate" &&
     action !== "tree" &&
@@ -247,7 +274,7 @@ function act(
   p.kind = action === "karate" ? "soil" : action;
   grantFunding(s, `build:${p.id}:${p.kind}`, funding.construction[p.kind]);
   return action === "tree"
-    ? "Thaddäus: Finally, a tree. Now give it water so it can make shade!"
+    ? "Squidward: Finally, a tree. Now give it water so it can make shade!"
     : `${tool.name} built · ${c.plotArea} m² transformed. ${s.budget} coins left.`;
 }
 
@@ -258,6 +285,7 @@ export function updateCity(
   position: Vector3State,
 ): void {
   if (s.outcome !== "playing" || !Number.isFinite(dt) || dt <= 0) return;
+  collectPowerups(s, position);
   s.elapsed += dt;
   const climate = currentLevel(s)?.weather;
   if (
@@ -272,7 +300,7 @@ export function updateCity(
   if (s.maximumTime > 0) {
     for (const p of s.plots)
       if (distance(p, position) <= c.maximumReach)
-        absorb(s, p, c.absorbRate * dt);
+        absorb(s, p, c.absorbRate * dt * powerupMultiplier(s, "rhine"));
   }
   for (const field of [
     "powerTime",
@@ -281,7 +309,7 @@ export function updateCity(
     "maximumCooldown",
     "patrickCooldown",
   ] as const)
-    s[field] = Math.max(0, s[field] - dt);
+    s[field] = Math.max(0, s[field] - dt * 1);
   updateSaboteur(s, dt);
   const cooling = s.plots.reduce((n, p) => {
     const wet =
@@ -290,7 +318,13 @@ export function updateCity(
   }, 0);
   const targetHeat = Math.max(
     c.minimumHeat,
-    Math.min(100, c.initialHeat + (raining ? 0 : c.dryHeatBoost) - cooling),
+    Math.min(
+      100,
+      c.initialHeat +
+        (raining ? 0 : c.dryHeatBoost) -
+        cooling -
+        (isPowerupActive(s, "lantern") ? powerupConfig.lanternCooling : 0),
+    ),
   );
   s.heat += (targetHeat - s.heat) * (1 - Math.exp(-c.heatResponse * dt));
   s.flood = Math.min(
@@ -301,6 +335,7 @@ export function updateCity(
     s.heat >= c.criticalDanger || s.flood >= c.criticalDanger
       ? s.dangerTime + dt
       : 0;
+  updatePowerups(s, dt, position);
   const m = cityMetrics(s),
     goals = c.goals;
   if (s.dangerTime >= c.dangerSeconds) s.outcome = "lost";

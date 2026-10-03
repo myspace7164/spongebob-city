@@ -9,6 +9,7 @@ import type {
   Vector3State,
 } from "../interfaces";
 import { createCity, cityMetrics } from "./city";
+import { placePowerups } from "./powerups";
 import { grantFunding } from "./funding";
 import { fundingConfig } from "../../config/funding";
 
@@ -38,6 +39,7 @@ function applyLayout(s: CityState, level: CityLevel): void {
     // Each level's street decides which techniques fit its fresh plots.
     site: position.site,
   }));
+  placePowerups(s, level.origin);
   s.feedback = level.objective;
   const start = levelPosition(s, cityConfig.machine);
   Object.assign(s.saboteur, start, {

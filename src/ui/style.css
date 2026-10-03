@@ -1402,3 +1402,600 @@ body:has(#campaign-story:not([hidden])) #target-info {
     animation: none;
   }
 }
+/* Bold in-bar gauges keep the important numbers in the colored scale itself. */
+#city-hud {
+  gap: 10px;
+}
+#city-hud .meter {
+  position: relative;
+  height: var(--gauge-height);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--hud-dark);
+  box-shadow:
+    0 5px 0 var(--border),
+    0 0 18px var(--gauge-glow);
+}
+#city-hud .meter > div {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  justify-content: center;
+  padding: 10px;
+  color: var(--tooth);
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  text-shadow:
+    0 2px 3px var(--gauge-text-shadow),
+    1px 0 2px var(--gauge-text-shadow);
+}
+#city-hud .meter strong {
+  font-size: clamp(15px, 1.25vw, 21px);
+  line-height: 1.15;
+  color: var(--tooth);
+}
+#city-hud progress {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--gauge-track);
+}
+#city-hud progress::-webkit-progress-bar {
+  background: var(--gauge-track);
+}
+#city-hud .heat progress::-webkit-progress-value {
+  background: var(--heat-intense);
+}
+#city-hud .flood progress::-webkit-progress-value {
+  background: var(--flood-intense);
+}
+#city-hud .sponge progress::-webkit-progress-value {
+  background: var(--sponge-intense);
+}
+#city-hud .heat progress::-moz-progress-bar {
+  background: var(--heat-intense);
+}
+#city-hud .flood progress::-moz-progress-bar {
+  background: var(--flood-intense);
+}
+#city-hud .sponge progress::-moz-progress-bar {
+  background: var(--sponge-intense);
+}
+#city-hud .meter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    var(--gauge-shine) 45%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  animation: gauge-shine 4s linear infinite;
+  pointer-events: none;
+}
+#city-hud .meter.critical {
+  border-color: var(--danger-border);
+  box-shadow: 0 0 20px var(--danger-glow);
+  animation: danger-pulse 0.8s ease-in-out infinite alternate;
+}
+#coin-wallet {
+  background: linear-gradient(
+    125deg,
+    var(--wallet-light),
+    var(--wallet-gold) 48%,
+    var(--wallet-orange)
+  );
+  box-shadow:
+    0 5px 0 var(--wallet-edge),
+    0 0 24px var(--wallet-glow),
+    inset 0 2px 0 var(--tooth);
+}
+#coin-wallet .wallet-icon {
+  font-size: 40px;
+}
+#funding-receipt {
+  z-index: 12;
+  font-size: 19px;
+  color: var(--reward-text);
+  background: var(--reward-background);
+  border: 3px solid var(--reward-border);
+  max-width: min(380px, calc(100vw - 32px));
+  white-space: normal;
+}
+#coin-burst i {
+  font-size: 36px;
+  filter: drop-shadow(0 3px 2px var(--coin-shadow));
+}
+#reward-shout {
+  position: fixed;
+  top: 29%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 14;
+  pointer-events: none;
+  color: var(--reward-gold);
+  font: 900 clamp(26px, 4vw, 54px)/1.1 var(--font-display);
+  text-shadow:
+    3px 3px 0 var(--reward-outline),
+    -2px -2px 0 var(--reward-outline),
+    0 0 20px var(--reward-shine);
+  text-align: center;
+  max-width: 75vw;
+}
+#reward-shout small {
+  display: block;
+  font-size: 0.4em;
+  color: var(--tooth);
+  margin-top: 8px;
+}
+#item-status {
+  font-size: clamp(14px, 1.3vw, 19px);
+  font-weight: 900;
+  line-height: 1.2;
+  text-shadow: 0 2px 0 var(--tooth);
+}
+#item-status.emergency {
+  color: var(--emergency-text);
+  animation: danger-pulse 0.8s ease-in-out infinite alternate;
+}
+#mission .mission-tab {
+  font-size: 17px;
+}
+#goals p {
+  font-size: 13px;
+  font-weight: 800;
+}
+#online-toggle {
+  position: fixed;
+  left: var(--edge);
+  bottom: 49px;
+  z-index: 4;
+  max-width: 280px;
+  font-size: 12px;
+  padding: 9px 12px;
+}
+#team-status {
+  position: fixed;
+  left: 50%;
+  top: 110px;
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: var(--hud-dark);
+  color: var(--tooth);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+#online-panel {
+  position: fixed;
+  z-index: 50;
+  inset: 5vh max(24px, calc((100vw - 720px) / 2));
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--panel-gradient);
+  border: 4px solid var(--border);
+  border-radius: 24px;
+  box-shadow: 0 0 0 100vmax var(--online-backdrop);
+}
+#online-panel h2 {
+  font: 900 44px/1 var(--font-display);
+  color: var(--aqua-deep);
+  margin: 8px 0 20px;
+}
+#online-panel h3 {
+  font-size: 23px;
+  margin-block: 20px 12px;
+}
+#online-panel p {
+  font-size: 15px;
+  line-height: 1.4;
+}
+#online-panel form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-block: 14px;
+}
+#online-panel label {
+  width: 100%;
+  font-weight: 900;
+}
+#online-panel input {
+  min-width: 160px;
+  width: 220px;
+  max-width: 100%;
+  padding: 12px;
+  border: 3px solid var(--border);
+  border-radius: 12px;
+  font: 800 19px var(--font);
+  color: var(--text);
+  background: var(--tooth);
+}
+#online-panel button {
+  margin: 6px 0;
+}
+#online-status {
+  font-weight: 900;
+  color: var(--aqua-deep);
+}
+#leaderboard {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 17px;
+}
+#leaderboard th {
+  text-align: left;
+  color: var(--aqua-deep);
+}
+#leaderboard th,
+#leaderboard td {
+  padding: 10px 5px;
+  border-bottom: 2px solid var(--leaderboard-line);
+}
+#leaderboard tr:first-child td {
+  font-weight: 900;
+  background: var(--leaderboard-winner);
+}
+#room-roster {
+  font-size: 18px;
+  line-height: 1.7;
+}
+@keyframes gauge-shine {
+  to {
+    background-position: -220% 0;
+  }
+}
+@keyframes danger-pulse {
+  to {
+    filter: brightness(1.2);
+    transform: scale(1.025);
+  }
+}
+@media (max-width: 1150px) {
+  #city-hud .meter {
+    height: 66px;
+  }
+  #city-hud .meter > div {
+    font-size: 14px;
+  }
+  #city-hud .meter strong {
+    font-size: 19px;
+  }
+  #budget {
+    font-size: 32px;
+  }
+  #team-status {
+    top: 144px;
+    font-size: 10px;
+  }
+  #online-toggle {
+    bottom: 44px;
+    font-size: 10px;
+    max-width: 210px;
+    padding: 5px 8px;
+  }
+}
+@media (max-height: 650px) {
+  #city-hud .meter {
+    height: 58px;
+  }
+  #city-hud .meter > div {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  #city-hud .meter strong {
+    font-size: 17px;
+  }
+  #goals p {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #city-hud .meter,
+  #city-hud .meter::after,
+  #item-status.emergency {
+    animation: none;
+  }
+}
+/* Online access stays beside the power dock, clear of the gauges. */
+#online-toggle {
+  top: auto;
+  bottom: 50px;
+  left: auto;
+  right: var(--edge);
+  width: 185px;
+  max-width: 185px;
+  padding: 9px 10px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+@media (max-width: 1150px) {
+  #online-toggle {
+    top: auto;
+    bottom: 50px;
+    max-width: 185px;
+    padding: 9px 10px;
+    font-size: 11px;
+  }
+}
+#online-panel button:not(.cta) {
+  border: 3px solid var(--border);
+  border-radius: 12px;
+  padding: 9px 14px;
+  background: var(--tool-gradient);
+  color: var(--text);
+  font: 900 14px var(--font);
+  box-shadow: var(--shadow-tool);
+  cursor: pointer;
+}
+#online-panel button:focus-visible,
+#online-panel input:focus-visible {
+  outline: 4px solid var(--accent);
+  outline-offset: 4px;
+}
+#powerup-panel {
+  display: none;
+  position: fixed;
+  z-index: 2;
+  top: var(--sidebar-top);
+  left: var(--edge);
+  width: 285px;
+  padding: 12px;
+  border: 3px solid var(--border);
+  border-radius: 18px;
+  background: var(--boost-panel);
+  box-shadow: var(--shadow-panel);
+  max-height: calc(100dvh - var(--sidebar-top) - 190px);
+  overflow-y: auto;
+}
+body:has(#crosshair:not([hidden])) #powerup-panel {
+  display: block;
+}
+#powerup-panel h3 {
+  margin: 0 0 8px;
+  font: 900 20px var(--font-display);
+}
+#powerup-panel h3 small {
+  display: block;
+  font: 800 9px var(--font);
+  margin-top: 4px;
+}
+#powerup-bag {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.pickup-slot {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  text-align: left;
+  gap: 2px 4px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  color: var(--text);
+  background: var(--tool-gradient);
+  cursor: pointer;
+  font: 800 11px var(--font);
+  min-height: 53px;
+}
+.pickup-slot > span {
+  grid-row: span 2;
+  font-size: 23px;
+  align-self: center;
+}
+.pickup-slot > b {
+  padding-right: 13px;
+  font-size: 10px;
+}
+.pickup-slot > small {
+  font-size: 8px;
+}
+.pickup-slot > kbd {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  font-size: 9px;
+}
+.pickup-slot:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.pickup-slot.boost-active {
+  opacity: 1;
+  background: var(--boost-active);
+  box-shadow: 0 0 8px var(--powerup-glow);
+}
+.pickup-slot.boost-ready {
+  background: var(--sponge-gradient);
+  animation: boost-ready 1.3s ease-in-out infinite alternate;
+}
+@keyframes boost-ready {
+  to {
+    box-shadow: 0 0 12px var(--powerup-glow);
+  }
+}
+@media (max-width: 1150px), (max-height: 700px) {
+  #powerup-panel {
+    width: 260px;
+    padding: 8px;
+  }
+  .pickup-slot {
+    min-height: 39px;
+    padding: 4px;
+    grid-template-columns: 20px 1fr;
+  }
+  .pickup-slot > span {
+    font-size: 19px;
+  }
+  .pickup-slot > b {
+    font-size: 9px;
+  }
+  #powerup-panel h3 {
+    font-size: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pickup-slot.boost-ready {
+    animation: none;
+  }
+}
+#powerup-guide {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin: 10px 0;
+}
+@media (max-width: 800px) {
+  #powerup-guide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* Pause ambient HUD motion with the mission, just like the scene. */
+body:has(#menu:not([hidden])) #city-hud .meter::after,
+body:has(#campaign-story:not([hidden])) #city-hud .meter::after,
+body:has(#inventory-panel:not([hidden])) #city-hud .meter::after,
+body:has(#online-panel:not([hidden])) #city-hud .meter::after,
+body:has(#result:not([hidden])) #city-hud .meter::after,
+body:has(#menu:not([hidden])) #city-hud .critical,
+body:has(#menu:not([hidden])) #item-status.emergency,
+body:has(#inventory-panel:not([hidden])) .boost-ready {
+  animation-play-state: paused;
+}
+/* Compact, calm HUD: color communicates state, motion is reserved for short rewards. */
+#city-hud .meter,
+#city-hud .meter.critical {
+  height: 50px;
+  border-radius: 12px;
+  animation: none;
+  box-shadow: 0 3px 0 var(--border);
+}
+#city-hud .meter::after {
+  animation: none;
+  background: none;
+}
+#city-hud .meter > div {
+  font-size: 11px;
+  padding: 6px 9px;
+}
+#city-hud .meter strong {
+  font-size: 15px;
+}
+#city-hud .meter.critical {
+  border-color: var(--danger-glow);
+}
+#coin-wallet {
+  box-shadow: 0 3px 0 var(--wallet-edge);
+}
+#coin-wallet .wallet-icon {
+  font-size: 28px;
+}
+#budget {
+  font-size: 28px;
+}
+#funding-receipt {
+  font-size: 14px;
+  padding: 6px 10px;
+  border-width: 2px;
+}
+#coin-burst i {
+  font-size: 24px;
+}
+#reward-shout {
+  font-size: clamp(20px, 2.5vw, 30px);
+  text-shadow: 1px 2px 0 var(--reward-outline);
+}
+#item-status {
+  font-size: 13px;
+  font-weight: 700;
+}
+#item-status.emergency {
+  animation: none;
+}
+#mission .mission-tab {
+  font-size: 13px;
+  padding: 7px 10px;
+}
+#mission h2 {
+  font-size: 19px;
+}
+#goals p {
+  font-size: 11px;
+  font-weight: 700;
+}
+#mission {
+  transform: none;
+}
+#powerup-panel {
+  width: 210px;
+  padding: 8px;
+  max-height: 130px;
+}
+#powerup-panel h3 {
+  font-size: 14px;
+}
+#powerup-panel h3 small {
+  font-size: 8px;
+}
+#powerup-bag,
+#powerup-guide {
+  display: block;
+}
+#powerup-bag .pickup-slot,
+#powerup-guide .pickup-slot {
+  width: 100%;
+  min-height: 44px;
+}
+.pickup-slot.boost-ready {
+  animation: none;
+}
+#powerup-guide {
+  max-width: 280px;
+}
+#online-panel h2 {
+  font-size: 30px;
+}
+#online-panel h3 {
+  font-size: 19px;
+}
+#online-panel p,
+#leaderboard {
+  font-size: 14px;
+}
+#room-roster {
+  font-size: 15px;
+}
+.tool-locked {
+  position: relative;
+  filter: grayscale(1);
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+.tool-lock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: var(--locked-overlay);
+  font: 800 12px var(--font);
+  color: var(--text);
+  text-align: center;
+  padding: 4px;
+}
+.inventory-item.tool-locked .tool-lock {
+  justify-content: flex-end;
+  background: var(--locked-guide-overlay);
+}

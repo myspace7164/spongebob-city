@@ -1,3 +1,7 @@
+import { registerTestAccount } from "./account-fixture";
+test.beforeEach(async ({ page }) => {
+  await registerTestAccount(page);
+});
 import { expect, test } from "@playwright/test";
 
 test("short talking briefing pauses the simulation on short screens", async ({
@@ -7,9 +11,11 @@ test("short talking briefing pauses the simulation on short screens", async ({
   await page.goto("/");
   await page.locator("#play").click();
   await expect(page.locator("#campaign-story")).toBeVisible();
-  await expect(page.locator("#story-fulltext")).toContainText("Burger gesucht");
   await expect(page.locator("#story-fulltext")).toContainText(
-    "Gib dem Regen ein Zuhause",
+    "Came for burgers",
+  );
+  await expect(page.locator("#story-fulltext")).toContainText(
+    "Give rain a home",
   );
   await expect(page.locator("#story-route li")).toHaveCount(4);
   await expect(page.locator("#story-start")).toBeInViewport();
@@ -25,7 +31,7 @@ test("short talking briefing pauses the simulation on short screens", async ({
   await expect(page.locator("#mission-layout")).toContainText(
     "Real street: Riehenring",
   );
-  await expect(page.locator("#goals")).toContainText("Hauseingang trocken");
+  await expect(page.locator("#goals")).toContainText("Keep the entrance dry");
   await page.keyboard.press("KeyH");
   await page.locator("#read-story").click();
   await expect(page.locator("#inventory-panel")).toBeHidden();
@@ -75,11 +81,9 @@ test("actual game loop automatically enters each next story and shows the ending
   }
   await expect(page.locator("#result")).toBeVisible();
   await expect(page.locator("#result-title")).toHaveText(
-    "Basel wird Schwammstadt",
+    "Basel goes sponge city!",
   );
-  await expect(page.locator("#campaign-ending")).toContainText(
-    "Viele kleine Lösungen",
-  );
+  await expect(page.locator("#campaign-ending")).toContainText("Small fixes");
   await expect(page.locator("#campaign-route .complete")).toHaveCount(4);
   await page.screenshot({ path: "/tmp/sponge-campaign-ending.png" });
   await page.locator("#restart").click();
@@ -193,9 +197,7 @@ test("briefing reveals briskly with a bounded wah-wah voice; mute and early star
   await expect(mascot).toHaveAttribute("data-speaking", "false", {
     timeout: 13000,
   });
-  await expect(page.locator("#story-copy")).toContainText(
-    "Gib dem Regen ein Zuhause.",
-  );
+  await expect(page.locator("#story-copy")).toContainText("Give rain a home.");
   await expect
     .poll(() =>
       page.evaluate(() => {

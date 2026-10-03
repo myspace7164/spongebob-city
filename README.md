@@ -6,14 +6,14 @@ Built on Three.js, TypeScript and Vite. See [the design](docs/design.md) for gam
 
 ## Run
 
-Requires Node.js 22.12+ (tested with Node.js 24).
+Requires Node.js 24+.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **I’M READY!** to read the arrival and current level story, then **Level starten** to capture the mouse. Escape pauses; click **I’M READY!** to resume. Leaving the tab pauses and clears input. The field guide explains every tool.
+Open the local URL printed by Vite in a desktop WebGL 2 browser. Claim a unique username through **PLAY ONLINE**, then create a co-op room or join a friend’s six-character code. Click **START LEVEL** to capture the mouse. **SOLO PRACTICE** plays locally without leaderboard scoring. Escape pauses your player; click the play button to resume. Leaving the tab pauses and clears input. The field guide explains every tool.
 
 | Control                            | Action                                                       |
 | ---------------------------------- | ------------------------------------------------------------ |
@@ -24,11 +24,9 @@ Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **I’M R
 | 2 + hold left click                | Water green plots or fill storage                            |
 | 3 + click                          | Break asphalt; near the machine, disable it                  |
 | 4–9 + click                        | Tree, rain garden, green roof/facade, pond, shade, tank      |
-| Q                                  | Poren-Power: temporary extra capacity                        |
-| P                                  | Patrick clears nearby asphalt for free                       |
-| X                                  | MAXIMUM SCHWAMM, unlocked after useful water reuse           |
 | E near Sandy / Dr. Beton           | Buy capacity and bubbles / disable sabotage                  |
 | Hold B after upgrade               | Bubble irrigation at extended range                          |
+| Q                                  | Activate the collected boost once                            |
 | H                                  | Pause and open the field guide                               |
 | M / Sound button                   | Mute or unmute game audio                                    |
 | C at source, then C at destination | Connect a roof/tank to permeable receiving ground or storage |
@@ -49,7 +47,7 @@ npm run build
 npm run preview
 ```
 
-`dist/` contains the production site, suitable for static hosting. Unit tests cover water conservation, capacity, construction prerequisites, budget, abilities, sabotage, loss and a complete winning strategy, alongside foundation controls and sandbox rules. Campaign tests complete all four production levels through legal actions, verify automatic progression and water conservation, and reject unsafe/cyclic runoff.
+`dist/` contains the client. Online play also requires the Node server described below; static hosting supports solo practice only. Unit tests cover water conservation, capacity, construction prerequisites, budget, abilities, sabotage, loss and a complete winning strategy, alongside foundation controls and sandbox rules. Campaign tests complete all four production levels through legal actions, verify automatic progression and water conservation, and reject unsafe/cyclic runoff.
 
 Browser checks require Chromium and its OS libraries:
 
@@ -78,7 +76,7 @@ The large gold wallet shows available coins throughout play. Useful first action
 
 Each neighbourhood loops its supplied stage track while playing. Pausing, story screens and mute stop the music and coin chime. Rain is mixed at 8% volume; levels use 22%.
 
-- `config/levels.ts`: short German briefings, per-level achievements/weather and independent locations/layouts, including the real Riehenring street; replace coordinates when the actual level layouts arrive.
+- `config/levels.ts`: short English briefings, per-level achievements/weather and independent locations/layouts, including the real Riehenring street; replace coordinates when the actual level layouts arrive.
 - `config/sites.ts`: street situations and which unsealing technique fits each one.
 - `src/game/campaign.ts`: shared achievement evaluation, automatic progression and runoff/recycling rules.
 - `src/ui/campaign.ts`: paused story screens, campaign route and ending.
@@ -110,4 +108,26 @@ Optional Blender exports go into `public/models/`. Set `character.url` or `level
 
 ## Limits and sources
 
-Four story levels: Riehenring on its real street, the other three in separate fictional layouts, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. No persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology, entrances and runoff links remain fictional; imported Basel buildings are background scenery. Only Riehenring is aligned to its real location; the other levels use offset background scenery, and their neighbourhoods lie outside the current map data. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
+Four story levels: Riehenring on its real street, the other three in separate fictional layouts, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. Cookie accounts and rankings persist on the host; live rooms stay in memory and end on server restart. No mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology, entrances and runoff links remain fictional; imported Basel buildings are background scenery. Only Riehenring is aligned to its real location; the other levels use offset background scenery, and their neighbourhoods lie outside the current map data. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
+
+## Online play and hosting
+
+`npm run dev` serves both Vite and the same-origin account/game API. For production, run `npm ci`, `npm run build`, then `NODE_ENV=production npm start`. The Node server serves `dist/`, `/api/` and live room events together on `PORT` (default 3000). Put it behind HTTPS; production cookies require HTTPS. After building, the server runs with production dependencies; `tsx` is declared as a runtime dependency.
+
+Mount durable storage and set `DATABASE_PATH` (default `data/accounts.sqlite`). Usernames are case-insensitively unique, 3–20 letters/numbers/underscores. Accounts, hashed session records and rankings live in SQLite on the game host. The one-year HttpOnly, SameSite cookie remembers the account; clearing it loses access to that identity. No passwords, email addresses or browser-submitted scores are collected. Database files and session data are ignored by git. Back up the database using SQLite’s backup mechanism, including ongoing writes.
+
+For a container host, build the supplied `Dockerfile` and attach a persistent volume at `/data`. Run **one server instance** behind your HTTPS proxy with streaming enabled (no buffering of `/api/events`). A static-only provider needs a Node service or migration to a container/Node host. Do not use ephemeral filesystem storage for accounts. The current hosting provider has not yet been supplied, so no hosted deployment has been performed.
+
+Rooms support four players. Players share construction, missions, budget, reservoir, weather and antagonist; each has their own position, selected tool and runoff source. Everyone sees named animated teammates. Weather continues while at least one player is playing; individual pauses do not freeze teammates. Input stops after a lost heartbeat, event streams reconnect automatically, and the browser can rejoin its room within 90 seconds. The room leader alone can retry after a finished attempt.
+
+The leaderboard ranks completed campaigns first, then personal city-funding grants. The server validates movement, reach, prices and useful actions and writes rewards once; clients cannot submit balances or scores. Solo practice is unranked. Rooms are temporary; accounts and rankings survive restarts.
+
+## Progressive inventory and boosts
+
+Level 1 introduces absorb, spray, karate and rain gardens. Trees unlock in level 2; roofs and shade in level 3; ponds and tanks in level 4. Locked slots are gray with a lock and the number of levels remaining. Mouse, keyboard and server validation enforce the same rules.
+
+Walk over a ground collectible, then press **Q** to use it once. There is one shared held/active slot; another pickup replaces it and cancels its previous effect. Each level starts with one Pore Power drop. New drops appear sparingly, at least 60 seconds apart, with at most one waiting on the ground.
+
+The ten-drop pool includes six Basel boosts: Läckerli Rush (50% faster sprint, 14s), Confetti Funding (double grants, 18s), Rhine Flow (double water transfer, 16s), Basilisk Guard (block sabotage, 18s), Fasnacht Lantern (20-point cooling, 18s), and Münster Bell (double reach, 16s). Existing powers are also collectibles: Pore Power (1,400 L, 12s), Patrick Smash (automatic nearby unsealing, 12s), Maximum Sponge (4,000 L and area absorption, 8s), and Sandy Bubbles (hold B for distant watering, 18s).
+
+Capacity expiry preserves collected water. Sandy's permanent upgrade remains available. Pickups reset with each level/retry; co-op collection and activation are server-authoritative. Original miniature props and durations live in config/powerups.ts and src/game/powerup-view.ts.

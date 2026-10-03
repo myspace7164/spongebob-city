@@ -85,13 +85,25 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     root.add(tile);
     // A skirt below the surface keeps tiles from floating on slopes.
     const ground = box(tile, [4.7, 0.5, 4.7], [0, -0.18, 0], "asphalt");
+    const markings = new THREE.Group();
+    markings.name = "sealed-markings";
+    tile.add(markings);
+    for (const x of [-1.65, 1.65])
+      box(markings, [0.13, 0.025, 3.8], [x, 0.08, 0], "sealed-line");
+    const openEdge = new THREE.Group();
+    openEdge.name = "unsealed-edge";
+    tile.add(openEdge);
+    for (const x of [-2.25, 2.25])
+      box(openEdge, [0.15, 0.035, 4.5], [x, 0.09, 0], "open-edge");
+    for (const z of [-2.25, 2.25])
+      box(openEdge, [4.5, 0.035, 0.15], [0, 0.09, z], "open-edge");
     const props = new THREE.Group();
     tile.add(props);
     const water = box(tile, [4.4, 0.05, 4.4], [0, 0.13, 0], "water");
     const material = water.material as THREE.MeshLambertMaterial;
     material.transparent = true;
     material.opacity = 0.5;
-    return { tile, ground, props, water, signature: "" };
+    return { tile, ground, props, water, markings, openEdge, signature: "" };
   });
   const border = new THREE.Mesh(
     new THREE.BoxGeometry(4.9, 0.2, 4.9),
@@ -150,7 +162,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   for (const [kind, text, x, z] of [
     ["patrick", "Patrick · P: unseal", -11, -3],
     ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
-    ["squid", "Thaddäus · more shade!", 12, -5],
+    ["squid", "Squidward · more shade!", 12, -5],
     ["krabs", "Mr. Krabs · budget", -11, 2],
   ] as const) {
     const npc = makeCharacter(kind);
@@ -322,8 +334,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
             );
             const marker = label(
               level.id === "voltanord"
-                ? "SCHULE · KEEP DRY"
-                : "EINGANG · KEEP DRY",
+                ? "SCHOOL · KEEP DRY"
+                : "ENTRANCE · KEEP DRY",
             );
             marker.position.set(
               p.x - origin.x,
@@ -359,6 +371,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
                 : "grass",
           ),
         );
+        view.markings.visible = p.kind === "asphalt";
+        view.openEdge.visible = p.kind !== "asphalt";
         view.water.visible = p.surface > 10;
         view.water.scale.y = Math.max(1, Math.min(8, p.surface / 120));
         (view.water.material as THREE.MeshLambertMaterial).opacity = Math.min(

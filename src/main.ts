@@ -1,3 +1,4 @@
+import { isToolAvailable } from "./game/progression";
 import * as THREE from "three";
 import "./ui/style.css";
 import { gameConfig } from "../config/game";
@@ -21,7 +22,17 @@ import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
 import { CityUI } from "./ui/city";
-import type { CityAction, TerrainGrid } from "./interfaces";
+import {
+  activatePowerup,
+  powerupMultiplier,
+  isPowerupActive,
+} from "./game/powerups";
+import { createPowerupView } from "./game/powerup-view";
+import { PowerupUI } from "./ui/powerups";
+import { OnlineConnection } from "./game/network";
+import { createRemotePlayers } from "./game/remote-players";
+import { OnlineUI } from "./ui/online";
+import type { RoomSnapshot, CityAction, TerrainGrid } from "./interfaces";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game")!;
 const menu = document.querySelector<HTMLElement>("#menu")!;
@@ -86,30 +97,104 @@ function startGame(): void {
   placeScenery();
   const ui = new CityUI(
     (tool) => {
+      if (!isToolAvailable(city, tool)) return;
       city.selected = tool;
+      selected = tool;
       ui.render(city, targetId, inReach());
     },
     () => {
       if (input.active && city.outcome === "playing") audio.playFunding();
     },
   );
+  const powerupView = createPowerupView(scene);
+  const powerupUI = new PowerupUI(() => {
+    if (network.room) void network.action({ powerup: true });
+    else activatePowerup(city);
+    hudTime = 0;
+  });
+  const remotePlayers = createRemotePlayers(scene);
+  let selected = city.selected;
+  let receivedCode: string | null = null;
+  let pendingJump = false;
+  const network = new OnlineConnection(receiveRoom, (text) =>
+    onlineUI.status(text),
+  );
+  const onlineUI = new OnlineUI(network, receiveRoom, () => {
+    remotePlayers.clear();
+    receivedCode = null;
+    city = createCampaign();
+    checkpoint = structuredClone(city);
+    player = spawnPlayer();
+    storyPending = true;
+    placeScenery();
+    menu.hidden = false;
+  });
+  function receiveRoom(room: RoomSnapshot | null): void {
+    onlineUI?.renderRoom(room);
+    if (!room) {
+      remotePlayers.clear();
+      return;
+    }
+    const changedLevel = city.campaign!.level !== room.city.campaign!.level;
+    const freshRoom =
+      receivedCode !== room.code ||
+      room.city.elapsed + 1 < city.elapsed ||
+      (city.outcome !== "playing" && room.city.outcome === "playing");
+    receivedCode = room.code;
+    const ledger = city.funding;
+    city = room.city;
+    city.selected = selected;
+    if (!changedLevel && !freshRoom) {
+      ledger.earned = city.funding.earned;
+      ledger.claimed = city.funding.claimed;
+      city.funding = ledger;
+    }
+    const me = room.players.find((p) => p.id === network.account?.id);
+    if (me) {
+      if (changedLevel || freshRoom) selected = me.selected;
+      city.selected = selected;
+      if (
+        Math.hypot(
+          player.position.x - me.player.position.x,
+          player.position.z - me.player.position.z,
+        ) > 1.5 ||
+        changedLevel ||
+        freshRoom
+      )
+        player = structuredClone(me.player);
+    }
+    if (changedLevel || freshRoom) {
+      checkpoint = structuredClone(city);
+      placeScenery();
+      storyPending = true;
+      showStory();
+    }
+    if (city.outcome !== "playing" && input.active) document.exitPointerLock();
+    hudTime = 0;
+  }
   canvas.tabIndex = 0;
   let targetId: number | null = null;
   let accumulator = 0,
     lastTime = performance.now(),
     hudTime = 0;
+  let networkTime = 0;
   const target = new THREE.Vector3();
   const inReach = () => {
     const plot = city.plots.find((p) => p.id === targetId);
     return (
       !!plot &&
       Math.hypot(plot.x - player.position.x, plot.z - player.position.z) <=
-        (input.held("KeyB") && city.upgraded
+        (input.held("KeyB") &&
+        (city.upgraded || isPowerupActive(city, "bubbles"))
           ? cityConfig.bubbleReach
-          : cityConfig.reach)
+          : cityConfig.reach * powerupMultiplier(city, "bell"))
     );
   };
   const reset = () => {
+    if (network.room) {
+      void network.action({ action: "reset" });
+      return;
+    }
     audio.update(false, false);
     city =
       city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
@@ -131,7 +216,13 @@ function startGame(): void {
     menu.hidden = false;
   };
   const act = (action: CityAction) =>
-    audio.performAction(city, action, player.position, targetId);
+    network.room
+      ? void network.action({
+          action,
+          target: targetId,
+          selected: city.selected,
+        })
+      : audio.performAction(city, action, player.position, targetId);
   ui.render(city, targetId, false);
   campaignUI.render(city);
   const resize = () => {
@@ -153,6 +244,7 @@ function startGame(): void {
     try {
       canvas.focus({ preventScroll: true });
       await canvas.requestPointerLock();
+      if (network.room) void network.action({ ready: true });
       storyPending = false;
       campaignUI.hide();
     } catch {
@@ -162,9 +254,10 @@ function startGame(): void {
         message.textContent;
     }
   };
-  play.addEventListener("click", () =>
-    storyPending ? showStory() : void enterGame(),
-  );
+  play.addEventListener("click", () => {
+    if (!onlineUI.requireAccount()) return;
+    storyPending ? showStory() : void enterGame();
+  });
   document
     .querySelector("#story-start")!
     .addEventListener("click", () => void enterGame());
@@ -176,7 +269,10 @@ function startGame(): void {
         "Mouse capture was blocked. Open the game in its own browser tab and try again."),
   );
   document.addEventListener("pointerlockchange", () => {
-    if (!input.active) audio.update(false, false);
+    if (!input.active) {
+      audio.update(false, false);
+      if (network.room) void network.action({ ready: false });
+    }
     if (!input.active && city.campaign) city.campaign.connectFrom = null;
     menu.hidden =
       input.active || ui.open || campaignUI.open || city.outcome !== "playing";
@@ -192,11 +288,21 @@ function startGame(): void {
       reset();
       return;
     }
-    if (code === "KeyC") connectRunoff(city, targetId, player.position);
-    if (code === "KeyV") recyclePlot(city, targetId, player.position);
-    if (code === "KeyQ") act("power");
-    if (code === "KeyX") act("maximum");
-    if (code === "KeyP") act("patrick");
+    if (code === "KeyC") {
+      if (network.room)
+        void network.action({ action: "connect", target: targetId });
+      else connectRunoff(city, targetId, player.position);
+    }
+    if (code === "KeyV") {
+      if (network.room)
+        void network.action({ action: "recycle", target: targetId });
+      else recyclePlot(city, targetId, player.position);
+    }
+    if (code === "KeyQ") {
+      if (network.room) void network.action({ powerup: true });
+      else activatePowerup(city);
+      hudTime = 0;
+    }
     if (code === "KeyE") {
       const machine = city.saboteur;
       if (
@@ -283,8 +389,12 @@ function startGame(): void {
     if (active) {
       input.updateLook(dt);
       const actions = input.consumeActions();
-      if (actions.selection !== null)
-        city.selected = cityTools[actions.selection].id;
+      if (actions.selection !== null) {
+        const tool = cityTools[actions.selection];
+        if (isToolAvailable(city, tool.id)) selected = city.selected = tool.id;
+        else
+          city.feedback = `${tool.name} is locked. Complete this level to unlock more tools.`;
+      }
       const machine = city.saboteur;
       if (
         actions.use &&
@@ -303,12 +413,15 @@ function startGame(): void {
         act(city.selected);
       accumulator += dt;
       while (accumulator >= gameConfig.fixedStep) {
+        const movement = input.consume();
+        pendingJump ||= movement.jump;
         updatePlayer(
           player,
-          input.consume(),
+          movement,
           input.yaw,
           gameConfig.fixedStep,
           groundAt,
+          powerupMultiplier(city, "laeckerli"),
         );
         if (currentLevel(city)?.site)
           clampToLevel(player.position, currentLevel(city)?.site);
@@ -331,16 +444,17 @@ function startGame(): void {
           !input.held("KeyB") &&
           (city.selected === "absorb" || city.selected === "spray")
         )
-          audio.performAction(
-            city,
-            city.selected,
-            player.position,
-            targetId,
-            (city.selected === "absorb"
-              ? cityConfig.absorbRate
-              : cityConfig.sprayRate) * gameConfig.fixedStep,
-          );
-        if (input.held("KeyB"))
+          if (!network.room)
+            audio.performAction(
+              city,
+              city.selected,
+              player.position,
+              targetId,
+              (city.selected === "absorb"
+                ? cityConfig.absorbRate
+                : cityConfig.sprayRate) * gameConfig.fixedStep,
+            );
+        if (input.held("KeyB") && !network.room)
           audio.performAction(
             city,
             "spray",
@@ -351,7 +465,8 @@ function startGame(): void {
           );
         const spongeBeforeUpdate = city.sponge;
         const previousLevel = city.campaign!.level;
-        updateCity(city, gameConfig.fixedStep, player.position);
+        if (!network.room)
+          updateCity(city, gameConfig.fixedStep, player.position);
         if (city.campaign!.level !== previousLevel) {
           player = spawnPlayer();
           input.yaw = 0;
@@ -374,8 +489,48 @@ function startGame(): void {
         accumulator -= gameConfig.fixedStep;
       }
     }
+    if (network.room) {
+      remotePlayers.update(
+        network.room.players,
+        network.account!.id,
+        time / 1000,
+      );
+      networkTime -= dt;
+      if (networkTime <= 0) {
+        networkTime = 0.1;
+        const movement = active
+          ? input.consume()
+          : { forward: 0, right: 0, run: false, jump: false };
+        movement.jump = pendingJump;
+        pendingJump = false;
+        void network.command({
+          movement,
+          yaw: input.yaw,
+          selected: city.selected,
+          ready: active,
+          ...(active &&
+          (input.using || input.held("KeyB")) &&
+          (city.selected === "absorb" ||
+            city.selected === "spray" ||
+            input.held("KeyB"))
+            ? {
+                action: input.held("KeyB") ? "spray" : city.selected,
+                target: targetId,
+                bubbles: input.held("KeyB"),
+              }
+            : {}),
+        });
+      }
+      if (!network.connected && input.active) document.exitPointerLock();
+    }
     if (!active) audio.update(false, false);
     placeScenery();
+    powerupView.update(
+      city,
+      groundAt,
+      city.elapsed,
+      matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
     if (characterModel)
       updateSpongeWaterState(characterModel, city.sponge, spongeCapacity(city));
     world.update(
@@ -413,7 +568,7 @@ function startGame(): void {
       targetId,
       input.held("KeyB") && city.upgraded
         ? cityConfig.bubbleReach
-        : cityConfig.reach,
+        : cityConfig.reach * powerupMultiplier(city, "bell"),
       active
         ? input.held("KeyB") && city.upgraded
           ? "spray"
@@ -425,7 +580,10 @@ function startGame(): void {
     );
     hudTime -= dt;
     if (hudTime <= 0) {
+      document.getElementById("sprint-status")!.textContent =
+        active && input.sprinting ? "RUNNING" : "sprint";
       ui.render(city, targetId, inReach());
+      powerupUI.render(city);
       campaignUI.render(city);
       hudTime = 0.1;
     }

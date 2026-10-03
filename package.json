@@ -9,19 +9,23 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "tsx --test tests/*.test.ts",
     "lint": "tsc --noEmit",
-    "fmt": "prettier --write src config tests index.html package.json tsconfig.json playwright.config.ts",
-    "test:browser": "playwright test"
+    "fmt": "prettier --write src config server tests vite.config.ts index.html package.json tsconfig.json playwright.config.ts",
+    "test:browser": "playwright test",
+    "start": "tsx server/index.ts"
   },
   "dependencies": {
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.4",
     "@types/three": "^0.186.0",
     "prettier": "^3.9.9",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.2"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

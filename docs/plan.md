@@ -131,3 +131,54 @@ Needs: T11
 Files: config/equipment.ts, config/beton.ts, src/interfaces.ts, src/game/held-tools.ts, src/game/locomotion.ts, src/game/sabotage.ts, src/game/city.ts, src/game/campaign.ts, src/game/characters.ts, src/game/city-view.ts, src/game/world.ts, src/main.ts, src/ui/city.ts, index.html, tests/sabotage.test.ts, tests/locomotion.test.ts, tests/city.test.ts, tests/campaign.test.ts, tests/browser/equipment.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/style-guide.md
 Done when: arms and legs animate while walking or Shift-sprinting, idle arms are relaxed, teeth are white and every selected inventory tool appears in SpongeBob's moving hand with either model; Dr. Beton roams, visibly approaches the chosen plot and seals only after reaching it; he looks menacing, can be intercepted at his real position, and pause/reset/terrain and water conservation remain correct.
 Notes: original procedural props and cartoon villain geometry; deterministic pseudo-random roaming permits reproducible checks. See handoff/t12-held-tools-villain.md.
+
+## M9 Online play and stronger presentation
+
+### Chunk I · in order
+
+#### T13 Hosted accounts, cooperative multiplayer and leaderboard
+
+Owner: @myspace7164
+Needs: T12
+Files: server/, vite.config.ts, src/interfaces.ts, src/game/network.ts, src/game/remote-players.ts, src/ui/online.ts, src/main.ts, index.html, package.json, tests/online.test.ts, tests/browser/online.spec.ts, README.md, docs/design.md, docs/decisions.md
+Done when: case-insensitive unique usernames persist in the host database and return through an HttpOnly cookie; players create/join four-player rooms and see one another and shared server-authoritative city changes; disconnects/reconnects work; server-earned personal funding and completed campaigns appear on a persistent leaderboard; dev and production run the same API with durable host storage.
+Notes: choose cooperative shared city, budget and water reserve; per-player selection, position and runoff source. Node 24 server, SQLite on a persistent volume, same-origin HTTP actions and live event stream. Local solo remains available when the server is unavailable. Hosting deployment depends on knowing the current provider.
+
+#### T14 English, vivid gauges and amplified rewards
+
+Owner: @myspace7164
+Needs: T13
+Files: config/levels.ts, config/sites.ts, config/city.ts, src/game/city.ts, src/game/city-view.ts, src/ui/campaign.ts, src/ui/city.ts, src/ui/style.css, src/ui/theme.css, index.html, tests/browser/funding.spec.ts, tests/browser/game.spec.ts, docs/style-guide.md, README.md
+Done when: every player-facing sentence is English; heat, flood and water use compact colorful gauges with labels and values inside; meaningful funding gains trigger punchier coin bursts and readable reward callouts; mission information stays concise and calm; tested desktop sizes and reduced motion remain usable.
+
+## M10 Basel pickups: collect now, activate later
+
+### Chunk J · in order
+
+#### T15 Six timed Basel power-ups
+
+Owner: @myspace7164
+Needs: T13, T14
+Files: config/powerups.ts, src/interfaces.ts, src/game/powerups.ts, src/game/powerup-view.ts, src/game/city.ts, src/game/campaign.ts, src/game/funding.ts, src/game/player.ts, src/main.ts, server/rooms.ts, src/ui/powerups.ts, src/ui/style.css, src/ui/theme.css, index.html, tests/powerups.test.ts, tests/browser/powerups.spec.ts, README.md, docs/design.md, docs/decisions.md
+Done when: the pool includes six Basel-themed boosts and the four existing powers as visible collectibles; one held/active slot activates once with Q and is replaced by a new pickup; drops appear sparingly with at most one on the ground; temporary effects expire without deleting water; levels reset pickups; multiplayer validates claims and activation.
+Notes: Läckerli Rush = faster sprint; Confetti Funding = double grants; Rhine Flow = faster water transfer; Basilisk Guard = sabotage protection; Fasnacht Lantern = temporary cooling; Münster Bell = extended reach. The co-op bag and effects belong to the team, matching the shared funding and reservoir.
+
+T15 revision (latest user direction): one power-up slot, activated only with Q; picking up another replaces the carried or active boost. Each drop is used once. Keep the Basel and existing-power types in the pool but show only one ground pickup at a time, with a first Pore Power charge and sparse subsequent drops (about every 60 seconds). Remove the multi-item bag and separate boost hotkeys. Add pronounced asphalt/soil contrast. Münster Bell gives extended action reach so it remains useful with single-use boosts.
+
+## M11 Progressive inventory and clearer missions
+
+#### T16 Level-based tool unlocks and mission cleanup
+
+Owner: @myspace7164
+Needs: T15
+Files: config/progression.ts, src/game/progression.ts, src/game/city.ts, server/rooms.ts, src/ui/city.ts, src/ui/style.css, src/main.ts, index.html, tests/progression.test.ts, tests/browser/progression.spec.ts, README.md, docs/design.md, docs/decisions.md
+Done when: level 1 offers only absorb/spray/karate/rain gardens; level 2 unlocks trees, level 3 roofs/shade, level 4 ponds/tanks; gray locked slots show a lock and remaining level count; click, keyboard and server actions enforce the same rule; the guide teaches available tools first and the mission list is shorter without changing achievement requirements.
+
+T15 drop timing update: new drops every 60 seconds of active gameplay, as requested; keep at most one uncollected drop on the ground.
+
+#### T17 Reliable Shift sprint
+
+Owner: @myspace7164
+Needs: T16
+Files: src/game/input.ts, src/main.ts, index.html, tests/input.test.ts, tests/browser/input.spec.ts, tests/online.test.ts
+Done when: either Shift key increases movement speed in solo and server-authoritative co-op, including Shift held before mouse capture or keyboards with missing physical Shift codes; releasing Shift restores walking; a small running indicator confirms activation.

@@ -1,3 +1,7 @@
+import { registerTestAccount } from "./account-fixture";
+test.beforeEach(async ({ page }) => {
+  await registerTestAccount(page);
+});
 import { enterCampaign } from "./campaign-entry";
 import { expect, test } from "@playwright/test";
 
@@ -28,10 +32,10 @@ test("city renders, water loop and construction work, powers and pause/reset are
   await page.mouse.up();
   await expect(page.locator("#target-info")).toContainText("Unsealed soil");
   await expect(page.locator("#budget")).toContainText(/2['’]210/);
-  await page.keyboard.press("Digit4");
+  await page.keyboard.press("Digit5");
   await page.mouse.down();
   await page.mouse.up();
-  await expect(page.locator("#target-info")).toContainText("Tree");
+  await expect(page.locator("#target-info")).toContainText("Rain garden");
   await page.keyboard.press("Digit1");
   await page.mouse.down();
   await page.waitForTimeout(600);
@@ -41,18 +45,19 @@ test("city renders, water loop and construction work, powers and pause/reset are
   await page.mouse.down();
   await page.waitForTimeout(650);
   await page.mouse.up();
-  await expect(page.locator("#target-info")).toContainText(
-    /Tree.*[1-9][0-9]+ L retained/,
+  await expect(page.locator("#goals")).toContainText(
+    /Litres reused: [1-9][0-9]* /,
   );
+  await page.keyboard.down("KeyA");
+  await page.keyboard.down("KeyW");
+  await expect(page.locator("#powerup-bag")).toContainText("ACTIVATE ONCE");
+  await page.keyboard.up("KeyA");
+  await page.keyboard.up("KeyW");
   await page.keyboard.press("KeyQ");
   await expect(page.locator("#sponge-value")).toContainText(/1['’]400 L/);
-  await page.keyboard.press("KeyP");
-  await expect(page.locator("#item-status")).toContainText("Patrick");
+  await expect(page.locator("#powerup-bag .pickup-slot")).toHaveCount(1);
   await page.keyboard.press("Digit9");
-  await expect(page.locator("#hotbar .slot").nth(8)).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(page.locator("#hotbar .slot").nth(8)).toBeDisabled();
   await page.keyboard.press("KeyH");
   await expect(page.locator("#inventory-panel")).toBeVisible();
   await expect(page.locator("#menu")).toBeHidden();

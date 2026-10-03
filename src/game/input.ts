@@ -17,6 +17,8 @@ const movementKeys = new Set([
 /** Prefer the printed WASD key, with physical codes as a fallback. */
 export function keyCode(event: Pick<KeyboardEvent, "key" | "code">): string {
   const key = event.key.toLowerCase();
+  if (key === "shift")
+    return event.code === "ShiftRight" ? "ShiftRight" : "ShiftLeft";
   if (key.length === 1 && /[a-z]/.test(key)) return `Key${key.toUpperCase()}`;
   if (/^[1-9]$/.test(key)) return `Digit${key}`;
   return event.code;
@@ -27,6 +29,7 @@ export class GameInput {
   yaw = 0;
   pitch = 0.28;
   private keys = new Map<string, string>();
+  private shiftModifier = false;
   private jump = false;
   private click = false;
   private clickHeld = false;
@@ -36,6 +39,8 @@ export class GameInput {
     window.addEventListener("keydown", (event) => {
       if (!this.active) return;
       const code = keyCode(event);
+      if (typeof event.shiftKey === "boolean")
+        this.shiftModifier = event.shiftKey;
       if (code === "Escape") {
         this.clear();
         document.exitPointerLock();
@@ -49,11 +54,15 @@ export class GameInput {
       if (/^Digit[1-9]$/.test(code))
         this.selection = Number(code.slice(-1)) - 1;
     });
-    window.addEventListener("keyup", (event) =>
-      this.keys.delete(event.code || keyCode(event)),
-    );
+    window.addEventListener("keyup", (event) => {
+      this.keys.delete(event.code || keyCode(event));
+      if (typeof event.shiftKey === "boolean")
+        this.shiftModifier = event.shiftKey;
+      else if (keyCode(event).startsWith("Shift")) this.shiftModifier = false;
+    });
     document.addEventListener("mousemove", (event) => {
       if (!this.active) return;
+      this.shiftModifier = event.shiftKey;
       this.yaw -= event.movementX * gameConfig.mouseSensitivity;
       this.pitch = Math.max(
         -0.1,
@@ -87,6 +96,7 @@ export class GameInput {
   }
   clear(): void {
     this.keys.clear();
+    this.shiftModifier = false;
     this.jump = false;
     this.click = false;
     this.clickHeld = false;
@@ -101,11 +111,16 @@ export class GameInput {
     const input = {
       forward: down("KeyW", "ArrowUp") - down("KeyS", "ArrowDown"),
       right: down("KeyD", "ArrowRight") - down("KeyA", "ArrowLeft"),
-      run: !!down("ShiftLeft", "ShiftRight"),
+      run: this.sprinting,
       jump: this.jump,
     };
     this.jump = false;
     return input;
+  }
+  get sprinting(): boolean {
+    return (
+      this.shiftModifier || this.held("ShiftLeft") || this.held("ShiftRight")
+    );
   }
   held(code: string): boolean {
     return [...this.keys.values()].includes(code);

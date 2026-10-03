@@ -103,6 +103,7 @@ export interface LevelSite {
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
 }
 export interface CityState {
+  powerups: PowerupState;
   plots: CityPlot[];
   elapsed: number;
   heat: number;
@@ -205,4 +206,60 @@ export interface CityMetrics {
   retained: number;
   unsealedArea: number;
   temperature: number;
+}
+
+/** Cookie identity is opaque; only public account information crosses the API. */
+export interface Account {
+  id: string;
+  username: string;
+}
+export interface LeaderboardEntry {
+  username: string;
+  funding: number;
+  campaigns: number;
+}
+export interface OnlinePlayer extends Account {
+  player: PlayerState;
+  selected: CityTool;
+  ready: boolean;
+}
+export interface RoomSnapshot {
+  code: string;
+  hostId: string;
+  revision: number;
+  city: CityState;
+  players: OnlinePlayer[];
+}
+/** Clients send input/actions, never city state, positions, funding or scores. */
+export interface OnlineCommand {
+  movement?: MovementInput;
+  yaw?: number;
+  selected?: CityTool;
+  ready?: boolean;
+  action?: CityAction | "connect" | "recycle" | "reset";
+  target?: number | null;
+  bubbles?: boolean;
+  powerup?: boolean;
+}
+
+export type PowerupKind =
+  | "laeckerli"
+  | "confetti"
+  | "rhine"
+  | "basilisk"
+  | "lantern"
+  | "bell"
+  | "pore"
+  | "patrick"
+  | "maximum"
+  | "bubbles";
+/** Pickups and stored charges are separate: collection never activates a boost. */
+export interface PowerupState {
+  pickups: { id: PowerupKind; x: number; z: number; collected: boolean }[];
+  held: PowerupKind | null;
+  active: PowerupKind | null;
+  remaining: number;
+  dropIn: number;
+  dropIndex: number;
+  pulseIn: number;
 }

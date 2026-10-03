@@ -4,7 +4,7 @@ A desktop 3D learning game about turning a sealed, hot square into a sponge city
 
 ## Campaign
 
-Short, punchy German briefings adapt the supplied arrival, four neighbourhood chapters and ending. A reused original vector SpongeBob bobs while locally synthesised wah-wah gibberish accompanies a word-paced text reveal (300 words/minute, at most 12 seconds). Start is always available; start, mute, hidden tabs and finished speech silence the voice. Reduced motion disables bobbing. Configurable definitions in config/levels.ts hold story, placeholder coordinates, weather and achievement thresholds. Geography for levels 2–4 remains pending; Riehenring uses the supplied map data with illustrative site types.
+Short, punchy English briefings adapt the supplied arrival, four neighbourhood chapters and ending. A reused original vector SpongeBob bobs while locally synthesised wah-wah gibberish accompanies a word-paced text reveal (300 words/minute, at most 12 seconds). Start is always available; start, mute, hidden tabs and finished speech silence the voice. Reduced motion disables bobbing. Configurable definitions in config/levels.ts hold story, placeholder coordinates, weather and achievement thresholds. Geography for levels 2–4 remains pending; Riehenring uses the supplied map data with illustrative site types.
 
 Riehenring is played on the real street: a straight stretch south of the footbridge, with the Basel scenery moved and turned so the street runs along the play area. Its sixteen spots sit on real street situations (parking lane, sidewalk verge, corner, building edge) and each offers the matching technique: permeable paving, tree pit (Baumrigole), swale (Versickerungsmulde), or green roof/shade/tank. Walking is limited to the street corridor because buildings have no collisions. Levels 2–4 keep placeholder grids until their areas have map data. Later idea: a heat map overlay from Basel-Stadt's published urban climate data, showing which parts of the city collect the most heat.
 
@@ -16,9 +16,9 @@ Each level starts a fresh city: plots, water, budget, upgrades, weather and haza
 
 Start at a fictional, stylised Basel neighbourhood at 37 °C. Walk between sixteen asphalt plots. Break asphalt, plant and water trees, create infiltration basins, ponds, storage, green roofs/facades and shaded seating. Each conversion changes geometry and colours. Healthy vegetation attracts residents and birds.
 
-Dry periods alternate with thunderstorms. Each plot holds surface water, soil moisture and stored water. SpongeBob absorbs nearby water into a limited reservoir and sprays it into vegetation or tanks. Poren-Power temporarily increases capacity; bubble irrigation extends reach; MAXIMUM SCHWAMM temporarily enlarges him and absorbs across the square. Capacity returning to normal never deletes collected water.
+Dry periods alternate with thunderstorms. Each plot holds surface water, soil moisture and stored water. SpongeBob absorbs nearby water into a limited reservoir and sprays it into vegetation or tanks. Pore Power temporarily increases capacity; bubble irrigation extends reach; MAXIMUM SPONGE temporarily enlarges him and absorbs across the square. Capacity returning to normal never deletes collected water.
 
-Patrick can remove several nearby asphalt slabs. Sandy sells a capacity/bubble upgrade. Thaddäus comments on shade and Mr. Krabs tracks the construction budget. Dr. Beton's Asphaltinator reseals an exposed green plot periodically; nearby karate disables it temporarily.
+Patrick can remove several nearby asphalt slabs. Sandy sells a capacity/bubble upgrade. Squidward comments on shade and Mr. Krabs tracks the construction budget. Dr. Beton's Asphaltinator reseals an exposed green plot periodically; nearby karate disables it temporarily.
 
 The HUD shows heat, flood danger, sponge capacity, weather, budget and mission progress. Each level has its own construction, reuse, heat/flood and storm achievements. Prolonged maximum danger loses the mission. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
 
@@ -28,7 +28,7 @@ Contextual team-supplied audio accompanies successful construction and water tra
 
 Shared contracts: `src/interfaces.ts`. Rules: `src/game/city.ts` and `src/game/campaign.ts`. Tuning/story: `config/city.ts` and `config/levels.ts`. Scene: `src/game/city-view.ts` and `src/game/characters.ts`. HUD/story: `src/ui/city.ts` and `src/ui/campaign.ts`. Input and movement retain their existing modules. Old sandbox modules remain available as reusable foundation code but are not mounted in the mission.
 
-All coefficients, litres, area and temperatures are fictional gameplay values, not a validated hydrology/climate model or a surveyed mission square. A converted Basel building dataset supplies surrounding scenery; its placement and cleared mission area are documented in `public/models/README.md`. No persistence, multiplayer, mobile controls or building collision. The player uses the team Blender model with procedural fallback; companions and mission props are procedural meshes. Surrounding buildings load from the supplied Basel dataset, with the procedural architecture retained as a fallback. Named cartoon characters come from the user's concept. Boss representation is a sabotage machine; additional boss encounters and surveyed neighbourhood layouts are future work.
+All coefficients, litres, area and temperatures are fictional gameplay values, not a validated hydrology/climate model or a surveyed mission square. A converted Basel building dataset supplies surrounding scenery; its placement and cleared mission area are documented in `public/models/README.md`. Host-persisted cookie accounts and rankings accompany temporary four-player cooperative rooms. Mobile controls and building collision remain out of scope. The player uses the team Blender model with procedural fallback; companions and mission props are procedural meshes. Surrounding buildings load from the supplied Basel dataset, with the procedural architecture retained as a fallback. Named cartoon characters come from the user's concept. Boss representation is a sabotage machine; additional boss encounters and surveyed neighbourhood layouts are future work.
 
 ## City funding rewards
 
@@ -60,3 +60,15 @@ about 2 m towards the Rhine. Without terrain data the game stays flat.
 Conversion details live in `public/maps/README.md`; licences in `docs/SOURCES.md`.
 
 The cartoon/Frutiger Aero interface follows `docs/style-guide.md`: sponge-yellow lettering and welcome card, glossy aqua controls, original vector mascot, flowers, decorative bubbles, speech-bubble feedback and individually readable power badges. The guide can scroll its tools while keeping its close control visible. Decoration pauses with the mission and respects reduced motion.
+
+## Online cooperation and presentation
+
+Cookie identity, room snapshots and commands are defined in [the shared interface](../src/interfaces.ts). A same-origin Node 24 service persists unique usernames, opaque hashed sessions and server-earned rankings in host-managed SQLite. Four-player rooms run one authoritative campaign with shared budget/water and individual movement/tools. The leaderboard orders campaign wins then personal useful-action funding. Live rooms are temporary; accounts and rankings use a persistent host volume. Solo practice remains available without the online service.
+
+All game text is English. Compact colorful gauges put labels and readings inside the scales. A readable wallet celebrates grants with a brief receipt, three coins and a chime. The HUD stays calm; reduced motion disables animation.
+
+## Basel ground collectibles
+
+Six Basel-themed boosts and the four existing powers form a ten-type collectible pool. Each level starts with one capacity drop; later drops appear at least 60 seconds apart with at most one waiting. Walking over a drop fills the single held/active slot and replaces its previous effect. Q activates once; H also offers activation. Effects expire without deleting water. Co-op claims are authoritative. Fresh levels/retries reset pickups.
+
+Tools unlock alongside missions: water, karate and rain gardens in level 1; trees in 2; roofs/shade in 3; ponds/tanks in 4. Locked gray tiles show remaining levels, and UI/keyboard/server actions enforce availability. The mission checklist is short; heat/flood targets remain visible as safety readings.

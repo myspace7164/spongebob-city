@@ -1,3 +1,7 @@
+import { registerTestAccount } from "./account-fixture";
+test.beforeEach(async ({ page }) => {
+  await registerTestAccount(page);
+});
 import { expect, test } from "@playwright/test";
 
 for (const imported of [true, false]) {

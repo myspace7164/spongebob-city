@@ -1,3 +1,5 @@
+import { isToolAvailable, levelsUntilTool } from "../game/progression";
+import { isPowerupActive } from "../game/powerups";
 import { cityConfig as c, cityTools, plotNames } from "../../config/city";
 import { siteTechniques } from "../../config/sites";
 import { downhillNeighbours } from "../game/city-water";
@@ -59,6 +61,10 @@ export class CityUI {
       const progress = element(`${name}-meter`) as HTMLProgressElement;
       progress.max = max;
       progress.value = value;
+      progress.parentElement!.classList.toggle(
+        "critical",
+        name !== "sponge" && value >= 80,
+      );
     }
     element("budget").textContent = number(s.budget);
     const receipt = element("funding-receipt");
@@ -67,6 +73,7 @@ export class CityUI {
       this.earned = s.funding.earned;
       clearTimeout(this.receiptTimer);
       receipt.hidden = true;
+      element("reward-shout").hidden = true;
       element("coin-burst").replaceChildren();
       element("coin-wallet")
         .getAnimations()
@@ -74,28 +81,45 @@ export class CityUI {
     } else if (s.funding.earned > this.earned) {
       const coins = s.funding.earned - this.earned;
       this.earned = s.funding.earned;
-      receipt.textContent = `+${number(coins)} coins · City funding!`;
+      receipt.textContent = `+${number(coins)} COINS · CITY FUNDING!`;
+      const shout = element("reward-shout");
+      shout.replaceChildren();
+      shout.append(document.createTextNode(`+${number(coins)} COINS!`));
+      const caption = document.createElement("small");
+      caption.textContent = "City funding";
+      shout.append(caption);
+      shout.hidden = false;
       receipt.hidden = false;
       clearTimeout(this.receiptTimer);
-      this.receiptTimer = setTimeout(
-        () => (receipt.hidden = true),
-        fundingConfig.celebrationMs,
-      );
+      this.receiptTimer = setTimeout(() => {
+        receipt.hidden = true;
+        element("reward-shout").hidden = true;
+      }, fundingConfig.celebrationMs);
       this.onFunding();
       if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        shout.getAnimations().forEach((a) => a.cancel());
+        shout.animate(
+          [
+            { opacity: 0, scale: ".6", rotate: "-5deg" },
+            { opacity: 1, scale: "1.12", rotate: "2deg", offset: 0.3 },
+            { opacity: 1, scale: "1", rotate: "0deg", offset: 0.8 },
+            { opacity: 0, scale: "1.05" },
+          ],
+          { duration: fundingConfig.celebrationMs, easing: "ease-out" },
+        );
         const wallet = element("coin-wallet");
         wallet.getAnimations().forEach((a) => a.cancel());
         wallet.animate(
           [
             { transform: "scale(1)" },
-            { transform: "scale(1.14) rotate(-3deg)" },
+            { transform: "scale(1.06)" },
             { transform: "scale(1)" },
           ],
-          { duration: 420, easing: "ease-out" },
+          { duration: 240, easing: "ease-out" },
         );
         const burst = element("coin-burst");
         burst.replaceChildren();
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 3; i++) {
           const coin = document.createElement("i");
           coin.textContent = "🪙";
           burst.append(coin);
@@ -103,16 +127,16 @@ export class CityUI {
             [
               { transform: "translate(0, 0) scale(.6)", opacity: 1 },
               {
-                transform: `translate(${(i - 2) * 22}px, ${-45 - (i % 2) * 20}px) scale(1.2)`,
+                transform: `translate(${(i - 1) * 20}px, ${-45 - (i % 2) * 20}px) scale(1.2)`,
                 opacity: 1,
                 offset: 0.45,
               },
               {
-                transform: `translate(${(i - 2) * 32}px, 15px) scale(.8)`,
+                transform: `translate(${(i - 1) * 24}px, 15px) scale(.8)`,
                 opacity: 0,
               },
             ],
-            { duration: 850, easing: "ease-out" },
+            { duration: 650, easing: "ease-out" },
           );
           void flight.finished
             .then(() => coin.remove())
@@ -120,11 +144,50 @@ export class CityUI {
         }
       }
     }
+    for (const [i, tool] of cityTools.entries()) {
+      const remaining = levelsUntilTool(s, tool.id);
+      for (const container of [element("hotbar"), element("inventory-list")]) {
+        const button = container.children[i] as HTMLButtonElement;
+        button.disabled = !isToolAvailable(s, tool.id);
+        if (container.id === "inventory-list") {
+          button.style.order = String(remaining > 0 ? 100 + i : i);
+          button.querySelector("small")!.textContent =
+            remaining > 0
+              ? `Unlocks in ${remaining} level${remaining === 1 ? "" : "s"}`
+              : tool.description;
+        }
+        button.classList.toggle("tool-locked", remaining > 0);
+        let lock = button.querySelector(".tool-lock");
+        if (remaining > 0) {
+          if (!lock) {
+            lock = document.createElement("span");
+            lock.className = "tool-lock";
+            button.append(lock);
+          }
+          lock.textContent = `🔒 ${remaining} level${remaining === 1 ? "" : "s"}`;
+          button.title = `${tool.name} · unlocks in ${remaining} level${remaining === 1 ? "" : "s"}`;
+          button.setAttribute(
+            "aria-label",
+            `${tool.name}, locked for ${remaining} more levels`,
+          );
+        } else {
+          lock?.remove();
+          button.title = `${tool.name} · ${tool.description}`;
+          button.setAttribute("aria-label", `${i + 1}. ${tool.name}`);
+        }
+      }
+    }
     const goals = s.campaign
-      ? levelAchievements(s).map((goal) => [
-          goal.done,
-          `${goal.label}: ${number(goal.value)} / ${number(goal.target)}${goal.metric === "heat" || goal.metric === "flood" ? "%" : ""}`,
-        ])
+      ? levelAchievements(s)
+          .filter((goal) => goal.metric !== "heat" && goal.metric !== "flood")
+          .map((goal) => [
+            goal.done,
+            goal.metric === "stormCompleted"
+              ? "Survive a full storm"
+              : goal.metric === "entrancesDry"
+                ? "Keep the entrance dry"
+                : `${goal.label}: ${number(goal.value)} / ${number(goal.target)}`,
+          ])
       : [
           [
             m.permeable >= c.goals.permeable,
@@ -150,8 +213,16 @@ export class CityUI {
           `<p class="${done ? "complete" : ""}"><span class="goal-check" aria-hidden="true">${done ? "✓" : ""}</span><span>${done ? '<span class="sr-only">Complete: </span>' : ""}${text}</span></p>`,
       )
       .join("");
+    const safety = s.campaign
+      ? levelAchievements(s)
+          .filter((g) => g.metric === "heat" || g.metric === "flood")
+          .map(
+            (g) => `${g.metric === "heat" ? "Heat" : "Flood"} ≤ ${g.target}%`,
+          )
+          .join(" · ")
+      : "";
     element("city-change").textContent =
-      `🌳 ${m.trees} trees · ${m.unsealedArea} m² unsealed · ${number(m.retained)} L retained`;
+      `${safety ? safety + " · " : ""}🌳 ${m.trees} trees · ${m.unsealedArea} m² unsealed · ${number(m.retained)} L retained`;
     element("item-status").textContent =
       s.dangerTime > 0
         ? `⚠ Flood emergency! ${Math.ceil(c.dangerSeconds - s.dangerTime)}s to bring danger below 99%. ${s.feedback}`
@@ -161,20 +232,25 @@ export class CityUI {
     element("target-info").textContent = plot
       ? `#${plot.id + 1} ${plotNames[plot.kind]}${plot.site ? ` · ${siteTechniques[plot.site].name}` : ""} · ${number(plot.surface)} L surface · ${number(plot.moisture + plot.stored)} L retained${plot.drainsTo === undefined ? "" : ` · runoff → #${plot.drainsTo + 1}`}${downhill(s, plot)}${inReach ? "" : " · MOVE CLOSER"}`
       : "Aim at a plot on the street or square";
-    const timer = (remaining: number) =>
-      remaining > 0 ? `${Math.ceil(remaining)}s` : "READY";
     const powers = [
-      ["Q", "Poren-Power", timer(s.powerCooldown), s.powerCooldown === 0],
-      ["P", "Patrick", timer(s.patrickCooldown), s.patrickCooldown === 0],
       [
-        "X",
-        "MAXIMUM!",
-        s.reused < c.maximumUnlock
-          ? `${c.maximumUnlock} L to unlock`
-          : timer(s.maximumCooldown),
-        s.reused >= c.maximumUnlock && s.maximumCooldown === 0,
+        "Q",
+        "Boost",
+        s.powerups.held
+          ? "READY"
+          : s.powerups.active
+            ? `${Math.ceil(s.powerups.remaining)}s active`
+            : "Find a drop",
+        !!s.powerups.held,
       ],
-      ["B", "Bubbles", s.upgraded ? "READY" : "E at Sandy's", s.upgraded],
+      [
+        "B",
+        "Bubbles",
+        s.upgraded || isPowerupActive(s, "bubbles")
+          ? "HOLD TO WATER"
+          : "Sandy / bubble drop",
+        s.upgraded || isPowerupActive(s, "bubbles"),
+      ],
     ];
     element("abilities").innerHTML =
       powers

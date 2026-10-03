@@ -85,6 +85,8 @@ test("walking is clamped to the street corridor or the placeholder square", () =
 
 test("each street site only takes the techniques that fit it", () => {
   const s = createCampaign();
+  // Test site suitability independently of progressive tool unlocking.
+  s.campaign!.level = 3;
   const kind = (id: number) => s.plots[id].kind;
   // Parking bay (5): unsealing for permeable paving, no rain garden.
   act(s, "basin", at(s, 5), 5);

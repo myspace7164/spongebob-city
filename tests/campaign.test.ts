@@ -81,7 +81,7 @@ test("entrances cannot be built on, including Patrick's multi-plot action", () =
 
 test("runoff requires reachable safe destinations, rejects loops and conserves water with saturated ground", () => {
   const s = createCampaign();
-  onPlaceholderLevel(s, 1);
+  onPlaceholderLevel(s, 3);
   for (const [id, kind] of [
     [0, "roof"],
     [1, "tank"],
@@ -123,6 +123,7 @@ test("runoff requires reachable safe destinations, rejects loops and conserves w
 
 test("recycling restores build choices without new grants or deleting retained water", () => {
   const s = createCampaign();
+  onPlaceholderLevel(s, 3);
   const budget = s.budget;
   act(s, "tank", at(s, 0), 0);
   const grants = s.funding.earned;

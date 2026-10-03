@@ -108,3 +108,29 @@ test("keyboard camera turning works while moving and pause clears held keys", ()
     assert.equal(input.consume().forward, 0);
   });
 });
+
+test("Shift held before capture and missing physical codes still sprint, then release restores walking", () => {
+  withInput((input, target) => {
+    target.dispatchEvent(
+      Object.assign(new Event("keydown"), {
+        key: "W",
+        code: "KeyW",
+        shiftKey: true,
+        repeat: false,
+      }),
+    );
+    assert.equal(input.consume().run, true);
+    target.dispatchEvent(
+      Object.assign(new Event("keyup"), {
+        key: "Shift",
+        code: "",
+        shiftKey: false,
+      }),
+    );
+    assert.equal(input.consume().run, false);
+    key(target, "keydown", "Shift", "");
+    assert.equal(input.consume().run, true);
+    key(target, "keyup", "Shift", "");
+    assert.equal(input.consume().run, false);
+  });
+});

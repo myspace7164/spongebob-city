@@ -1,3 +1,4 @@
+import { isPowerupActive } from "./powerups";
 import { cityConfig as c } from "../../config/city";
 import { betonConfig as b } from "../../config/beton";
 import type { CityState } from "../interfaces";
@@ -27,6 +28,12 @@ const exposed = (kind: string) => kind === "soil" || kind === "basin";
 /** Fixed-step roam → approach → seal; a plot changes only after the visible attack. */
 export function updateSaboteur(s: CityState, dt: number): void {
   const v = s.saboteur;
+  if (isPowerupActive(s, "basilisk")) {
+    v.phase = "disabled";
+    v.targetId = null;
+    v.sealTime = 0;
+    return;
+  }
   if (s.machineDisabled > 0) {
     s.machineDisabled = Math.max(0, s.machineDisabled - dt);
     v.phase = "disabled";

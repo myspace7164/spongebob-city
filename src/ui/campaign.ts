@@ -4,7 +4,7 @@ import type { CityState } from "../interfaces";
 import { StorySpeech } from "./story-speech";
 
 const element = (id: string) => document.getElementById(id)!;
-/** German narrative and abstract route map; no geographic placement is implied. */
+/** English narrative and abstract route map; no geographic placement is implied. */
 export class CampaignUI {
   private panel = element("campaign-story");
   private speech = new StorySpeech(element("story-mascot"));
@@ -65,8 +65,7 @@ export class CampaignUI {
     this.renderRoute(s, element("campaign-route"));
     if (s.outcome === "won") {
       element("result-title").textContent = endingStory.title;
-      element("result-reason").textContent =
-        "Fläche für Fläche. Level für Level.";
+      element("result-reason").textContent = "Plot by plot. Level by level.";
       const ending = element("campaign-ending");
       if (!ending.childElementCount) {
         for (const text of endingStory.paragraphs) {

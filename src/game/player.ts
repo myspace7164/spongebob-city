@@ -17,9 +17,12 @@ export function updatePlayer(
   yaw: number,
   dt: number,
   groundAt: (x: number, z: number) => number = () => 0,
+  sprintMultiplier = 1,
 ): void {
   const length = Math.max(1, Math.hypot(input.forward, input.right));
-  const speed = input.run ? config.runSpeed : config.walkSpeed;
+  const speed = input.run
+    ? config.runSpeed * sprintMultiplier
+    : config.walkSpeed;
   const forward = input.forward / length;
   const right = input.right / length;
   const targetX = (right * Math.cos(yaw) - forward * Math.sin(yaw)) * speed;

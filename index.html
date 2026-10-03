@@ -126,7 +126,7 @@
       </p>
       <ol class="quick-start">
         <li>
-          <span><b>3 / P</b> smash asphalt. <b>4</b> plant trees.</span>
+          <span><b>3</b> open asphalt. <b>5</b> build rain gardens.</span>
         </li>
         <li>
           <span><b>1 + hold click</b> slurp up those puddles!</span>
@@ -136,12 +136,89 @@
         </li>
       </ol>
       <button id="play" class="cta">
-        I'M READY! <span aria-hidden="true">➜</span>
+        SOLO PRACTICE <span aria-hidden="true">➜</span>
       </button>
       <p id="message" role="status">
         Click to capture your mouse. Escape pauses. H opens the field guide.
       </p>
     </aside>
+    <button id="online-toggle">🧽 PLAY ONLINE · LEADERBOARD</button>
+    <p id="team-status" hidden></p>
+    <section
+      id="online-panel"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="online-title"
+    >
+      <p class="eyebrow">BETTER TOGETHER</p>
+      <h2 id="online-title">SPONGE SQUAD!</h2>
+      <h3 id="account-name">PICK YOUR SPONGE NAME</h3>
+      <form id="account-form">
+        <label for="username">Unique username</label
+        ><input
+          id="username"
+          name="username"
+          required
+          minlength="3"
+          maxlength="20"
+          pattern="[A-Za-z0-9_]+"
+          autocomplete="off"
+          placeholder="Your sponge name"
+        /><button class="cta">CLAIM MY NAME ➜</button>
+        <p>
+          Your browser remembers you with a cookie. Keep it to keep your
+          account.
+        </p>
+      </form>
+      <div id="online-controls" hidden>
+        <div id="room-actions">
+          <button id="create-room" class="cta">CREATE A CO-OP ROOM ➜</button>
+          <form id="join-room-form">
+            <label for="room-code">Friend’s room code</label
+            ><input
+              id="room-code"
+              required
+              maxlength="6"
+              placeholder="ABC123"
+              autocomplete="off"
+            /><button>JOIN SQUAD</button>
+          </form>
+        </div>
+        <div id="room-info" hidden>
+          <h3 id="room-label"></h3>
+          <ul id="room-roster"></ul>
+          <p>
+            Share this code with friends. Work together with shared coins, water
+            and missions. The room leader can retry after a loss.
+          </p>
+          <button id="leave-room">LEAVE ROOM</button>
+        </div>
+      </div>
+      <p id="online-status" role="status"></p>
+      <p id="connection-status" class="sr-only"></p>
+      <h3>🏆 CITY HEROES</h3>
+      <p>
+        Completed campaigns first. Personal funding breaks ties. Earn it through
+        useful actions in online rooms.
+      </p>
+      <table id="leaderboard">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Hero</th>
+            <th>Wins</th>
+            <th>Funding</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-rows"></tbody>
+      </table>
+      <p id="leaderboard-empty">
+        Make the first splash. The leaderboard is waiting!
+      </p>
+      <button id="online-close">Back to game</button>
+    </section>
+    <div id="reward-shout" role="status" hidden></div>
     <div id="crosshair" hidden>+</div>
     <div id="target-info"></div>
     <section
@@ -151,24 +228,22 @@
       aria-modal="true"
       aria-labelledby="story-title"
       aria-describedby="story-fulltext"
-      lang="de"
+      lang="en"
     >
-      <p class="eyebrow">BASEL WIRD SCHWAMMSTADT</p>
+      <p class="eyebrow">BASEL GOES SPONGE CITY</p>
       <h2 id="story-title"></h2>
-      <ol id="story-route" class="campaign-route" aria-label="Levelroute"></ol>
-      <p class="small">
-        Platzhalterkarte · Topologie und Geografie folgen später.
-      </p>
+      <ol id="story-route" class="campaign-route" aria-label="Level route"></ol>
+      <p class="small">Placeholder map · final geography is coming.</p>
       <div class="story-scene">
         <div id="story-mascot" aria-hidden="true"></div>
-        <div id="story-body" tabindex="0" aria-label="Geschichte">
+        <div id="story-body" tabindex="0" aria-label="Story">
           <div id="story-copy" aria-hidden="true"></div>
           <p id="story-objective" class="story-objective"></p>
         </div>
       </div>
       <p id="story-fulltext" class="sr-only"></p>
       <p id="story-status" role="status"></p>
-      <button id="story-start" class="cta">Level starten ➜</button>
+      <button id="story-start" class="cta">START LEVEL ➜</button>
     </section>
     <section id="inventory-panel" hidden aria-label="Sponge city field guide">
       <p class="eyebrow">SANDY'S VERY SCIENTIFIC FIELD GUIDE</p>
@@ -181,7 +256,7 @@
       <p class="small">
         Buildings:
         <a href="https://shop.geo.bs.ch/geodaten-katalog/"
-          >Quelle: Geodaten Kanton Basel-Stadt</a
+          >Source: Canton Basel-Stadt geodata</a
         >
         · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> ·
         adapted.
@@ -189,7 +264,7 @@
       <p class="small">
         Roads:
         <a href="https://data.bs.ch/explore/dataset/100250/"
-          >Geodaten Kanton Basel-Stadt</a
+          >Canton Basel-Stadt geodata</a
         >
         · approximate widths. Aerial imagery:
         <a href="https://www.swisstopo.admin.ch/en/orthoimage-swissimage-10"
@@ -199,23 +274,31 @@
       </p>
       <div id="inventory-list"></div>
       <p class="small">
-        Q: Poren-Power · P: Patrick clears nearby asphalt · X: MAXIMUM SCHWAMM
-        (unlock at 800 L reused) · B: hold for distant bubble irrigation after
-        Sandy's upgrade. Visit Sandy or Dr. Beton and press E. C at a roof/tank,
-        then C at receiving ground: connect runoff. V: recycle an upgrade and
-        reclaim its cost. Keep marked entrances clear.
+        Q: activate your collected power-up once. A new pickup replaces the old
+        boost. B: hold for distant bubble irrigation during a bubble boost or
+        after Sandy’s upgrade. E: workshop / machine. C: connect runoff. V:
+        recycle an upgrade. Keep entrances clear.
       </p>
+      <h3>Collected boosts · click to activate</h3>
+      <div id="powerup-guide"></div>
       <button id="close-inventory">Back to mission</button>
     </section>
     <section id="result" hidden aria-label="Mission result">
       <p class="eyebrow">MISSION REPORT</p>
       <h1 id="result-title"></h1>
       <p id="result-reason"></p>
-      <div id="campaign-ending" hidden lang="de"></div>
+      <div id="campaign-ending" hidden lang="en"></div>
       <div id="result-metrics"></div>
       <p class="small">Illustrative gameplay values · not a climate forecast</p>
       <button id="restart">Try the mission again ↻</button>
     </section>
+    <aside id="powerup-panel" aria-label="Collected power-ups">
+      <h3>
+        POWER-UP
+        <small>ONE SLOT · Q TO ACTIVATE</small>
+      </h3>
+      <div id="powerup-bag"></div>
+    </aside>
     <div id="inventory-hud">
       <p id="item-status" role="status"></p>
       <div id="hotbar" aria-label="Climate tools"></div>
@@ -224,10 +307,12 @@
     </div>
     <footer>
       <div class="controls">
-        <span><kbd>WASD</kbd> move · <kbd>Shift</kbd> sprint</span
+        <span
+          ><kbd>WASD</kbd> move · <kbd>Shift</kbd>
+          <span id="sprint-status">sprint</span></span
         ><span><kbd>MOUSE / IJKL</kbd> look</span
         ><span><kbd>1–9</kbd> tool</span><span><kbd>CLICK</kbd> use</span
-        ><span><kbd>Q / P / X</kbd> powers</span
+        ><span><kbd>Q</kbd> activate boost</span
         ><span><kbd>E</kbd> workshop / machine</span
         ><span><kbd>C</kbd> runoff</span><span><kbd>V</kbd> recycle</span
         ><span><kbd>H</kbd> guide</span><span><kbd>R</kbd> retry level</span>

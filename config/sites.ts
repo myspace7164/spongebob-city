@@ -12,12 +12,12 @@ export const siteTechniques: Record<
   },
   verge: {
     name: "Sidewalk verge → tree pit",
-    hint: "Tree pit (Baumrigole): unseal, plant a tree, and let street runoff water its roots.",
+    hint: "Tree pit: unseal, plant a tree, and let street runoff water its roots.",
     builds: ["tree", "basin", "shade"],
   },
   swale: {
     name: "Street corner → swale",
-    hint: "Swale (Versickerungsmulde): a planted dip that collects runoff from the street.",
+    hint: "Swale: a planted dip that collects runoff from the street.",
     builds: ["basin", "pond", "tank"],
   },
   facade: {

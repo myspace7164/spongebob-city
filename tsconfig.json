@@ -10,5 +10,12 @@
     "skipLibCheck": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "config", "tests", "playwright.config.ts"]
+  "include": [
+    "src",
+    "config",
+    "tests",
+    "playwright.config.ts",
+    "server",
+    "vite.config.ts"
+  ]
 }

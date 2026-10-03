@@ -1,4 +1,6 @@
 :root {
+  --locked-overlay: #e1e5e8d9;
+  --locked-guide-overlay: #e1e5e8c0;
   --tooth: #ffffff;
   --villain-eye: #ff192d;
   --villain-coat: #252333;
@@ -109,4 +111,50 @@
   --briefing-bob-duration: 320ms;
   --briefing-reading-height: 160px;
   --briefing-panel-height: 520px;
+}
+:root {
+  --gauge-height: 76px;
+  --heat-intense: linear-gradient(110deg, #ffbc16, #ff6a15 45%, #ea204b);
+  --flood-intense: linear-gradient(110deg, #00bfe8, #2563ff 55%, #6637f4);
+  --sponge-intense: linear-gradient(110deg, #c4ef28, #ffe329 50%, #ffa31a);
+  --reward-gold: #ffdf24;
+  --wallet-number-size: 38px;
+}
+:root {
+  --powerup-glow: #44ffe0;
+  --boost-active: #b6ffe1;
+  --boost-panel: #e9fff5;
+}
+
+:root {
+  --hud-dark: #173859;
+  --gauge-glow: #00bce84a;
+  --gauge-text-shadow: #163350;
+  --gauge-track: #163852;
+  --gauge-shine: #ffffff30;
+  --danger-border: #fff1b1;
+  --danger-glow: #ff304f;
+  --wallet-light: #fff49a;
+  --wallet-gold: #ffd82e;
+  --wallet-orange: #ffae15;
+  --wallet-edge: #875314;
+  --wallet-glow: #ffd72b66;
+  --reward-text: #184331;
+  --reward-background: #fff28a;
+  --reward-border: #905812;
+  --coin-shadow: #93601188;
+  --reward-outline: #5b3f16;
+  --reward-shine: #ffe572;
+  --emergency-text: #b01b30;
+  --online-backdrop: #12374baa;
+  --leaderboard-line: #66b4d144;
+  --leaderboard-winner: #ffe969;
+}
+:root {
+  --asphalt: #394453;
+  --soil: #d5a46f;
+  --sealed-line: #c4cad3;
+  --open-edge: #46ba55;
+  --gauge-height: 50px;
+  --wallet-number-size: 28px;
 }
