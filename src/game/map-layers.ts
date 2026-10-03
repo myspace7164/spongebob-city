@@ -3,6 +3,14 @@ import { mapConfig as c } from "../../config/map";
 import type { RoadNetwork, TerrainGrid } from "../interfaces";
 import { themeColor } from "./characters";
 import { heightAt, terrainFromBuffer, terrainTiles } from "./terrain";
+import { groundStyle, treeStyle } from "../../config/ground";
+import { createTrees, type TreeRow } from "./trees";
+import {
+  checkGroundMeta,
+  createGroundMaterial,
+  groundTileAt,
+  type GroundMeta,
+} from "./ground-style";
 
 type Ground = (x: number, z: number) => number;
 
@@ -119,14 +127,60 @@ async function loadTerrain(): Promise<TerrainGrid> {
   return terrainFromBuffer(meta, data);
 }
 
+/** Basel's inventory trees on the terrain; a failure leaves the ground as it is. */
+async function loadTrees(
+  scene: THREE.Object3D,
+  canvas: HTMLCanvasElement,
+  groundAt: (x: number, z: number) => number,
+  onTrees?: (trees: ReturnType<typeof createTrees>) => void,
+) {
+  try {
+    const response = await fetch(treeStyle.url);
+    if (!response.ok) throw new Error(`Trees: HTTP ${response.status}`);
+    const { trees } = (await response.json()) as { trees: TreeRow[] };
+    const layer = createTrees(trees, groundAt);
+    scene.add(layer.group);
+    onTrees?.(layer);
+    canvas.dataset.trees = "loaded";
+  } catch (error) {
+    canvas.dataset.trees = "fallback";
+    console.warn("Basel trees unavailable.", error);
+  }
+}
+
+/** Land-cover tiles as one material per texture, with the metadata to pick them. */
+async function loadGround() {
+  const response = await fetch(groundStyle.metaUrl);
+  if (!response.ok) throw new Error(`Ground metadata: HTTP ${response.status}`);
+  const meta = (await response.json()) as GroundMeta;
+  checkGroundMeta(meta);
+  const base = groundStyle.metaUrl.slice(
+    0,
+    groundStyle.metaUrl.lastIndexOf("/") + 1,
+  );
+  const loader = new THREE.TextureLoader();
+  const materials = await Promise.all(
+    meta.tiles.map(async (tile) =>
+      createGroundMaterial(
+        await loader.loadAsync(base + tile.file),
+        tile,
+        meta.spacing,
+      ),
+    ),
+  );
+  return { meta, materials };
+}
+
 /**
- * Terrain, road and imagery failures are independent: roads stay without
- * photos, and everything falls back to the original flat ground without terrain.
+ * Terrain, ground, road and imagery failures are independent. With terrain and
+ * land cover, the drawn ground replaces the photo and road ribbons; otherwise
+ * the photo and roads remain, and everything falls back to flat ground.
  */
 export async function loadMapLayers(
   scene: THREE.Object3D,
   canvas: HTMLCanvasElement,
   onTerrain?: (grid: TerrainGrid) => void,
+  onTrees?: (trees: ReturnType<typeof createTrees>) => void,
 ) {
   canvas.dataset.terrain = "loading";
   canvas.dataset.roads = "loading";
@@ -141,6 +195,30 @@ export async function loadMapLayers(
     console.warn("Basel terrain unavailable; keeping flat ground.", error);
   }
   const ground = grid && ((x: number, z: number) => heightAt(grid, x, z));
+  canvas.dataset.ground = "loading";
+  if (grid) {
+    try {
+      const drawn = await loadGround();
+      for (const tile of terrainTiles(grid, grid.bounds, c.mission)) {
+        for (const geometry of [tile.photo, tile.plain]) {
+          const centre = geometry.boundingSphere!.center;
+          const index = groundTileAt(drawn.meta, centre.x, centre.z);
+          if (index >= 0)
+            scene.add(new THREE.Mesh(geometry, drawn.materials[index]));
+        }
+      }
+      canvas.dataset.ground = "loaded";
+      canvas.dataset.roads = canvas.dataset.imagery = "replaced";
+      await loadTrees(scene, canvas, ground!, onTrees);
+      return;
+    } catch (error) {
+      console.warn(
+        "Basel land cover unavailable; using the aerial photo.",
+        error,
+      );
+    }
+  }
+  canvas.dataset.ground = "fallback";
   let network: RoadNetwork | undefined;
   try {
     const response = await fetch(c.roadsUrl);
