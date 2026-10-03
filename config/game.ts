@@ -14,6 +14,6 @@ export const gameConfig = {
   maxPixelRatio: 1.5,
   groundSize: 240,
   gridSpacing: 2,
-  character: { url: "", scale: 1, rotationY: 0 },
+  character: { url: "/models/spongebob.glb", scale: 1, rotationY: 0 },
   level: { url: "/models/basel-city.glb", scale: 1, rotationY: 0 },
 };

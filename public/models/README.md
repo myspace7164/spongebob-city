@@ -5,8 +5,9 @@ See the project README for export settings and configuration.
 with its feet centred at the origin, Y up and front facing +Z. It preserves
 the red/blue shirt, swapped sleeves and collar, and restored original tie. Camera and light
 are excluded. `Sphere.001` is included: its origin is distant, but its geometry
-is beside the face. The game retains its procedural character
-until `character.url` in `config/game.ts` is set to `/models/spongebob.glb`.
+is beside the face. The game loads this Blender character from `/models/spongebob.glb`. Its Dry and
+WaterFull shape keys are exported as glTF morph targets; the game moves between
+Dry, Normal and WaterFull based on the sponge's stored water.
 
 Editable source: `assets/blender/spongebob.blend`. To save a new source
 version and regenerate the export, run `scripts/export-blender-character.py`
@@ -25,7 +26,9 @@ represented by the existing shirt face assignments for glTF compatibility.
 The Blender source contains `Character Rig`, a bound 19-bone armature
 with torso, arm, leg, eye and jaw bones. Anatomical left is +X. The body and arms
 are skinned; eyes have rigid unit weights, and other accessories are bone-parented.
-The GLB remains a static evaluated snapshot; the editable skinning is in the Blender source.
+The GLB contains evaluated static geometry plus Dry and WaterFull morph targets.
+It has no armature or animation clips yet; movement animation can be added later
+from the Blender source.
 `scripts/create-character-armature.py` records the initial bone placement;
 it refuses to add a second armature.
 

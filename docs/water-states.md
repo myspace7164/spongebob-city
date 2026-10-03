@@ -2,15 +2,15 @@
 
 The editable Blender source contains Basis, WaterFull and Dry on these eight meshes:
 
-| Object | Morph purpose |
-|---|---|
-| Body Cube | Wider, deeper mid-body; integrated shirt, collar and pants follow it; lower legs remain fixed |
-| Cube | Both sleeves and shoulder roots follow swelling; offsets fade before the wrists |
-| Sphere | Both eyes translate slightly outward and forward without inflation |
-| Cube.005 | Upper eyelids and lashes follow the eyes, preserving Mirror seams |
-| Sphere.001 | Lower eyelids follow the eyes, preserving Mirror seams |
-| Cube.001, Cube.002 | Teeth translate to follow the expanded face |
-| Tie Cube | Tie follows the shirt expansion; Dry draws it slightly inward |
+| Object             | Morph purpose                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| Body Cube          | Wider, deeper mid-body; integrated shirt, collar and pants follow it; lower legs remain fixed |
+| Cube               | Both sleeves and shoulder roots follow swelling; offsets fade before the wrists               |
+| Sphere             | Both eyes translate slightly outward and forward without inflation                            |
+| Cube.005           | Upper eyelids and lashes follow the eyes, preserving Mirror seams                             |
+| Sphere.001         | Lower eyelids follow the eyes, preserving Mirror seams                                        |
+| Cube.001, Cube.002 | Teeth translate to follow the expanded face                                                   |
+| Tie Cube           | Tie follows the shirt expansion; Dry draws it slightly inward                                 |
 
 Dry uses the normal Basis as its reference. It narrows and thins the sponge,
 shirt and pants in the torso region while preserving height and keeping the
@@ -54,7 +54,11 @@ scripts/create-dry.py on the verified WaterFull setup. Each refuses to overwrite
 an existing backup or its own keys. Run scripts/verify-waterfull.py and
 scripts/verify-dry.py to repeat their temporary tests.
 
-The current GLB exporter produces a static evaluated normal-state snapshot.
-Both WaterFull and Dry are editable in the Blender source; exporting a skeletal
-model with both morph targets for the game is separate work. Arbitrary extreme poses can still
-intersect the broad body, as documented in rigging.md.
+The game GLB contains evaluated static geometry plus both exported morph
+targets. Dry and WaterFull remain editable in Blender. The game maps stored
+sponge water to three mutually exclusive
+states: empty is Dry, half capacity is Normal, and full capacity is WaterFull,
+with smooth morph transitions between them. The GLB contains static evaluated
+geometry and morph targets; it has no armature or animation clips yet. Movement
+animation can be added later from the Blender source. Arbitrary extreme poses
+can still intersect the broad body, as documented in rigging.md.
