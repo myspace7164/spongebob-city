@@ -31,10 +31,12 @@ import {
   levelPosition,
   recyclePlot,
   startNextCampaignLevel,
+  startEndless,
 } from "./game/campaign.ts";
 import { clampToLevel, worldToMap } from "./game/streets.ts";
 import { assignElevations, levelScenery } from "./game/terrain.ts";
 import { CampaignUI } from "./ui/campaign.ts";
+import { CreditsUI } from "./ui/credits.ts";
 import { applyBuiltLevel } from "../config/levels.ts";
 import type { createLevelBuilder } from "./ui/level-builder.ts";
 import { CityAudio } from "./game/audio.ts";
@@ -127,6 +129,29 @@ function startGame(): void {
   let checkpoint = structuredClone(city);
   let storyPending = true;
   const campaignUI = new CampaignUI(() => audio.playCampaignVictory());
+  const creditsUI = new CreditsUI(() => enterEndless());
+  function enterEndless() {
+    if (network.room) {
+      if (network.room.hostId === network.account?.id)
+        void network.action({ action: "endless" });
+      else
+        document.getElementById("result-reason")!.textContent =
+          "Waiting for the room leader to start endless mode.";
+      return;
+    }
+    if (!startEndless(city)) return;
+    player = spawnPlayer();
+    checkpoint = structuredClone(city);
+    placeScenery();
+    creditsUI.reset();
+    targetId = null;
+    accumulator = 0;
+    hudTime = 0;
+    storyPending = true;
+    ui.render(city, targetId, false);
+    campaignUI.render(city);
+    showStory();
+  }
   const modifierWheel = new ModifierWheelUI(
     () => city,
     () => audio.playWheelStart(),
@@ -235,7 +260,9 @@ function startGame(): void {
       remotePlayers.clear();
       return;
     }
-    const changedLevel = city.campaign!.level !== room.city.campaign!.level;
+    const changedLevel =
+      city.campaign!.level !== room.city.campaign!.level ||
+      city.campaign!.endlessRound !== room.city.campaign!.endlessRound;
     const freshRoom =
       receivedCode !== room.code ||
       room.city.elapsed + 1 < city.elapsed ||
@@ -277,6 +304,7 @@ function startGame(): void {
         player = structuredClone(me.player);
     }
     if (changedLevel || freshRoom) {
+      creditsUI.reset();
       checkpoint = structuredClone(city);
       placeScenery();
       storyPending = true;
@@ -357,6 +385,7 @@ function startGame(): void {
     hatShop.show(hatShopReturnToGame);
   };
   const reset = () => {
+    creditsUI.reset();
     if (network.room) {
       void network.action({ action: "reset" });
       return;
@@ -566,6 +595,7 @@ function startGame(): void {
       return;
     }
     if (code === "KeyC") {
+      if (currentLevel(city)?.id === "voltanord") return;
       if (network.room)
         void network.action({ action: "connect", target: targetId });
       else connectRunoff(city, targetId, player.position);
@@ -604,6 +634,9 @@ function startGame(): void {
     menu.hidden = false;
   });
   document.querySelector("#restart")!.addEventListener("click", reset);
+  document
+    .querySelector("#start-endless")!
+    .addEventListener("click", enterEndless);
   canvas.addEventListener("webglcontextlost", (event) => {
     event.preventDefault();
     renderer.setAnimationLoop(null);
@@ -771,6 +804,7 @@ function startGame(): void {
           );
         const spongeBeforeUpdate = city.sponge;
         const previousLevel = city.campaign!.level;
+        const previousRound = city.campaign!.endlessRound;
         const wasWheelPending = city.campaign!.wheelPending;
         if (!network.room) {
           const hatBeforeUpdate = city.campaign!.equippedHat;
@@ -808,7 +842,10 @@ function startGame(): void {
             }
           }
         }
-        if (city.campaign!.level !== previousLevel) {
+        if (
+          city.campaign!.level !== previousLevel ||
+          city.campaign!.endlessRound !== previousRound
+        ) {
           player = spawnPlayer();
           input.pitch = 0.28;
           targetId = null;
@@ -985,6 +1022,11 @@ function startGame(): void {
     );
     hudTime -= dt;
     if (hudTime <= 0) {
+      const runoffAvailable = currentLevel(city)?.id !== "voltanord";
+      document.getElementById("runoff-guide-shortcut")!.hidden =
+        !runoffAvailable;
+      document.getElementById("runoff-footer-shortcut")!.hidden =
+        !runoffAvailable;
       const sprintCooldown = player.sprintCooldown ?? 0;
       document.getElementById("sprint-status")!.textContent =
         active && sprintCooldown > 0
@@ -995,6 +1037,13 @@ function startGame(): void {
       ui.render(city, targetId, inReach());
       powerupUI.render(city);
       campaignUI.render(city);
+      if (city.outcome === "won" && !city.campaign?.endlessRound) {
+        audio.update(false, false);
+        campaignUI.hide();
+        input.clear();
+        if (input.active) document.exitPointerLock();
+        creditsUI.show();
+      }
       hudTime = 0.1;
     }
     if (city.outcome !== "playing" && input.active) {

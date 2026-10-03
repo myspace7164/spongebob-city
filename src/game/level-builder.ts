@@ -11,7 +11,8 @@ import type {
   RoadNetwork,
   SiteType,
 } from "../interfaces";
-import { sceneryPose } from "./streets";
+import { mapToWorld, sceneryPose } from "./streets";
+export { mapToWorld } from "./streets";
 
 /** Size of a spot square in metres, as the game draws plots (src/game/city-view.ts). */
 export const spotSize = 4.7;
@@ -402,17 +403,6 @@ export function cleanLocation(name: unknown): string {
   if (!clean || clean.length > 40)
     throw new Error("The location name needs 1–40 characters");
   return clean;
-}
-
-/** World coordinates of a map-local point for scenery placed with this pose. */
-export function mapToWorld(
-  pose: { rotationY: number; x: number; z: number },
-  x: number,
-  z: number,
-): [number, number] {
-  const c = Math.cos(pose.rotationY),
-    s = Math.sin(pose.rotationY);
-  return [c * x + s * z + pose.x, -s * x + c * z + pose.z];
 }
 
 /** Map-local metres for a point on the aerial photo (u, v in 0–1, north up). */

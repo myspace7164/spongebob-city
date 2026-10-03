@@ -166,6 +166,8 @@ export interface CityFire {
   size: 0 | 1 | 2;
 }
 export interface CampaignProgress {
+  /** Post-campaign round, starting at 1; absent during the normal campaign. */
+  endlessRound?: number;
   /** Server/solo-selected route, retained for retries; omitted only in legacy fixtures. */
   locations?: string[];
   level: number;
@@ -304,7 +306,7 @@ export interface OnlineCommand {
   yaw?: number;
   selected?: CityTool;
   ready?: boolean;
-  action?: CityAction | "connect" | "recycle" | "reset";
+  action?: CityAction | "connect" | "recycle" | "reset" | "endless";
   target?: number | null;
   bubbles?: boolean;
   powerup?: boolean;

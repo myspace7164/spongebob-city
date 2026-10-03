@@ -345,8 +345,9 @@
       <p class="small">
         Q: activate your collected power-up once. A new pickup replaces the old
         boost. B: hold for distant bubble irrigation during a bubble boost or
-        after Sandy’s upgrade. E: workshop / machine. C: connect runoff. V:
-        recycle an upgrade. T: open the hat shop during a run.
+        after Sandy’s upgrade. E: workshop / machine.
+        <span id="runoff-guide-shortcut">C: connect runoff.</span> V: recycle an
+        upgrade. T: open the hat shop during a run.
       </p>
       <p class="small">
         Emotes: hold G + 1 for 67, 2 Macarena, 3 teabag, 4 dab, 5 floss. Move or
@@ -356,6 +357,26 @@
       <div id="powerup-guide"></div>
       <button id="close-inventory">Back to mission</button>
     </section>
+    <section
+      id="credits"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="credits-title"
+    >
+      <h1 id="credits-title">Basel goes sponge city!</h1>
+      <p class="eyebrow">CREDITS</p>
+      <div class="credits-window">
+        <div class="credits-roll">
+          <div id="credits-authors"></div>
+          <h2 id="credits-thanks"></h2>
+          <p>The adventure continues in endless mode.</p>
+        </div>
+      </div>
+      <button id="credits-skip" class="cta">
+        SKIP CREDITS · START ENDLESS ➜
+      </button>
+    </section>
     <section id="result" hidden aria-label="Mission result">
       <p class="eyebrow">MISSION REPORT</p>
       <h1 id="result-title"></h1>
@@ -364,6 +385,7 @@
       <div id="result-metrics"></div>
       <p class="small">Illustrative gameplay values · not a climate forecast</p>
       <button id="restart">Try the mission again ↻</button>
+      <button id="start-endless" hidden>Start endless mode ➜</button>
     </section>
     <section
       id="campaign-celebration"
@@ -404,7 +426,8 @@
         ><span><kbd>1–9</kbd> tool</span><span><kbd>CLICK</kbd> use</span
         ><span><kbd>Q</kbd> activate boost</span
         ><span><kbd>E</kbd> workshop / machine</span
-        ><span><kbd>C</kbd> runoff</span><span><kbd>V</kbd> recycle</span
+        ><span id="runoff-footer-shortcut"><kbd>C</kbd> runoff</span
+        ><span><kbd>V</kbd> recycle</span
         ><span><kbd>G + 1–5</kbd> emotes · <kbd>H</kbd> guide</span
         ><span><kbd>R</kbd> retry level</span><span><kbd>T</kbd> hats</span>
       </div>

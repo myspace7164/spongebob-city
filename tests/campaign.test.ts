@@ -153,7 +153,7 @@ test("separated shaded plots do not satisfy a connected shade zone", () => {
   assert.equal(goal().done, true);
 });
 
-test("Level 4 removes both runoff objectives and keeps its other goals", () => {
+test("Level 4 removes runoff and connected-shade objectives and keeps its other goals", () => {
   const s = createCampaign();
   onPlaceholderLevel(s, 2);
   assert.deepEqual(
@@ -180,7 +180,6 @@ test("Level 4 removes both runoff objectives and keeps its other goals", () => {
       "tanks",
       "ponds",
       "basins",
-      "shadeConnected",
       "healthyTrees",
       "retained",
       "reused",
@@ -189,7 +188,11 @@ test("Level 4 removes both runoff objectives and keeps its other goals", () => {
       "stormCompleted",
     ],
   );
-  assert.equal(level.goals.length, 10);
+  assert.equal(level.goals.length, 9);
+  assert.equal(
+    level.goals.some((goal) => goal.metric === "shadeConnected"),
+    false,
+  );
   assert.equal(
     level.goals.some((goal) => /tank overflows|roof inflows/i.test(goal.label)),
     false,

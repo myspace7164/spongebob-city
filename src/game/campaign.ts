@@ -20,10 +20,35 @@ import { createCity, cityMetrics } from "./city.ts";
 import { placePowerups } from "./powerups.ts";
 import { grantFunding } from "./funding.ts";
 import { fundingConfig } from "../../config/funding.ts";
+import { endlessConfig } from "../../config/endless.ts";
+
+export function endlessIntensity(s: CityState): number {
+  return 1 + (s.campaign?.endlessRound ?? 0) * endlessConfig.intensityIncrease;
+}
 
 export function currentLevel(s: CityState): CityLevel | undefined {
-  return s.campaign ? campaignLevel(s, s.campaign.level) : undefined;
+  const level = s.campaign ? campaignLevel(s, s.campaign.level) : undefined;
+  if (!level || !s.campaign?.endlessRound) return level;
+  return {
+    ...level,
+    weather: {
+      ...cityLevels.at(-1)!.weather,
+      rainRate: cityLevels.at(-1)!.weather.rainRate * endlessIntensity(s),
+    },
+  };
 }
+
+/** Enter only after a normal victory; subsequent rounds reset the neighbourhood. */
+export function startEndless(
+  s: CityState,
+  random: () => number = Math.random,
+): boolean {
+  if (!s.campaign || s.campaign.endlessRound || s.outcome !== "won")
+    return false;
+  startEndlessRound(s, 1, random);
+  return true;
+}
+
 /** Resolve the shared randomized map location without changing level goals or tool unlocks. */
 export function campaignLevel(
   s: CityState,
@@ -68,6 +93,31 @@ export function createCampaign(random: () => number = Math.random): CityState {
   };
   applyLayout(s, currentLevel(s)!);
   return s;
+}
+function startEndlessRound(
+  s: CityState,
+  round: number,
+  random: () => number,
+): void {
+  const progress = s.campaign!;
+  const next = {
+    ...progress,
+    endlessRound: round,
+    level: Math.min(
+      cityLevels.length - 1,
+      Math.max(0, Math.floor(random() * cityLevels.length)),
+    ),
+    locations: selectCampaignLocations(random),
+    completed: [...progress.completed],
+    stormCompleted: false,
+    connectFrom: null,
+    wheelPending: false,
+    pendingModifier: null,
+    activeModifier: null,
+    ownedHats: [...(progress.ownedHats ?? [])],
+  };
+  Object.assign(s, createCity(), { campaign: next });
+  applyLayout(s, currentLevel(s)!);
 }
 function applyLayout(s: CityState, level: CityLevel): void {
   s.plots = level.layout.map((position, id) => ({
@@ -251,7 +301,10 @@ export function levelAchievements(s: CityState): LevelAchievement[] {
   }));
 }
 /** Start a fresh independent neighbourhood while retaining completed level IDs. */
-export function advanceCampaign(s: CityState): boolean {
+export function advanceCampaign(
+  s: CityState,
+  random: () => number = Math.random,
+): boolean {
   const progress = s.campaign;
   if (
     !progress ||
@@ -261,6 +314,10 @@ export function advanceCampaign(s: CityState): boolean {
   )
     return false;
   const level = currentLevel(s)!;
+  if (progress.endlessRound) {
+    startEndlessRound(s, progress.endlessRound + 1, random);
+    return true;
+  }
   progress.completed.push(level.id);
   progress.connectFrom = null;
   progress.activeModifier = null;

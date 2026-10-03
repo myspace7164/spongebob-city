@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { CityLevel, CityState, TerrainGrid } from "../interfaces.ts";
-import { sceneryPose, worldToMap } from "./streets.ts";
+import { mapToWorld, sceneryPose, worldToMap } from "./streets.ts";
 
 type Bounds = TerrainGrid["bounds"];
 type Rectangle = { left: number; right: number; back: number; front: number };
@@ -129,4 +129,15 @@ export function levelScenery(
   const groundAt = (x: number, z: number) =>
     grid ? heightAt(grid, ...worldToMap(pose, x, z)) + y : 0;
   return { ...pose, y, groundAt };
+}
+
+/** Ground height in the scenery group's local coordinates at a map-local point. */
+export function levelLocalGroundAt(
+  pose: { rotationY: number; x: number; y: number; z: number },
+  x: number,
+  z: number,
+  groundAt: (x: number, z: number) => number,
+): number {
+  const [worldX, worldZ] = mapToWorld(pose, x, z);
+  return groundAt(worldX, worldZ) - pose.y;
 }
