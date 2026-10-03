@@ -1,6 +1,6 @@
 # Basel road and imagery layers
 
-State: done on feat/basel-roads; verified locally, not merged or pushed.
+State: done; merged into main and pushed (2026-10-03).
 
 Done: converted official street centrelines to local metres using PROJ;
 cropped to the building model, with estimated widths and a mission exclusion.
@@ -13,9 +13,8 @@ full run; its audio check exposed an inherited pointer-events rule on the
 Sound button. Fixed that rule, and the separate audio rerun passes. Top-down
 preview confirms the buildings, streets and orthophoto align visually.
 
-Next: user can review using npm run dev. Sharing or merging is a separate step;
-merging into main requires the user's explicit approval. The previous GitHub
-history privacy CI issue remains outside this map change.
+Next: review on screen with npm run dev.
+The earlier GitHub history privacy CI issue remains open.
 
 Limits: flat ground, approximate widths, no elevated bridges/tunnels, no exact
 surveyed mission location, no imagery acquisition date in the WMS snapshot.
