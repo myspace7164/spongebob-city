@@ -186,7 +186,7 @@ test("wheel reveals controlled positive and negative results and emits sounds", 
   await page.locator("#wheel-spin").click();
   await expect(page.locator("#wheel-continue")).toBeVisible({ timeout: 5000 });
   await expect(page.locator("#modifier-wheel")).toHaveClass(/power-up/);
-  await expect(page.locator("#wheel-outcome")).toContainText("TURBO-SCHWAMM");
+  await expect(page.locator("#wheel-outcome")).toContainText("TURBO SPONGE");
   expect(
     await page.evaluate(
       () => (window as unknown as { wheelAudioProbe: number }).wheelAudioProbe,
@@ -206,7 +206,7 @@ test("wheel reveals controlled positive and negative results and emits sounds", 
   await page.locator("#wheel-spin").click();
   await expect(page.locator("#wheel-continue")).toBeVisible({ timeout: 5000 });
   await expect(page.locator("#modifier-wheel")).toHaveClass(/power-down/);
-  await expect(page.locator("#wheel-outcome")).toContainText("HITZEWELLE");
+  await expect(page.locator("#wheel-outcome")).toContainText("HEAT WAVE");
   await expect(page.locator("#wheel-outcome")).toContainText("+12%");
   expect(
     await page.evaluate(
