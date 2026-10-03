@@ -579,7 +579,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   betonName.position.set(0, 3.05, 0);
   beton.add(betonName);
   const driverPoint = vehicle.driverPoint as THREE.Object3D;
-  const concreteOutput = vehicle.concreteOutput as THREE.Object3D;
   const laserEyes = beton.userData.laserEyes as THREE.Object3D[];
   const laserBeams = [makeLaserBeam(beton, "L"), makeLaserBeam(beton, "R")];
   const laserRaycasters = laserBeams.map(
@@ -611,7 +610,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   let lastBetonPhase = "";
   let phaseStartedAt = 0;
   let sealingEndedAt = Number.NEGATIVE_INFINITY;
-  let previousVehicleTime = 0;
   let previousVehicleX = machine.position.x;
   let previousVehicleZ = machine.position.z;
   const residents = new THREE.Group();
@@ -878,8 +876,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);
       attribute.needsUpdate = true;
       const villain = s.saboteur;
-      const elapsedDelta = Math.max(0, s.elapsed - previousVehicleTime);
-      previousVehicleTime = s.elapsed;
       machine.position.set(
         villain.x - origin.x,
         ground(villain.x, villain.z),

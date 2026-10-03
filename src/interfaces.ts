@@ -51,26 +51,6 @@ export interface RoadNetwork {
   }[];
 }
 
-/** Inventory definitions describe behavior; quantities are runtime state. */
-export interface InventoryItem {
-  id: string;
-  name: string;
-  action: "placeholder" | "shoot" | "place";
-  description: string;
-}
-export interface InventoryState {
-  items: readonly InventoryItem[];
-  selected: number;
-  ammo: number;
-  blocks: number;
-  cooldown: number;
-}
-/** Mutable placeholder sandbox state; reset clears all placed objects. */
-export interface PlacedBlock {
-  x: number;
-  z: number;
-}
-
 export type PlotKind =
   "asphalt" | "soil" | "tree" | "basin" | "roof" | "pond" | "shade" | "tank";
 export type CityTool =

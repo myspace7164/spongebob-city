@@ -183,9 +183,6 @@ test("the hat remains parented to the animated character and follows its transfo
     const scene = new THREE.Scene();
     const world = createWorld(scene);
     world.equipHat("wizard");
-    const initialPosition = world.wearableHat!.getWorldPosition(
-      new THREE.Vector3(),
-    );
     const model = await loadModel(gameConfig.character);
     world.useCharacter(model);
     const player = {
