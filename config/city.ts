@@ -15,6 +15,7 @@ export const cityConfig = {
   maximumReach: 30,
   absorbRate: 300,
   sprayRate: 160,
+  bubbleWaterMultiplier: 1.5,
   reach: 7,
   bubbleReach: 16,
   dryDuration: 55,

@@ -128,7 +128,24 @@ test("Sandy upgrade enables distant bubbles, is charged once and requires visiti
   act(s, "spray", position, 3, 100);
   assert.equal(s.reused, 0);
   act(s, "spray", position, 3, 100, true);
-  assert.equal(s.reused, 100);
+  assert.equal(s.reused, 100 * c.bubbleWaterMultiplier);
+});
+
+test("holding B delivers 50% more water per spray action", () => {
+  const s = createCity();
+  s.upgraded = true;
+  s.sponge = 600;
+  s.plots[0].kind = "tree";
+  s.plots[1].kind = "tree";
+  s.plots[0].surface = 0;
+  s.plots[1].surface = 0;
+
+  act(s, "spray", at(s, 0), 0, 100);
+  act(s, "spray", at(s, 1), 1, 100, true);
+
+  assert.equal(s.plots[0].moisture, 100);
+  assert.equal(s.plots[1].moisture, 100 * c.bubbleWaterMultiplier);
+  assert.equal(s.sponge, 600 - 100 - 100 * c.bubbleWaterMultiplier);
 });
 
 test("rain, infiltration, evaporation and automatic tank irrigation conserve water", () => {

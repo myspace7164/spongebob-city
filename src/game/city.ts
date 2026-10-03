@@ -288,7 +288,8 @@ function act(
   }
   if (action === "spray") {
     const wasBurning = s.fires.some((fire) => fire.plotId === p.id);
-    const litres = spray(s, p, amount);
+    const deliveryAmount = amount * (bubbles ? c.bubbleWaterMultiplier : 1);
+    const litres = spray(s, p, deliveryAmount);
     if (wasBurning)
       return litres > 0
         ? s.fires.some((fire) => fire.plotId === p.id)
