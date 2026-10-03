@@ -46,10 +46,9 @@ const SITE_GROUND: Record<NonNullable<CityPlot["site"]>, string> = {
 };
 
 function zoneGround(plot: CityPlot): THREE.Color {
+  if (plot.kind === "soil") return themeColor("soil");
   if (plot.site) return new THREE.Color(SITE_GROUND[plot.site]);
-  return new THREE.Color(
-    plot.kind === "soil" ? groundStyle.colours.green : groundStyle.colours.road,
-  );
+  return new THREE.Color(groundStyle.colours.road);
 }
 
 /** Thin conforming ground mesh; it marks a plot without creating a raised tile. */
@@ -981,12 +980,9 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         const buildHover = targetId === p.id && selectedBuild;
         const isUnsealed = p.kind === "soil";
         const isSealed = p.kind === "asphalt";
-        view.ground.visible = isUnsealed || isSealed;
-        view.groundMaterial.opacity = buildHover
-          ? 0.2
-          : isUnsealed
-            ? 0.12
-            : 0.08;
+        view.ground.visible = p.kind === "soil" || p.kind === "asphalt";
+        view.groundMaterial.opacity =
+          p.kind === "soil" ? 1 : buildHover ? 0.2 : 0.08;
         view.groundMaterial.color.copy(view.baseGroundColor);
         if (buildHover)
           view.groundMaterial.color.lerp(

@@ -44,7 +44,7 @@ test("build zones blend with terrain, preview placements and disappear under fin
       level: string;
       baseTints: string[];
       conformingHeightRange: number;
-      defaultZonesVisible: boolean;
+      unsealedSandVisible: boolean;
       selectedZoneVisible: boolean;
       sealedZoneVisible: boolean;
       validPreview: boolean;
@@ -73,7 +73,17 @@ test("build zones blend with terrain, preview placements and disappear under fin
         if (object.name === "build-zone-ground-blend") surfaces.push(object);
       });
       const surface = surfaces[0];
-      const defaultZonesVisible = surfaces.every((zone) => zone.visible);
+      const soilColor = new THREE.Color(
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--soil")
+          .trim(),
+      ).getHexString();
+      const unsealedSandVisible = surfaces.every(
+        (zone) =>
+          zone.visible &&
+          zone.material.opacity === 1 &&
+          zone.material.color.getHexString() === soilColor,
+      );
       view.update(state, player, 0, 7);
       const selectedZoneVisible = surface.visible;
       const position = surface.geometry.getAttribute("position");
@@ -137,7 +147,7 @@ test("build zones blend with terrain, preview placements and disappear under fin
         level: level.id,
         baseTints,
         conformingHeightRange: Math.max(...ys) - Math.min(...ys),
-        defaultZonesVisible,
+        unsealedSandVisible,
         selectedZoneVisible,
         sealedZoneVisible,
         validPreview,
@@ -150,7 +160,7 @@ test("build zones blend with terrain, preview placements and disappear under fin
   expect(result).toHaveLength(cityLevels.length);
   expect(result.every((level) => level.validPreview)).toBe(true);
   expect(result.every((level) => level.invalidPreview)).toBe(true);
-  expect(result.every((level) => level.defaultZonesVisible)).toBe(true);
+  expect(result.every((level) => level.unsealedSandVisible)).toBe(true);
   expect(result.every((level) => level.selectedZoneVisible)).toBe(true);
   expect(result.every((level) => level.sealedZoneVisible)).toBe(true);
   expect(result.every((level) => level.builtZoneHidden)).toBe(true);
