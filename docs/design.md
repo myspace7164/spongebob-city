@@ -18,7 +18,7 @@ Contextual team-supplied audio accompanies successful construction and water tra
 
 Shared contracts: `src/interfaces.ts`. Rules: `src/game/city.ts`. Tuning: `config/city.ts`. Scene: `src/game/city-view.ts` and `src/game/characters.ts`. HUD: `src/ui/city.ts`. Input and movement retain their existing modules. Old sandbox modules remain available as reusable foundation code but are not mounted in the mission.
 
-All coefficients, litres, area and temperatures are fictional gameplay values, not a validated hydrology/climate model or a surveyed Basel map. No persistence, multiplayer, mobile controls, building collision or campaign. Characters and city are procedural meshes, not imported/licensed assets. Named cartoon characters come from the user's concept. Boss representation is a sabotage machine; additional boss encounters and neighbourhoods are future work.
+All coefficients, litres, area and temperatures are fictional gameplay values, not a validated hydrology/climate model or a surveyed mission square. A converted Basel building dataset supplies surrounding scenery; its placement and cleared mission area are documented in `public/models/README.md`. No persistence, multiplayer, mobile controls, building collision or campaign. Characters and mission props are procedural meshes. Surrounding buildings load from the supplied Basel dataset, with the procedural architecture retained as a fallback. Named cartoon characters come from the user's concept. Boss representation is a sabotage machine; additional boss encounters and neighbourhoods are future work.
 
 ## Visual direction
 
