@@ -34,6 +34,8 @@ function applyLayout(s: CityState, level: CityLevel): void {
     stored: 0,
     ...s.plots.find((p) => p.id === id),
     ...position,
+    // Carried upgrades keep their kind, but each level's street decides what fits.
+    site: position.site,
   }));
   s.feedback = level.objective;
 }
