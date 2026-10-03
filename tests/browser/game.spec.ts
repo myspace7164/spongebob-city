@@ -12,14 +12,14 @@ test("city renders, water loop and construction work, powers and pause/reset are
     return !!gl && !gl.isContextLost();
   });
   await expect(page.locator("#hotbar .slot")).toHaveCount(9);
+  await expect(page.locator("#game")).toHaveAttribute("data-level", "loaded");
   await page.screenshot({ path: "/tmp/sponge-city-before.png" });
   await page.locator("#play").click();
   await expect(page.locator("#menu")).toBeHidden();
   await expect(page.locator("#crosshair")).toBeVisible();
-  // Look down slightly so the initial ray reaches the first row of plots.
-  await page.keyboard.down("KeyK");
-  await page.waitForTimeout(180);
-  await page.keyboard.up("KeyK");
+  // The initial camera aims at a reachable plot; fixed-duration key holds vary
+  // with software rendering and can turn past it while the model is loading.
+  await expect(page.locator("#target-info")).toContainText("Sealed asphalt");
   await page.keyboard.press("Digit3");
   await page.mouse.down();
   await page.mouse.up();

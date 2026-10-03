@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#14a3d2" />
+    <link rel="icon" type="image/svg+xml" href="/ui/sea-flower.svg" />
     <title>Sponge City · Basel</title>
   </head>
   <body>
@@ -24,6 +25,9 @@
         ></span
       >
       <span id="weather" class="badge"></span>
+      <button id="sound-toggle" aria-pressed="false" title="Toggle sound (M)">
+        Sound: on
+      </button>
     </header>
     <section id="city-hud" aria-label="City danger and water capacity">
       <div class="meter heat">
@@ -135,6 +139,15 @@
       <h2>Your bag of sponge tricks! 🫧</h2>
       <p class="description">
         Rain → absorb → store & distribute → greenery → cooling
+      </p>
+      <p id="level-status" class="small" role="status"></p>
+      <p class="small">
+        Buildings:
+        <a href="https://shop.geo.bs.ch/geodaten-katalog/"
+          >Quelle: Geodaten Kanton Basel-Stadt</a
+        >
+        · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> ·
+        adapted.
       </p>
       <div id="inventory-list"></div>
       <p class="small">

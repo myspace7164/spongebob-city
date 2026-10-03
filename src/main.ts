@@ -6,7 +6,8 @@ import { GameInput, keyCode } from "./game/input";
 import { createPlayer, updatePlayer } from "./game/player";
 import { createWorld } from "./game/world";
 import { loadModel } from "./game/assets";
-import { createCity, performCityAction, updateCity } from "./game/city";
+import { createCity, updateCity, weather } from "./game/city";
+import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
 import { CityUI } from "./ui/city";
 import type { CityAction } from "./interfaces";
@@ -28,6 +29,17 @@ function startGame(): void {
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 150);
   const world = createWorld(scene);
   const input = new GameInput(canvas);
+  const audio = new CityAudio();
+  const soundToggle =
+    document.querySelector<HTMLButtonElement>("#sound-toggle")!;
+  soundToggle.addEventListener("click", () => {
+    const muted = audio.toggleMuted();
+    soundToggle.textContent = muted ? "Sound: off" : "Sound: on";
+    soundToggle.setAttribute("aria-pressed", String(muted));
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) audio.update(false, false);
+  });
   let player = createPlayer();
   let city = createCity();
   const cityView = createCityView(scene, city);
@@ -52,6 +64,7 @@ function startGame(): void {
     );
   };
   const reset = () => {
+    audio.update(false, false);
     player = createPlayer();
     city = createCity();
     input.clear();
@@ -65,7 +78,7 @@ function startGame(): void {
     menu.hidden = input.active;
   };
   const act = (action: CityAction) =>
-    performCityAction(city, action, player.position, targetId);
+    audio.performAction(city, action, player.position, targetId);
   ui.render(city, targetId, false);
   const resize = () => {
     renderer.setSize(innerWidth, innerHeight);
@@ -90,12 +103,14 @@ function startGame(): void {
         "Mouse capture was blocked. Open the game in its own browser tab and try again."),
   );
   document.addEventListener("pointerlockchange", () => {
+    if (!input.active) audio.update(false, false);
     menu.hidden = input.active || ui.open || city.outcome !== "playing";
     crosshair.hidden = !input.active;
     accumulator = 0;
     lastTime = performance.now();
   });
   window.addEventListener("keydown", (event) => {
+    if (!event.repeat && keyCode(event) === "KeyM") soundToggle.click();
     if (event.repeat || !input.active || city.outcome !== "playing") return;
     const code = keyCode(event);
     if (code === "KeyR") reset();
@@ -136,18 +151,34 @@ function startGame(): void {
       "Graphics connection lost. Reload this page to restart.";
   });
   async function addAssets(): Promise<void> {
+    const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
     for (const [name, config] of Object.entries({
       character: gameConfig.character,
       level: gameConfig.level,
     })) {
       if (!config.url) continue;
+      if (name === "level") {
+        canvas.dataset.level = "loading";
+        levelStatus.textContent = "Loading Basel buildings…";
+      }
       try {
         const model = await loadModel(config);
         if (name === "character") {
           world.character.remove(world.placeholder);
           world.character.add(model);
-        } else scene.add(model);
+        } else {
+          scene.add(model);
+          cityView.useImportedLevel();
+          canvas.dataset.level = "loaded";
+          levelStatus.textContent =
+            "Basel buildings loaded · fictional mission square";
+        }
       } catch (error) {
+        if (name === "level") {
+          canvas.dataset.level = "fallback";
+          levelStatus.textContent =
+            "Basel map unavailable · using the original scenery";
+        }
         message.textContent = `Could not load the ${name} model. Check config/game.ts and reload.`;
         console.error(error);
       }
@@ -202,7 +233,7 @@ function startGame(): void {
           !input.held("KeyB") &&
           (city.selected === "absorb" || city.selected === "spray")
         )
-          performCityAction(
+          audio.performAction(
             city,
             city.selected,
             player.position,
@@ -212,7 +243,7 @@ function startGame(): void {
               : cityConfig.sprayRate) * gameConfig.fixedStep,
           );
         if (input.held("KeyB"))
-          performCityAction(
+          audio.performAction(
             city,
             "spray",
             player.position,
@@ -220,10 +251,14 @@ function startGame(): void {
             cityConfig.sprayRate * gameConfig.fixedStep,
             true,
           );
+        const spongeBeforeUpdate = city.sponge;
         updateCity(city, gameConfig.fixedStep, player.position);
+        if (city.sponge > spongeBeforeUpdate) audio.requestAbsorption();
+        audio.update(city.outcome === "playing", weather(city).raining);
         accumulator -= gameConfig.fixedStep;
       }
     }
+    if (!active) audio.update(false, false);
     world.update(player);
     world.character.scale.setScalar(
       city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1,

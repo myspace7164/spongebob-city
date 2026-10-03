@@ -96,33 +96,35 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     }),
   );
   root.add(border);
-  // Architecture is a stage set inspired by a Basel square, not a surveyed map.
+  const architecture = new THREE.Group();
+  root.add(architecture);
+  // Keep the stage set until the surveyed model finishes loading.
   for (let i = 0; i < 7; i++) {
     const x = (i - 3) * 5;
     box(
-      root,
+      architecture,
       [4.6, 5 + (i % 3), 4],
       [x, (5 + (i % 3)) / 2, -30],
       i % 2 ? "building" : "building-alt",
     );
-    box(root, [4.9, 0.45, 4.4], [x, 5.2 + (i % 3), -30], "roof");
+    box(architecture, [4.9, 0.45, 4.4], [x, 5.2 + (i % 3), -30], "roof");
     for (const y of [1.5, 3.5])
       for (const dx of [-1, 1])
-        box(root, [0.7, 1, 0.05], [x + dx, y, -27.96], "window");
+        box(architecture, [0.7, 1, 0.05], [x + dx, y, -27.96], "window");
   }
   for (const x of [-18, 18])
     for (const z of [-3, -10, -17]) {
-      box(root, [5, 5, 6], [x, 2.5, z], "building");
-      box(root, [5.4, 0.4, 6.4], [x, 5.2, z], "roof");
+      box(architecture, [5, 5, 6], [x, 2.5, z], "building");
+      box(architecture, [5.4, 0.4, 6.4], [x, 5.2, z], "roof");
     }
   for (const x of [-3, 3]) {
-    box(root, [2, 9, 2], [x, 4.5, -32], "church");
+    box(architecture, [2, 9, 2], [x, 4.5, -32], "church");
     const spire = new THREE.Mesh(
       new THREE.ConeGeometry(1.6, 3.4, 4),
       new THREE.MeshLambertMaterial({ color: themeColor("roof") }),
     );
     spire.position.set(x, 10.6, -32);
-    root.add(spire);
+    architecture.add(spire);
   }
   const sign = label("BARFÜSSERPLATZ · BASEL");
   sign.position.set(0, 6, -27);
@@ -190,6 +192,9 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   const point = new THREE.Vector3();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   return {
+    useImportedLevel() {
+      architecture.visible = false;
+    },
     target(s: CityState, camera: THREE.Camera): number | null {
       ray.setFromCamera(new THREE.Vector2(0, 0), camera);
       if (!ray.ray.intersectPlane(floor, point)) return null;
