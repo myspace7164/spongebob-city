@@ -34,6 +34,12 @@ All coefficients, litres, area and temperatures are fictional gameplay values, n
 
 Keep available coins in a large gold wallet beside the weather and sound controls, outside the scrollable mission list. Useful player actions earn fictional government grants: first water collection and delivery per plot, each new construction type per plot, a safe runoff route per source, disabling sabotage and installing the sponge upgrade. Patrick and automatic maximum absorption use the same rules. Each grant is claimed once per level; rebuilding, repeated inputs and refunds cannot farm funding. Levels and retries reset the grant ledger with the city. A short rising coin chime, wallet bounce, flying coin burst and visible `+coins · City funding` receipt celebrate actual grants, including builds whose cost exceeds the grant. Mute, pause and reduced motion remain respected. Reward amounts live in config.
 
+## Held tools and roaming villain
+
+All nine selected climate tools have a recognisable miniature prop in SpongeBob's right hand, including the imported character and fallback. Reuse geometry and cache one prop per tool; attachment follows the character through movement, turns and powers. Tools change immediately when selected from the keyboard or guide.
+
+Dr. Beton continuously wanders between deterministic pseudo-random waypoints while active. At each sabotage interval he picks exposed soil or a basin, visibly approaches it and spends a short sealing animation before restoring asphalt. A player can intercept him at his actual moving position with E or karate; disabling cancels the attack and pauses him for the existing duration. Movement and attacks freeze with gameplay, reset with the level and respect terrain. His dark angular outfit, red eyes, slanted brows and toothed grin make him a menacing cartoon villain. A warning path and animated roller signal the plot under attack; water remains conserved.
+
 Each neighbourhood loops the corresponding supplied stage track during gameplay. Rain plays at 8% volume and stage music at 22%; pause, briefings, hidden tabs and mute stop playback. The fifth stage track is reserved for future levels.
 
 ## Visual direction
