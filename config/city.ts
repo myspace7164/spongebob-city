@@ -39,6 +39,7 @@ export const cityConfig = {
     startingCelsius: 27,
     minimumCelsius: 10,
     dryThresholdCelsius: 30,
+    dryStartInfluence: 0.04,
     dryFullCelsius: 45,
     fireStartCelsius: 40,
     gameOverCelsius: 60,

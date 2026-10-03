@@ -69,3 +69,13 @@ export function modifierMultiplier(
 ): number {
   return activeModifier(s)?.effects[key] ?? 1;
 }
+
+/** Mini Sponge is an absolute small scale, even alongside a giant visual boost. */
+export function effectivePlayerVisualScale(
+  s: CityState,
+  powerSizeMultiplier = 1,
+): number {
+  const modifier = activeModifier(s);
+  if (modifier?.id === "miniSponge") return modifier.effects.playerScale ?? 1;
+  return powerSizeMultiplier * modifierMultiplier(s, "playerScale");
+}

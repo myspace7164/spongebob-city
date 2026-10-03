@@ -12,6 +12,10 @@ import {
 } from "../src/game/powerups";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { gameConfig } from "../config/game";
+import { hats } from "../config/hats";
 import {
   createCampaign,
   currentLevel,
@@ -20,15 +24,29 @@ import {
   connectRunoff,
   recyclePlot,
 } from "../src/game/campaign";
-import { performCityAction, updateCity } from "../src/game/city";
+import {
+  performCityAction,
+  sweatDuringSprint,
+  updateCity,
+} from "../src/game/city";
 import { createPlayer, updatePlayer } from "../src/game/player";
 import {
+  buildingColliders,
+  circleCollider,
+  CollisionWorld,
+  transformCollider,
+  type SolidCollider,
+} from "../src/game/collisions";
+import { gameplayColliders } from "../src/game/world-colliders";
+import { treeColliders, treesNear, type TreeRow } from "../src/game/trees";
+import {
   assignElevations,
+  heightAt,
   levelScenery,
   terrainFromBuffer,
 } from "../src/game/terrain";
 import { cityConfig, cityTools } from "../config/city";
-import { clampToLevel } from "../src/game/streets";
+import { clampToLevel, worldToMap } from "../src/game/streets";
 import type {
   Account,
   OnlinePlayer,
@@ -72,11 +90,27 @@ const actions = new Set([
   "recycle",
   "reset",
 ]);
+let baselBuildingFootprints: Promise<SolidCollider[]> | undefined;
+function loadBaselBuildingFootprints(): Promise<SolidCollider[]> {
+  baselBuildingFootprints ??= (async () => {
+    const data = readFileSync("public/models/basel-city.glb");
+    const binary = data.buffer.slice(
+      data.byteOffset,
+      data.byteOffset + data.byteLength,
+    );
+    const model = await new GLTFLoader().parseAsync(binary, "");
+    return buildingColliders(model.scene);
+  })();
+  return baselBuildingFootprints;
+}
 /** One authoritative simulation per room. Shared funding and reservoir are cooperative resources. */
 export class Rooms {
   private rooms = new Map<string, Room>();
   private membership = new Map<string, string>();
   private terrain: TerrainGrid | null = null;
+  private trees: TreeRow[] = [];
+  private buildings: SolidCollider[] = [];
+  private staticWorlds = new Map<number, CollisionWorld>();
   constructor(private store: AccountStore) {
     try {
       const meta = JSON.parse(
@@ -90,6 +124,21 @@ export class Rooms {
     } catch {
       /* Flat scenery fallback, as in the client. */
     }
+    try {
+      this.trees = JSON.parse(
+        readFileSync("public/maps/basel-trees.json", "utf8"),
+      ).trees as TreeRow[];
+    } catch {
+      /* Tree collisions are omitted if the map data is unavailable. */
+    }
+    void loadBaselBuildingFootprints()
+      .then((colliders) => {
+        this.buildings = colliders;
+        this.staticWorlds.clear();
+      })
+      .catch(() => {
+        /* Gameplay remains usable with local structure colliders. */
+      });
   }
   create(account: Account): RoomSnapshot {
     const previous = this.room(account.id);
@@ -218,6 +267,17 @@ export class Rooms {
       activatePowerup(room.city);
       room.revision++;
     }
+    if (command.equippedHat !== undefined) {
+      if (
+        command.equippedHat !== null &&
+        !hats.some((hat) => hat.id === command.equippedHat)
+      )
+        throw new Error("Unknown hat.");
+      if (room.city.campaign) {
+        room.city.campaign.equippedHat = command.equippedHat;
+        room.revision++;
+      }
+    }
     if (!command.action) return;
     if (!actions.has(command.action)) throw new Error("Unknown action.");
     if (command.action === "reset") {
@@ -304,25 +364,43 @@ export class Rooms {
         currentLevel(room.city),
         this.terrain,
       ).groundAt;
+      const collisionWorld = this.staticWorld(room.city);
       let active = false;
-      for (const m of room.members.values()) {
+      for (const [id, m] of room.members) {
         if (now - m.seen > 2000) {
           m.input.movement = idle();
           m.public.ready = false;
         }
         if (!m.public.ready) continue;
         active = true;
+        collisionWorld.setDynamic([
+          ...gameplayColliders(room.city, ground, this.buildings.length === 0),
+          ...[...room.members.entries()]
+            .filter(([otherId]) => otherId !== id)
+            .map(([, other]) => {
+              const point = other.public.player.position;
+              return circleCollider(
+                `online-player-${other.public.id}`,
+                point.x,
+                point.z,
+                gameConfig.playerCollisionRadius,
+                point.y,
+                point.y + gameConfig.playerCollisionHeight,
+                "character",
+              );
+            }),
+        ]);
         updatePlayer(
           m.public.player,
           m.input.movement ?? idle(),
           m.input.yaw ?? 0,
           dt,
           ground,
-          modifierMultiplier(room.city, "playerSpeed") *
-            (m.input.movement?.run
-              ? powerupMultiplier(room.city, "laeckerli")
-              : 1),
+          modifierMultiplier(room.city, "playerSpeed"),
+          collisionWorld,
+          powerupMultiplier(room.city, "laeckerli"),
         );
+        sweatDuringSprint(room.city, m.public.player, dt);
         m.input.movement!.jump = false;
         const origin = levelPosition(room.city, { x: 0, z: 0 });
         const local = {
@@ -337,11 +415,32 @@ export class Rooms {
       }
       if (active && room.city.outcome === "playing") {
         const level = room.city.campaign!.level;
+        collisionWorld.setDynamic([
+          ...gameplayColliders(room.city, ground, this.buildings.length === 0),
+          ...[...room.members.values()].map((member) => {
+            const point = member.public.player.position;
+            return circleCollider(
+              `online-player-${member.public.id}`,
+              point.x,
+              point.z,
+              gameConfig.playerCollisionRadius,
+              point.y,
+              point.y + gameConfig.playerCollisionHeight,
+              "character",
+            );
+          }),
+        ]);
         // Automatic collection belongs to the team; personal rankings only count explicit useful actions.
         const collector = [...room.members.values()].find(
           (m) => m.public.ready,
         )!;
-        updateCity(room.city, dt, collector.public.player.position);
+        updateCity(
+          room.city,
+          dt,
+          collector.public.player.position,
+          collisionWorld,
+          ground,
+        );
         if (room.city.campaign!.wheelPending) {
           room.city.campaign!.pendingModifier = chooseLevelModifier();
           startNextCampaignLevel(room.city);
@@ -353,6 +452,33 @@ export class Rooms {
       }
       room.revision++;
     }
+  }
+  private staticWorld(city: CityState): CollisionWorld {
+    const levelIndex = city.campaign?.level ?? 0;
+    const cached = this.staticWorlds.get(levelIndex);
+    if (cached) return cached;
+    const placed = levelScenery(currentLevel(city), this.terrain);
+    const parent = new THREE.Group();
+    parent.position.set(placed.x, placed.y, placed.z);
+    parent.rotation.y = placed.rotationY;
+    parent.updateMatrixWorld(true);
+    const buildings = this.buildings.map((collider) =>
+      transformCollider(collider, parent),
+    );
+    const plotPoints = city.plots.map((plot) =>
+      worldToMap(placed, plot.x, plot.z),
+    );
+    const hiddenTrees = treesNear(this.trees, plotPoints, 3);
+    const treeGround = this.terrain
+      ? (x: number, z: number) => heightAt(this.terrain!, x, z)
+      : () => 0;
+    const trees = treeColliders(this.trees, treeGround, hiddenTrees).map(
+      (collider) => transformCollider(collider, parent),
+    );
+    const world = new CollisionWorld();
+    world.setStatic([...buildings, ...trees]);
+    this.staticWorlds.set(levelIndex, world);
+    return world;
   }
   private snapshot(room: Room): RoomSnapshot {
     return {

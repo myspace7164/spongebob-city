@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { cityConfig as c } from "../config/city.ts";
+import { cityConfig as c, cityTools } from "../config/city.ts";
 import { cityLevels } from "../config/levels.ts";
 import {
   advanceCampaign,
@@ -26,6 +26,15 @@ import {
 } from "../src/game/terrain.ts";
 import type { CityState } from "../src/interfaces.ts";
 const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
+const build = (
+  s: CityState,
+  action: "tree" | "basin" | "roof" | "tank" | "pond" | "shade" | "karate",
+  id: number,
+) => {
+  if (action !== "karate" && s.plots[id].kind === "asphalt")
+    act(s, "karate", at(s, id), id);
+  return act(s, action, at(s, id), id);
+};
 const total = (s: CityState) =>
   s.sponge +
   s.evaporated +
@@ -82,7 +91,7 @@ test("runoff requires reachable safe destinations, rejects loops and conserves w
     [2, "basin"],
     [3, "tank"],
   ] as const)
-    act(s, kind, at(s, id), id);
+    build(s, kind, id);
   connectRunoff(s, 0, { x: 99, y: 0, z: 99 });
   assert.equal(s.campaign!.connectFrom, null);
   connectRunoff(s, 0, at(s, 0));
@@ -119,27 +128,28 @@ test("recycling restores build choices without new grants or deleting retained w
   const s = createCampaign();
   onPlaceholderLevel(s, 3);
   const budget = s.budget;
-  act(s, "tank", at(s, 0), 0);
+  const karateCost = cityTools.find((tool) => tool.id === "karate")!.cost;
+  build(s, "tank", 0);
   const grants = s.funding.earned;
   s.plots[0].stored = 1000;
   const before = total(s);
   recyclePlot(s, 0, at(s, 0));
   assert.equal(s.plots[0].kind, "soil");
-  assert.equal(s.budget, budget + grants);
+  assert.equal(s.budget, budget + grants - karateCost);
   assert.equal(total(s), before);
   recyclePlot(s, 0, at(s, 0));
-  assert.equal(s.budget, budget + grants);
+  assert.equal(s.budget, budget + grants - karateCost);
 });
 
 test("separated shaded plots do not satisfy a connected shade zone", () => {
   const s = createCampaign();
   onPlaceholderLevel(s, 2);
-  act(s, "shade", at(s, 0), 0);
-  act(s, "shade", at(s, 14), 14);
+  build(s, "shade", 0);
+  build(s, "shade", 14);
   const goal = () =>
     levelAchievements(s).find((g) => g.metric === "shadeConnected")!;
   assert.equal(goal().done, false);
-  act(s, "shade", at(s, 1), 1);
+  build(s, "shade", 1);
   assert.equal(goal().done, true);
 });
 
@@ -256,7 +266,7 @@ function playLegalStrategy(elevate?: (s: CityState) => void) {
     assert.equal(s.outcome, "playing");
     elevate?.(s);
     const initialWater = total(s) - s.rainfall;
-    for (const [id, kind] of construction[level]) act(s, kind, at(s, id), id);
+    for (const [id, kind] of construction[level]) build(s, kind, id);
     let levelWaterBeforeCompletion = 0;
     let rainfallBeforeCompletion = 0;
     for (
@@ -371,7 +381,7 @@ test("the last missing achievement blocks advancement; next neighbourhood resets
     [2, "karate"],
     [3, "karate"],
   ] as const)
-    act(s, kind, at(s, id), id);
+    build(s, kind, id);
   act(s, "upgrade", { ...c.sandy, y: 0 }, null);
   s.plots.forEach((p) => {
     p.surface = 0;
@@ -403,8 +413,8 @@ test("the last missing achievement blocks advancement; next neighbourhood resets
 test("Level 3 shade plots across the wider street gap connect and permit Level 4", () => {
   const s = createCampaign();
   onPlaceholderLevel(s, 2);
-  act(s, "shade", at(s, 4), 4);
-  act(s, "shade", at(s, 8), 8);
+  build(s, "shade", 4);
+  build(s, "shade", 8);
   assert.equal(
     Math.hypot(s.plots[4].x - s.plots[8].x, s.plots[4].z - s.plots[8].z),
     7,
@@ -413,10 +423,10 @@ test("Level 3 shade plots across the wider street gap connect and permit Level 4
     levelAchievements(s).find((g) => g.metric === "shadeConnected")!.done,
     true,
   );
-  for (const id of [0, 1]) act(s, "roof", at(s, id), id);
+  for (const id of [0, 1]) build(s, "roof", id);
   for (const id of [2, 3, 5]) {
     act(s, "karate", at(s, id), id);
-    act(s, "tree", at(s, id), id);
+    build(s, "tree", id);
     s.plots[id].moisture = c.moistureHealthy;
   }
   s.reused = 1000;

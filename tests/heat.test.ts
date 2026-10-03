@@ -122,6 +122,18 @@ test("Dr. Beton sealing adds gradual heat pressure beyond the sealed surface", (
   assert.ok(production.temperature - idle.temperature < 0.01);
 });
 
+test("sealed platforms warm the city compared with unsealed platforms", () => {
+  const sealed = createCity();
+  const unsealed = createCity();
+  sealed.plots.forEach((plot) => (plot.kind = "asphalt"));
+  unsealed.plots.forEach((plot) => (plot.kind = "soil"));
+  sealed.machineDisabled = unsealed.machineDisabled = 100;
+  advance(sealed, 10);
+  advance(unsealed, 10);
+  assert.ok(sealed.temperature > unsealed.temperature);
+  assert.ok(sealed.temperature - unsealed.temperature < 1);
+});
+
 test("rain and each Schwammstadt cooling source lower the warming rate", () => {
   const asphalt = temperatureAfterOneSecond("asphalt");
   assert.ok(temperatureAfterOneSecond("tree") < asphalt);
@@ -135,12 +147,14 @@ test("heat above 30 C progressively dries SpongeBob and suppresses WaterFull", (
   const atThreshold = spongeWaterMorphWeights(400, 400, 30);
   const warmer = spongeWaterMorphWeights(400, 400, 37.5);
   const hotter = spongeWaterMorphWeights(400, 400, 42.5);
-  assert.equal(atThreshold.dry, 0);
-  assert.equal(atThreshold.waterFull, 1);
+  const cooler = spongeWaterMorphWeights(400, 400, 29.99);
+  assert.equal(cooler.dry, 0);
+  assert.equal(atThreshold.dry, c.heatSystem.dryStartInfluence);
+  assert.ok(atThreshold.waterFull < 1);
+  assert.equal(spongeWaterMorphWeights(400, 400, 45).dry, 1);
   assert.ok(warmer.dry > 0 && warmer.dry < 1);
   assert.ok(warmer.waterFull < 1);
   assert.ok(hotter.dry > warmer.dry && hotter.dry < 1);
-  assert.equal(spongeWaterMorphWeights(400, 400, 45).dry, 1);
 });
 
 test("less-frequent rain still cycles through every campaign level", () => {

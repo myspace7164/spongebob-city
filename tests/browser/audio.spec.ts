@@ -8,6 +8,7 @@ import { expect, test } from "@playwright/test";
 test("all sound assets decode and contextual audio respects success, pause and mute", async ({
   page,
 }) => {
+  await page.route("**/models/basel-city.glb", (route) => route.abort());
   await page.goto("/");
   await enterCampaign(page);
   await page.keyboard.press("Escape");

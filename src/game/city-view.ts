@@ -21,6 +21,8 @@ import {
 } from "./characters";
 import { betonConfig as betonTuning } from "../../config/beton";
 import { createCityFireView } from "./city-fire-view";
+import { gameplayColliders } from "./world-colliders";
+import type { SolidCollider } from "./collisions";
 
 function dispose(group: THREE.Group): void {
   group.traverse((object) => {
@@ -560,6 +562,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     root.add(npc);
     const name = label(text);
     name.position.set(x, 3, z);
+    name.visible = false;
     root.add(name);
     keepOnGround(npc);
     keepOnGround(name);
@@ -580,7 +583,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   betonName.position.set(0, 3.05, 0);
   beton.add(betonName);
   const driverPoint = vehicle.driverPoint as THREE.Object3D;
-  const concreteOutput = vehicle.concreteOutput as THREE.Object3D;
   const laserEyes = beton.userData.laserEyes as THREE.Object3D[];
   const laserBeams = [makeLaserBeam(beton, "L"), makeLaserBeam(beton, "R")];
   const laserRaycasters = laserBeams.map(
@@ -612,7 +614,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   let lastBetonPhase = "";
   let phaseStartedAt = 0;
   let sealingEndedAt = Number.NEGATIVE_INFINITY;
-  let previousVehicleTime = 0;
   let previousVehicleX = machine.position.x;
   let previousVehicleZ = machine.position.z;
   const residents = new THREE.Group();
@@ -673,6 +674,10 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       importedLevel = true;
       architecture.visible = false;
     },
+    /** Only intended footprints block movement; labels, rain, fire and effects stay non-solid. */
+    colliders(s: CityState): SolidCollider[] {
+      return gameplayColliders(s, groundAt, architecture.visible);
+    },
     target(s: CityState, camera: THREE.Camera): number | null {
       ray.setFromCamera(new THREE.Vector2(0, 0), camera);
       // Aim at the ground level around the player; nearby slopes are gentle.
@@ -701,6 +706,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       root.updateMatrixWorld(true);
       const ground = (x: number, z: number) => groundAt(x, z);
       playerGround = ground(player.position.x, player.position.z);
+      for (const { id, name } of npcs) {
+        const at = npcPosition(s, id);
+        name.visible =
+          Math.hypot(player.position.x - at.x, player.position.z - at.z) <= 8;
+      }
       const nextSignature = `${level?.id}/${groundVersion}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
       if (campaignSignature !== nextSignature) {
         campaignSignature = nextSignature;
@@ -851,8 +861,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);
       attribute.needsUpdate = true;
       const villain = s.saboteur;
-      const elapsedDelta = Math.max(0, s.elapsed - previousVehicleTime);
-      previousVehicleTime = s.elapsed;
       machine.position.set(
         villain.x - origin.x,
         ground(villain.x, villain.z),

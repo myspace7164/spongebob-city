@@ -16,6 +16,14 @@ import {
 } from "../src/game/campaign.ts";
 import type { CityState } from "../src/interfaces.ts";
 const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
+const build = (
+  s: CityState,
+  action: "tree" | "basin" | "roof" | "tank" | "pond" | "shade",
+  id: number,
+) => {
+  if (s.plots[id].kind === "asphalt") act(s, "karate", at(s, id), id);
+  return act(s, action, at(s, id), id);
+};
 
 test("useful transfers and builds award spendable grants; failed and repeated actions do not", () => {
   const s = createCity();
@@ -50,8 +58,8 @@ test("useful transfers and builds award spendable grants; failed and repeated ac
 test("recycling, sabotage repair and reconnecting cannot farm government grants", () => {
   const s = createCampaign();
   s.plots.forEach((p) => delete p.site);
-  act(s, "roof", at(s, 0), 0);
-  act(s, "basin", at(s, 1), 1);
+  build(s, "roof", 0);
+  build(s, "basin", 1);
   const connect = () => {
     connectRunoff(s, 0, at(s, 0));
     connectRunoff(s, 1, at(s, 1));
@@ -67,7 +75,7 @@ test("recycling, sabotage repair and reconnecting cannot farm government grants"
   assert.equal(s.budget, budget);
   assert.equal(s.funding.earned, earned);
   s.plots[1].kind = "asphalt";
-  act(s, "basin", at(s, 1), 1);
+  build(s, "basin", 1);
   assert.equal(s.funding.earned, earned);
 });
 
@@ -87,9 +95,9 @@ test("Patrick, maximum collection and support actions earn grants once; new leve
   updateCity(s, 1 / 60, at(s, 0));
   assert.ok(s.funding.claimed.some((key) => key.startsWith("collect:")));
   const campaign = createCampaign();
-  act(campaign, "basin", at(campaign, 0), 0);
+  build(campaign, "basin", 0);
   for (const id of [1, 2, 3]) act(campaign, "karate", at(campaign, id), id);
-  act(campaign, "basin", at(campaign, 1), 1);
+  build(campaign, "basin", 1);
   campaign.plots.forEach((p) => (p.surface = 0));
   Object.assign(campaign, { heat: 50, flood: 0, reused: 400 });
   campaign.campaign!.stormCompleted = true;

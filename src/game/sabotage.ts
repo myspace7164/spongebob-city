@@ -2,6 +2,8 @@ import { isPowerupActive } from "./powerups";
 import { cityConfig as c } from "../../config/city";
 import { betonConfig as b } from "../../config/beton";
 import type { CityState } from "../interfaces";
+import type { PlayerState } from "../interfaces";
+import type { CollisionWorld } from "./collisions";
 
 function waypoint(s: CityState): void {
   const v = s.saboteur;
@@ -10,18 +12,50 @@ function waypoint(s: CityState): void {
   v.destinationX = p.x + Math.sin(v.step * 12.9898) * b.waypointSpread;
   v.destinationZ = p.z + Math.sin(v.step * 78.233) * b.waypointSpread;
 }
-function move(s: CityState, dt: number, speed: number): boolean {
+function move(
+  s: CityState,
+  dt: number,
+  speed: number,
+  collisions?: CollisionWorld,
+  groundAt: (x: number, z: number) => number = () => 0,
+): { arrived: boolean; blocked: boolean } {
   const v = s.saboteur;
   const dx = v.destinationX - v.x,
     dz = v.destinationZ - v.z;
   const distance = Math.hypot(dx, dz);
+  let blocked = false;
   if (distance > b.arrivalDistance) {
     v.facing = Math.atan2(dx, dz);
     const amount = Math.min(distance, speed * dt);
-    v.x += (dx / distance) * amount;
-    v.z += (dz / distance) * amount;
+    if (collisions) {
+      const actor: PlayerState = {
+        position: { x: v.x, y: groundAt(v.x, v.z), z: v.z },
+        velocity: { x: 0, y: 0, z: 0 },
+        grounded: true,
+        facing: v.facing,
+      };
+      const result = collisions.move(
+        actor,
+        (dx / distance) * amount,
+        (dz / distance) * amount,
+        1.35,
+        2.7,
+        ["dr-beton", "dr-beton-vehicle"],
+      );
+      v.x = actor.position.x;
+      v.z = actor.position.z;
+      blocked = result.blockedX || result.blockedZ;
+    } else {
+      v.x += (dx / distance) * amount;
+      v.z += (dz / distance) * amount;
+    }
   }
-  return distance <= b.arrivalDistance + speed * dt;
+  return {
+    arrived:
+      Math.hypot(v.destinationX - v.x, v.destinationZ - v.z) <=
+      b.arrivalDistance,
+    blocked,
+  };
 }
 const exposed = (kind: string) => kind === "soil" || kind === "basin";
 
@@ -30,6 +64,8 @@ export function updateSaboteur(
   s: CityState,
   dt: number,
   speedMultiplier = 1,
+  collisions?: CollisionWorld,
+  groundAt: (x: number, z: number) => number = () => 0,
 ): void {
   const v = s.saboteur;
   if (isPowerupActive(s, "basilisk")) {
@@ -50,7 +86,14 @@ export function updateSaboteur(
   }
   if (v.phase === "roaming") {
     if (v.step === 0) waypoint(s);
-    if (move(s, dt, b.roamSpeed * speedMultiplier)) waypoint(s);
+    const movement = move(
+      s,
+      dt,
+      b.roamSpeed * speedMultiplier,
+      collisions,
+      groundAt,
+    );
+    if (movement.blocked || movement.arrived) waypoint(s);
     s.sabotageIn -= dt;
     if (s.sabotageIn > 0) return;
     const choices = s.plots.filter((p) => exposed(p.kind));
@@ -75,10 +118,25 @@ export function updateSaboteur(
     return;
   }
   if (v.phase === "approaching") {
-    if (move(s, dt, b.attackSpeed * speedMultiplier)) {
+    const movement = move(
+      s,
+      dt,
+      b.attackSpeed * speedMultiplier,
+      collisions,
+      groundAt,
+    );
+    if (movement.arrived) {
       v.phase = "sealing";
       v.sealTime = b.sealingSeconds;
       s.feedback = `Dr. Beton is sealing #${victim.id + 1}! Stop him now!`;
+      return;
+    }
+    if (movement.blocked) {
+      v.phase = "roaming";
+      v.targetId = null;
+      s.sabotageIn = c.sabotageInterval;
+      waypoint(s);
+      return;
     }
     return;
   }

@@ -2,9 +2,16 @@
 export const gameConfig = {
   walkSpeed: 5,
   runSpeed: 9,
+  sprintDurationSeconds: 10,
+  sprintCooldownSeconds: 3,
+  /** Water lost while sprinting, in litres per second. */
+  sprintSweatLitresPerSecond: 5,
   acceleration: 18,
   gravity: 24,
   jumpSpeed: 9,
+  /** Feet-centered body capsule approximated by an XZ circle and vertical span. */
+  playerCollisionRadius: 0.38,
+  playerCollisionHeight: 1.55,
   fixedStep: 1 / 60,
   maxFrameTime: 0.1,
   mouseSensitivity: 0.0025,

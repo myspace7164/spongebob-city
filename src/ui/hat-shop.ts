@@ -72,9 +72,12 @@ export class HatShopUI {
     return !this.panel.hidden;
   }
 
-  show(): void {
+  show(returnToGame = false): void {
     this.status.textContent = "";
     this.render();
+    this.closeButton.textContent = returnToGame
+      ? "Return to game"
+      : "Back to menu";
     this.panel.hidden = false;
     this.closeButton.focus();
   }

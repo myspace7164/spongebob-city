@@ -27,7 +27,7 @@ Open the local URL printed by Vite in a desktop WebGL 2 browser. Claim a unique 
 | E near Sandy / Dr. Beton           | Buy capacity and bubbles / disable sabotage                  |
 | Hold B after upgrade               | Bubble irrigation at extended range                          |
 | Q                                  | Activate the collected boost once                            |
-| G + 1–5                           | 67, Macarena, teabag, dab, floss; move/jump to cancel          |
+| G + 1–5                            | 67, Macarena, teabag, dab, floss; move/jump to cancel        |
 | H                                  | Pause and open the field guide                               |
 | M / Sound button                   | Mute or unmute game audio                                    |
 | C at source, then C at destination | Connect a roof/tank to permeable receiving ground or storage |
@@ -48,7 +48,7 @@ npm run build
 npm run preview
 ```
 
-`dist/` contains the client. Online play also requires the Node server described below; static hosting supports solo practice only. Unit tests cover water conservation, capacity, construction prerequisites, budget, abilities, sabotage, loss and a complete winning strategy, alongside foundation controls and sandbox rules. Campaign tests complete all four production levels through legal actions, verify automatic progression and water conservation, and reject unsafe/cyclic runoff.
+`dist/` contains the client. Online play also requires the Node server described below; static hosting supports solo practice only. Unit tests cover water conservation, capacity, construction prerequisites, budget, abilities, sabotage, loss, player controls and a complete winning strategy. Campaign tests complete all four production levels through legal actions, verify automatic progression and water conservation, and reject unsafe/cyclic runoff.
 
 Browser checks require Chromium and its OS libraries:
 
@@ -68,6 +68,8 @@ npm run test:browser
 `playwright.config.ts` accepts `CHROMIUM_EXECUTABLE` for an existing browser and `SOFTWARE_WEBGL=1` for software rendering. The browser tests exercise the rendered city, construction, water reuse, powers, movement, pointer lock, pause and reset.
 
 ## Extend
+
+The level builder is a local development tool. Run `npm run dev` and open `/?builder` to place an area's bounds, construction spots, player spawn and characters; press **N** to open or close it during play. **Save** writes the validated draft to `config/built-levels/index.ts`. It is disabled in production and cannot open after joining an online room. Review the generated level in the game before committing it.
 
 SpongeBob carries a miniature of the selected tool in his right hand. Both the Blender character and fallback swing their arms and legs while walking; hold either Shift key to sprint with a faster gait. Shift held before mouse capture also works; the footer shows RUNNING while sprint is active. Idle arms hang naturally, and the imported character's teeth are white. Runtime limb pivots preserve Dry/WaterFull morph targets; the original Blender source stays intact.
 

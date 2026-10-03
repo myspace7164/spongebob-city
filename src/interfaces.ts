@@ -8,6 +8,10 @@ export interface Vector3State {
 export type EmoteKind = "six-seven" | "macarena" | "teabag" | "dab" | "floss";
 export interface PlayerState {
   emote?: { id: EmoteKind; elapsed: number; remaining: number };
+  /** Fixed-step sprint pacing state, synchronized by the room authority in co-op. */
+  sprintElapsed?: number;
+  sprintCooldown?: number;
+  sprinting?: boolean;
   position: Vector3State;
   velocity: Vector3State;
   grounded: boolean;
@@ -45,26 +49,6 @@ export interface RoadNetwork {
     width: number;
     segments: [[number, number], [number, number]][];
   }[];
-}
-
-/** Inventory definitions describe behavior; quantities are runtime state. */
-export interface InventoryItem {
-  id: string;
-  name: string;
-  action: "placeholder" | "shoot" | "place";
-  description: string;
-}
-export interface InventoryState {
-  items: readonly InventoryItem[];
-  selected: number;
-  ammo: number;
-  blocks: number;
-  cooldown: number;
-}
-/** Mutable placeholder sandbox state; reset clears all placed objects. */
-export interface PlacedBlock {
-  x: number;
-  z: number;
 }
 
 export type PlotKind =
@@ -314,6 +298,8 @@ export interface OnlineCommand {
   target?: number | null;
   bubbles?: boolean;
   powerup?: boolean;
+  /** Shared run cosmetic; server snapshots keep every client visually in sync. */
+  equippedHat?: HatId | null;
 }
 
 export type PowerupKind =

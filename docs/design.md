@@ -20,13 +20,13 @@ Dry periods alternate with thunderstorms. Each plot holds surface water, soil mo
 
 Patrick can remove several nearby asphalt slabs. Sandy sells a capacity/bubble upgrade. Squidward comments on shade and Mr. Krabs tracks the construction budget. Dr. Beton's Asphaltinator reseals an exposed green plot periodically; nearby karate disables it temporarily.
 
-The HUD shows city temperature and heat risk, flood danger, sponge capacity, weather, budget and mission progress. Asphalt and Dr. Beton's sealing slowly increase temperature, with campaign warming pressure scaling from 0.75× on the first level to 1.35× on the last; rain, watered trees, green plots, ponds and shade cool it at full strength. SpongeBob's Dry morph starts blending above 36°C, fires begin above 40°C, and temperatures over 60°C lose the mission; prolonged critical flooding also causes a loss. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
+The HUD shows city temperature and heat risk, flood danger, sponge capacity, weather, budget and mission progress. Sealed asphalt and Dr. Beton's sealing slowly increase temperature, with campaign warming pressure scaling from 0.75× on the first level to 1.35× on the last; rain, watered trees, green plots, ponds and shade cool it at full strength. SpongeBob's Dry morph begins at 30°C and reaches full Dry by 45°C, fires begin above 40°C, and temperatures over 60°C lose the mission; prolonged critical flooding also causes a loss. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
 
 ## Structure and limits
 
 Contextual team-supplied audio accompanies successful construction and water transfers. Absorption, spraying and rain use loops; continuous sounds stop when their action or weather stops. Pause, hidden tabs and mission outcomes silence all clips. A Sound button and M key toggle mute.
 
-Shared contracts: `src/interfaces.ts`. Rules: `src/game/city.ts` and `src/game/campaign.ts`. Tuning/story: `config/city.ts` and `config/levels.ts`. Scene: `src/game/city-view.ts` and `src/game/characters.ts`. HUD/story: `src/ui/city.ts` and `src/ui/campaign.ts`. Input and movement retain their existing modules. Old sandbox modules remain available as reusable foundation code but are not mounted in the mission.
+Shared contracts: `src/interfaces.ts`. Rules: `src/game/city.ts` and `src/game/campaign.ts`. Tuning/story: `config/city.ts` and `config/levels.ts`. Scene: `src/game/city-view.ts` and `src/game/characters.ts`. HUD/story: `src/ui/city.ts` and `src/ui/campaign.ts`. Input and movement retain their existing modules. The original T2 sandbox prototype was removed after the city mission replaced it; the live city-tool field guide remains part of the mission UI.
 
 All coefficients, litres, area and temperatures are fictional gameplay values, not a validated hydrology/climate model or a surveyed mission square. A converted Basel building dataset supplies surrounding scenery; its placement and cleared mission area are documented in `public/models/README.md`. Host-persisted cookie accounts and rankings accompany temporary four-player cooperative rooms. Mobile controls and building collision remain out of scope. The player uses the team Blender model with procedural fallback; companions and mission props are procedural meshes. Surrounding buildings load from the supplied Basel dataset, with the procedural architecture retained as a fallback. Named cartoon characters come from the user's concept. Boss representation is a sabotage machine; additional boss encounters and surveyed neighbourhood layouts are future work.
 
@@ -81,7 +81,7 @@ The cartoon/Frutiger Aero interface follows `docs/style-guide.md`: sponge-yellow
 
 Cookie identity, room snapshots and commands are defined in [the shared interface](../src/interfaces.ts). A same-origin Node 24 service persists unique usernames, opaque hashed sessions and server-earned rankings in host-managed SQLite. Four-player rooms run one authoritative campaign with shared budget/water and individual movement/tools. The leaderboard orders campaign wins then personal useful-action funding. Live rooms are temporary; accounts and rankings use a persistent host volume. Solo practice remains available without the online service.
 
-All game text is English. Compact colorful gauges put labels and readings inside the scales. A readable wallet celebrates grants with a brief receipt, three coins and a chime. The HUD stays calm; reduced motion disables animation.
+All game text is English. Compact colorful gauges put labels and readings inside the scales. A readable wallet celebrates grants with a brief receipt, three coins and a chime. The footer keeps the most-used controls; the field guide contains the extended shortcuts. The HUD stays calm; reduced motion disables animation.
 
 ## Basel ground collectibles
 

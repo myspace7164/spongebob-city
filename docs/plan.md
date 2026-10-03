@@ -14,13 +14,13 @@ Files: src/main.ts, src/interfaces.ts, src/game/player.ts, src/game/world.ts, sr
 Done when: README commands start a rendered scene with walking, jumping, camera, pause and reset.
 Notes: handoff/t1-game-base.md records initial checks; later mission/map checks cover the integrated browser scene.
 
-#### T2 Controls and placeholder inventory
+#### T2 Controls and placeholder inventory (historical)
 
 Owner: @myspace7164
 Needs: T1
 Files: src/game/input.ts, src/game/inventory.ts, src/game/sandbox.ts, src/ui/inventory.ts, config/items.ts, src/interfaces.ts, tests/input.test.ts, tests/inventory.test.ts, tests/sandbox.test.ts
 Done when: movement and camera work together, and the sandbox supports slot selection, shooting, reload and block placement.
-Notes: handoff/t2-inventory-controls.md; sandbox modules remain reusable but are not mounted in the city mission.
+Notes: handoff/t2-inventory-controls.md records the prototype. Its unused item/shooting/block-placement modules and tests were removed after the city mission replaced them; shared input controls remain active.
 
 ## M2 Core mission: transform the square and manage water
 
@@ -116,7 +116,7 @@ Notes: replaces T9's carried improvements with independent levels at the user's 
 
 Owner: @myspace7164
 Needs: T10
-Files: config/funding.ts, config/audio.ts, public/audio/*stage*.wav, src/interfaces.ts, src/game/funding.ts, src/game/city.ts, src/game/campaign.ts, src/game/audio.ts, src/main.ts, src/ui/city.ts, src/ui/style.css, src/ui/theme.css, index.html, tests/funding.test.ts, tests/city.test.ts, tests/campaign.test.ts, tests/browser/funding.spec.ts, tests/browser/audio.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/style-guide.md, docs/SOURCES.md
+Files: config/funding.ts, config/audio.ts, public/audio/_stage_.wav, src/interfaces.ts, src/game/funding.ts, src/game/city.ts, src/game/campaign.ts, src/game/audio.ts, src/main.ts, src/ui/city.ts, src/ui/style.css, src/ui/theme.css, index.html, tests/funding.test.ts, tests/city.test.ts, tests/campaign.test.ts, tests/browser/funding.spec.ts, tests/browser/audio.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/style-guide.md, docs/SOURCES.md
 Done when: available coins stay prominent during play; useful actions award actual spendable coins with a rising chime and coin animation; failed/repeated actions and recycling cannot farm grants; each level plays its supplied stage track, rain is quieter, and mute/pause/reduced motion and fresh-level resets work.
 Notes: grant ledger tracks earned coins separately from costs/refunds, so rewarded construction celebrates even when wallet balance decreases. See handoff/t11-city-funding.md.
 
@@ -191,6 +191,7 @@ Files: config/emotes.ts, src/interfaces.ts, src/game/emotes.ts, src/game/player.
 Done when: G+1–5 triggers 67, Macarena, teabag, dab and floss on both character versions; poses animate briefly and cancel on movement/jump; the guide explains chords without extra HUD panels; co-op teammates see server-validated emotes.
 
 #### T19 Level 3 progression and saturated watering
+
 Owner: Codex. Needs: T18.
 Scope: reproduce the reported Level 3 block, verify its remaining achievements and next-level transition; reject irrigation of flooded or saturated destinations without spending water or awarding coins. Preserve fire extinguishing.
 Done when: Level 3 can complete its achievable goals and enter Level 4; flooded/full plots cannot accept extra irrigation; regression checks cover water conservation and progression.

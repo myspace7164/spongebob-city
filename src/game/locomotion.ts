@@ -253,7 +253,6 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
         waterFullIndex === undefined
           ? 0
           : (body.morphTargetInfluences?.[waterFullIndex] ?? 0);
-      const insetX = c.importedShoulderInset;
       const morphClearance = waterFull * 0.12;
       // WaterFull widens the torso. Let both sleeve/arm pivots track only a
       // small part of that expansion so the cuffs remain visible at the seam.

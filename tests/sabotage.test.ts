@@ -14,6 +14,9 @@ import {
 } from "../src/game/campaign.ts";
 import { updateSaboteur } from "../src/game/sabotage.ts";
 import { cityConfig as c } from "../config/city.ts";
+import { circleCollider, CollisionWorld } from "../src/game/collisions.ts";
+import type { CityState } from "../src/interfaces.ts";
+const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
 const water = (s: ReturnType<typeof createCity>) =>
   s.plots.reduce((n, p) => n + p.surface + p.moisture + p.stored, 0);
 
@@ -71,6 +74,24 @@ test("intercept the moving villain to cancel an attack; disabled/pause/loss free
   assert.deepEqual(s, lost);
 });
 
+test("Dr. Beton is blocked by solid footprints instead of phasing through them", () => {
+  const s = createCity();
+  s.saboteur.x = 0;
+  s.saboteur.z = 0;
+  s.saboteur.destinationX = 8;
+  s.saboteur.destinationZ = 0;
+  s.saboteur.phase = "roaming";
+  s.saboteur.step = 1;
+  s.sabotageIn = 100;
+  const collisions = new CollisionWorld();
+  collisions.setStatic([circleCollider("solid-tree", 3, 0, 0.6, 0, 5)]);
+  updateSaboteur(s, 1, 1, collisions);
+  assert.ok(
+    s.saboteur.x < 2.2,
+    "vehicle stops before the solid tree footprint",
+  );
+});
+
 test("changed targets cancel attacks and fresh levels reposition the villain", () => {
   const s = createCity();
   s.plots[0].kind = "soil";
@@ -87,7 +108,12 @@ test("changed targets cancel attacks and fresh levels reposition the villain", (
     [2, "karate"],
     [3, "karate"],
   ] as const)
-    act(campaign, kind, { ...campaign.plots[id], y: 0 }, id);
+    if (kind === "karate") act(campaign, kind, at(campaign, id), id);
+    else {
+      if (campaign.plots[id].kind === "asphalt")
+        act(campaign, "karate", at(campaign, id), id);
+      act(campaign, kind, at(campaign, id), id);
+    }
   campaign.plots.forEach((p) => (p.surface = 0));
   Object.assign(campaign, { heat: 50, flood: 0, reused: 400 });
   campaign.campaign!.stormCompleted = true;

@@ -883,15 +883,6 @@ footer {
   align-items: center;
   gap: var(--gap-xs);
 }
-.world-label {
-  padding: var(--gap-xs) var(--gap-sm);
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-pill);
-  font-size: 8px;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
 #inventory-panel,
 #result {
   position: fixed;
@@ -1097,9 +1088,6 @@ body:has(#result:not([hidden])) {
     flex-direction: row;
     justify-content: space-between;
   }
-  .world-label {
-    display: none;
-  }
 }
 @media (max-height: 760px) {
   :root {
@@ -1186,9 +1174,6 @@ body:has(#result:not([hidden])) {
   .power-pill {
     font-size: 9px;
     padding: 3px 5px;
-  }
-  footer .controls span:nth-child(n + 5) {
-    display: none;
   }
   #mission {
     padding: var(--gap-md);
