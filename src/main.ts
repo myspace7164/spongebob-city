@@ -8,6 +8,7 @@ import { createWorld } from "./game/world";
 import { loadModel, updateSpongeWaterState } from "./game/assets";
 import { spongeCapacity, updateCity, weather } from "./game/city";
 import { loadMapLayers } from "./game/map-layers";
+import type { createTrees } from "./game/trees";
 import { styleBuildings } from "./game/building-style";
 import {
   connectRunoff,
@@ -16,7 +17,7 @@ import {
   levelPosition,
   recyclePlot,
 } from "./game/campaign";
-import { clampToLevel } from "./game/streets";
+import { clampToLevel, worldToMap } from "./game/streets";
 import { assignElevations, levelScenery } from "./game/terrain";
 import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
@@ -74,6 +75,7 @@ function startGame(): void {
   let ground = levelScenery(currentLevel(city), terrain).groundAt;
   /** World height of the Basel terrain under a point; flat (0) until it loads. */
   const groundAt = (x: number, z: number) => ground(x, z);
+  let trees: ReturnType<typeof createTrees> | undefined;
   const placeScenery = () => {
     const site = currentLevel(city)?.site;
     const placed = levelScenery(currentLevel(city), terrain);
@@ -81,6 +83,8 @@ function startGame(): void {
     scenery.position.set(placed.x, placed.y, placed.z);
     ground = placed.groundAt;
     if (terrain) assignElevations(city, groundAt);
+    // Real trees never stand on this level's unsealing spots.
+    trees?.clearAround(city.plots.map((p) => worldToMap(placed, p.x, p.z)));
     if (sceneryLoaded)
       levelStatus.textContent = `Basel buildings loaded · ${site ? site.street : "fictional mission square"}`;
   };
@@ -256,12 +260,20 @@ function startGame(): void {
           styleBuildings(model);
           scenery.add(model);
           cityView.useImportedLevel();
-          void loadMapLayers(scenery, canvas, (grid) => {
-            terrain = grid;
-            placeScenery();
-            world.useTerrain();
-            cityView.useGround(groundAt);
-          });
+          void loadMapLayers(
+            scenery,
+            canvas,
+            (grid) => {
+              terrain = grid;
+              placeScenery();
+              world.useTerrain();
+              cityView.useGround(groundAt);
+            },
+            (layer) => {
+              trees = layer;
+              placeScenery();
+            },
+          );
           canvas.dataset.level = "loaded";
           sceneryLoaded = true;
           placeScenery();

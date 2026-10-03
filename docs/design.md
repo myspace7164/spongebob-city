@@ -61,6 +61,12 @@ unlabelled spans that float above the terrain) have no windows: asphalt deck,
 concrete sides and a darker underside. Hand-picked landmarks get their own look;
 the Messe Basel hall on Riehenring shows its aluminium band facade.
 
+The ground is drawn from Basel's land-cover map instead of the blurry photo:
+asphalt roads with curbs, paved sidewalks and squares, grass, forest, the Rhine
+with cartoon ripples and rail/tram areas, all lit so slopes show. About 6,100
+real inventory trees stand at their positions as cartoon trees; trees next to a
+level's unsealing spots are left out so they never block play.
+
 The ground is real swissALTI3D terrain (4 m grid): the photo is draped over it,
 roads follow it, and buildings keep their surveyed heights on top. Each level's
 play area is lifted to y = 0. The player, characters and plots stand on the
