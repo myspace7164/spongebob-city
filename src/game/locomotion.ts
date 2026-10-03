@@ -125,6 +125,12 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
       (isRight ? rightArm : leftArm).attach(sleeve);
       sleeve.userData.attachedToLimb = isRight ? "right-arm" : "left-arm";
     }
+    // Shift each complete pivot subtree, including the arm triangles, sleeve,
+    // and later hand attachment, toward the torso. Moving only the sleeve
+    // would open the sleeve/arm seam; moving the pivot keeps their local
+    // relationship intact through Idle and Walk swings.
+    rightArm.position.x += c.importedShoulderInset;
+    leftArm.position.x -= c.importedShoulderInset;
 
     // Socks and their colored cuff rings are separate material meshes from
     // the leg/body mesh. Split each two-sided mesh by its triangle position,
@@ -206,6 +212,8 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
     ] as const)
       leg.attach(model.getObjectByName(name)!);
   }
+  const rightShoulderRestX = rightArm.position.x;
+  const leftShoulderRestX = leftArm.position.x;
   const rightHand = new THREE.Group();
   rightHand.name = "right-hand-equipment";
   const hand = imported ? c.importedHand : c.fallbackHand;
@@ -222,6 +230,19 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
         : 0;
     rightArm.rotation.set(swing, 0, imported ? c.relaxedArmAngle : 0);
     leftArm.rotation.set(-swing, 0, imported ? -c.relaxedArmAngle : 0);
+    if (imported) {
+      const body = model.getObjectByName("Body_Cube_morph_export") as THREE.Mesh;
+      const waterFullIndex = body.morphTargetDictionary?.WaterFull;
+      const waterFull = waterFullIndex === undefined
+        ? 0
+        : body.morphTargetInfluences?.[waterFullIndex] ?? 0;
+      const insetX = c.importedShoulderInset;
+      const morphClearance = waterFull * 0.12;
+      // WaterFull widens the torso. Let both sleeve/arm pivots track only a
+      // small part of that expansion so the cuffs remain visible at the seam.
+      rightArm.position.x = rightShoulderRestX - morphClearance;
+      leftArm.position.x = leftShoulderRestX + c.importedLeftShoulderOutset + morphClearance;
+    }
     rightLeg.rotation.x = -swing;
     leftLeg.rotation.x = swing;
     model.userData.gait = moving ? (sprint ? "sprint" : "walk") : "idle";
