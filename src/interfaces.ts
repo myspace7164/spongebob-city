@@ -25,6 +25,18 @@ export interface ModelConfig {
   rotationY: number;
 }
 
+/** Derived LV95 road centrelines: local X east, Z south, metres; estimated widths. */
+export interface RoadNetwork {
+  origin: [number, number, number];
+  bounds: [number, number, number, number];
+  roads: {
+    name: string | null;
+    kind: "road" | "path";
+    width: number;
+    segments: [[number, number], [number, number]][];
+  }[];
+}
+
 /** Inventory definitions describe behavior; quantities are runtime state. */
 export interface InventoryItem {
   id: string;
@@ -66,6 +78,8 @@ export interface CityPlot {
   surface: number;
   moisture: number;
   stored: number;
+  /** Optional runoff/overflow destination; plot IDs are stable across placeholder levels. */
+  drainsTo?: number;
 }
 export interface CityState {
   plots: CityPlot[];
@@ -91,6 +105,55 @@ export interface CityState {
   upgraded: boolean;
   selected: CityTool;
   feedback: string;
+  /** Absent for the reusable single-mission sandbox. */
+  campaign?: CampaignProgress;
+}
+export interface CampaignProgress {
+  level: number;
+  completed: string[];
+  stormCompleted: boolean;
+  connectFrom: number | null;
+}
+export type LevelMetric =
+  | "permeable"
+  | "basins"
+  | "healthyTrees"
+  | "reused"
+  | "heat"
+  | "flood"
+  | "entrancesDry"
+  | "stormCompleted"
+  | "roofs"
+  | "shadeConnected"
+  | "roofRoutes"
+  | "tanks"
+  | "ponds"
+  | "tankRoutes"
+  | "retained";
+export interface LevelGoal {
+  metric: LevelMetric;
+  target: number;
+  label: string;
+  maximum?: boolean;
+}
+/** Fictional layouts are replaceable without altering campaign progression. */
+export interface CityLevel {
+  id: string;
+  location: string;
+  title: string;
+  story: readonly string[];
+  objective: string;
+  layout: readonly { x: number; z: number }[];
+  entranceIds: readonly number[];
+  weather: { dryDuration: number; rainDuration: number; rainRate: number };
+  goals: readonly LevelGoal[];
+}
+export interface LevelAchievement {
+  metric: LevelMetric;
+  label: string;
+  value: number;
+  target: number;
+  done: boolean;
 }
 export type CityAction =
   CityTool | "power" | "maximum" | "patrick" | "upgrade" | "machine";

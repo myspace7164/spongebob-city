@@ -1,11 +1,15 @@
 import { cityConfig as c } from "../../config/city";
+import { campaignConfig } from "../../config/levels";
+import { currentLevel, validDrain } from "./campaign";
 import type { CityPlot, CityState } from "../interfaces";
 const storagePlot = (p: CityPlot) => ["tank", "pond", "roof"].includes(p.kind);
 
 /** Rainfall, soil infiltration, evaporation and tank irrigation conserve litres. */
 export function updateWater(s: CityState, dt: number, raining: boolean): void {
   for (const p of s.plots) {
-    const rainfall = raining ? c.rainRate * dt : 0;
+    const rainfall = raining
+      ? (currentLevel(s)?.weather.rainRate ?? c.rainRate) * dt
+      : 0;
     p.surface += rainfall;
     s.rainfall += rainfall;
     if (p.kind !== "asphalt") {
@@ -14,7 +18,9 @@ export function updateWater(s: CityState, dt: number, raining: boolean): void {
       const absorbed = Math.min(
         p.surface,
         Math.max(0, limit - p[field]),
-        c.infiltrationRate * dt,
+        (s.campaign && p.kind === "basin"
+          ? campaignConfig.basinInfiltrationRate
+          : c.infiltrationRate) * dt,
       );
       p.surface -= absorbed;
       p[field] += absorbed;
@@ -22,7 +28,11 @@ export function updateWater(s: CityState, dt: number, raining: boolean): void {
       if (!storagePlot(p)) {
         const deep = Math.min(
           p.moisture,
-          (p.kind === "basin" ? c.basinDrainRate : c.soilDrainRate) * dt,
+          (p.kind === "basin"
+            ? s.campaign
+              ? campaignConfig.basinDrainRate
+              : c.basinDrainRate
+            : c.soilDrainRate) * dt,
         );
         p.moisture -= deep;
         s.infiltrated += deep;
@@ -50,5 +60,26 @@ export function updateWater(s: CityState, dt: number, raining: boolean): void {
     p.surface -= evaporated;
     p.moisture -= used;
     s.evaporated += evaporated + used;
+  }
+  // Drain after rainfall/infiltration: each destination has finite capacity.
+  for (const p of s.plots) {
+    if (p.kind !== "roof" && p.kind !== "tank") continue;
+    const target = validDrain(s, p);
+    if (!target) continue;
+    const field = storagePlot(target) ? "stored" : "moisture";
+    const limit = field === "stored" ? c.storageCapacity : c.soilCapacity;
+    const release =
+      p.kind === "roof"
+        ? Math.min(
+            p.stored,
+            campaignConfig.roofReleaseRate * dt,
+            Math.max(0, limit - target[field]),
+          )
+        : 0;
+    p.stored -= release;
+    target[field] += release;
+    const overflow = Math.min(p.surface, campaignConfig.overflowRate * dt);
+    p.surface -= overflow;
+    target.surface += overflow;
   }
 }

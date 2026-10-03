@@ -1,3 +1,4 @@
+import { enterCampaign } from "./campaign-entry";
 import { expect, test } from "@playwright/test";
 
 test("Basel GLB loads and the mission remains playable", async ({ page }) => {
@@ -12,7 +13,7 @@ test("Basel GLB loads and the mission remains playable", async ({ page }) => {
     "Basel buildings loaded",
   );
   await page.screenshot({ path: "/tmp/basel-map-loaded.png" });
-  await page.locator("#play").click();
+  await enterCampaign(page);
   await expect(page.locator("#menu")).toBeHidden();
   const before = await page.locator("#game").screenshot();
   await page.keyboard.down("KeyW");
@@ -35,6 +36,6 @@ test("missing Basel map keeps the original scene playable", async ({
   await expect(page.locator("#level-status")).toContainText(
     "using the original scenery",
   );
-  await page.locator("#play").click();
+  await enterCampaign(page);
   await expect(page.locator("#menu")).toBeHidden();
 });

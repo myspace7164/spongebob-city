@@ -82,4 +82,16 @@ Needs: T6
 Files: docs/demo-fallback.md; recording and screenshots kept locally
 Done when: the presenter can play a saved recording offline and show construction, water reuse and mission results.
 
-Revise this plan before implementing changed scope. Keep progress and checks in the corresponding handoff. Further neighbourhoods, campaigns and boss encounters need a new design decision and plan task.
+## M5 Campaign: four story levels advance after all achievements
+
+### Chunk E · in order
+
+#### T9 Story campaign with replaceable placeholder levels
+
+Owner: @myspace7164
+Needs: T3, T4, T5, T6
+Files: config/levels.ts, src/interfaces.ts, src/game/campaign.ts, src/game/city.ts, src/game/city-water.ts, src/game/city-view.ts, src/main.ts, src/ui/city.ts, src/ui/campaign.ts, src/ui/style.css, index.html, tests/campaign.test.ts, tests/browser/campaign.spec.ts, tests/browser/game.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/SOURCES.md
+Done when: the arrival leads through Riehenring, Erlenmatt, St. Johann and VoltaNord; all current-level achievements trigger automatic progression, only the final completion shows the ending, and failure retries the current level. Configurable placeholder layouts retain prior improvements.
+Notes: preserve supplied German storytelling; geography remains pending. Simple conserved runoff/overflow connections and marked entrances use existing tools. See handoff/t9-level-campaign.md.
+
+Revise this plan before implementing changed scope. Keep progress and checks in the corresponding handoff. Further neighbourhoods and boss encounters need a new design decision and plan task.

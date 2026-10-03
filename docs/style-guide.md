@@ -17,7 +17,8 @@ Use `--panel-gradient` for glass panels, `--button-gradient` for yellow call-to-
 - Logo: tilted sponge-yellow lettering with a blue outline, tiny Basel ribbon.
 - Welcome: a yellow sponge-textured card, original inline vector mascot and an “I'm ready!” button.
 - Meters: separate warm/cool/sponge colours, glossy tracks, large numeric values.
-- Mission: a playful checklist and coin purse, with explicit completed checks.
+- Mission: a playful checklist, abstract four-stop route and coin purse, with explicit completed checks; scroll within the bounded panel on short screens.
+- Campaign story: a glass panel with German narrative, a scrollable reading area and a fixed visible start button; keyboard focus stays within reading/start controls.
 - Tool dock: raised aqua tiles, numbered corner badges, selected yellow tile and “EQUIPPED” label.
 - Feedback: speech bubble; abilities: individually readable power pills.
 - Guide/results: light glass panels with bold headings and illustrated metric cards.

@@ -43,6 +43,10 @@ footer {
   pointer-events: none;
   z-index: 1;
 }
+#sound-toggle {
+  pointer-events: auto;
+}
+
 header {
   top: var(--hud-top);
   align-items: flex-start;
@@ -1189,4 +1193,88 @@ body:has(#result:not([hidden])) .bubble {
   body:has(#menu:not([hidden])) #item-status {
     visibility: hidden;
   }
+}
+
+/* Campaign uses the existing glossy theme; story controls stay visible while reading. */
+#sound-toggle {
+  pointer-events: auto;
+  background: var(--tool-gradient);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--gap-sm);
+  box-shadow: var(--shadow-tool);
+}
+#mission {
+  max-height: calc(100dvh - var(--sidebar-top) - var(--mission-dock-clearance));
+  overflow-y: auto;
+  pointer-events: auto;
+}
+#campaign-story {
+  position: fixed;
+  inset: var(--space);
+  margin: auto;
+  width: min(730px, calc(100% - var(--space) * 2));
+  height: min(740px, calc(100dvh - var(--space) * 2));
+  padding: var(--space);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-gradient);
+  border: var(--outline) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-panel);
+}
+#campaign-story h2 {
+  color: var(--aqua-deep);
+  font-size: var(--font-lg);
+  margin: 0 0 var(--gap-sm);
+}
+#story-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  line-height: 1.6;
+  padding-right: var(--gap-sm);
+}
+#story-start {
+  flex-shrink: 0;
+  margin-top: var(--gap-md);
+}
+.story-objective {
+  font-weight: bold;
+  color: var(--aqua-deep);
+}
+.campaign-route {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  gap: var(--gap-xs);
+  padding: 0;
+  margin: var(--gap-sm) 0;
+  font-size: var(--font-sm);
+}
+.campaign-route li {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--gap-xs);
+}
+.campaign-route [aria-current] {
+  background: var(--button-gradient);
+  font-weight: bold;
+}
+.campaign-route .complete {
+  color: var(--mint);
+}
+#goals {
+  max-height: 28dvh;
+  overflow-y: auto;
+}
+#campaign-ending {
+  line-height: 1.6;
+}
+body:has(#campaign-story:not([hidden])) .bubble {
+  animation-play-state: paused;
+}
+body:has(#campaign-story:not([hidden])) #target-info {
+  visibility: hidden;
 }
