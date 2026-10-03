@@ -28,6 +28,11 @@ function satisfyCurrentLevel(state: ReturnType<typeof createCampaign>): void {
 
 test("wheel lists eight weighted outcomes with a transparent 60/40 split", () => {
   assert.equal(levelModifiers.length, 8);
+  for (let index = 0; index < levelModifiers.length; index += 1) {
+    const current = levelModifiers[index]!;
+    const next = levelModifiers[(index + 1) % levelModifiers.length]!;
+    assert.notEqual(current.kind, next.kind);
+  }
   assert.equal(
     levelModifiers
       .filter((entry) => entry.kind === "positive")
