@@ -8,7 +8,12 @@ import {
 } from "./powerups";
 import { powerupConfig } from "../../config/powerups";
 import { updateWater } from "./city-water";
-import { advanceCampaign, currentLevel, levelPosition } from "./campaign";
+import {
+  npcPosition,
+  advanceCampaign,
+  currentLevel,
+  levelPosition,
+} from "./campaign";
 import { cityConfig as c, cityTools } from "../../config/city";
 import { siteTechniques } from "../../config/sites";
 import { fundingConfig as funding } from "../../config/funding";
@@ -214,7 +219,7 @@ function act(
       : "PORE POWER! Temporary capacity: 1,400 L.";
   }
   if (action === "upgrade") {
-    if (distance(levelPosition(s, c.sandy), position) > c.reach)
+    if (distance(npcPosition(s, "sandy"), position) > c.reach)
       return "Visit Sandy's workshop on the left of the square (E).";
     if (s.upgraded)
       return "Sandy: Your 700 L sponge and bubble irrigation are ready. Use B to water distant plots!";
@@ -284,11 +289,11 @@ function act(
           : "This plot cannot take more water. Unseal asphalt or choose another green plot/tank.";
   }
   const site = p.site && siteTechniques[p.site];
-  if (site && action !== "karate" && !site.builds.includes(action)) {
-    const fits = site.builds.map(
-      (id) => cityTools.find((t) => t.id === id)!.name,
-    );
-    return `${site.hint}${fits.length ? ` Fits here: ${fits.join(", ")}.` : ""}`;
+  // A built level may allow other techniques on one spot than its site type does.
+  const builds = p.builds ?? site?.builds;
+  if (builds && action !== "karate" && !builds.includes(action)) {
+    const fits = builds.map((id) => cityTools.find((t) => t.id === id)!.name);
+    return `${site?.hint ?? "This spot has its own rules."}${fits.length ? ` Fits here: ${fits.join(", ")}.` : ""}`;
   }
   if (action === "karate" && p.kind !== "asphalt")
     return "Already unsealed. Choose a tree, rain garden or other upgrade.";

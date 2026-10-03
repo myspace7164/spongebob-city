@@ -92,6 +92,8 @@ export interface CityPlot {
   drainsTo?: number;
   /** Real street situation on surveyed levels; limits which upgrades fit here. */
   site?: SiteType;
+  /** Techniques allowed on this plot when they differ from its site type's defaults. */
+  builds?: CityTool[];
   /** Ground height in metres from the terrain; absent means flat (no downhill runoff). */
   elevation?: number;
 }
@@ -103,6 +105,28 @@ export interface LevelSite {
   origin: [number, number];
   heading: number;
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
+  /** Where the player starts, in play coordinates; the origin when absent. */
+  start?: [number, number];
+  /** Facing at spawn in radians; 0 looks along the street (−Z). */
+  startYaw?: number;
+  /** Character positions in play coordinates; missing ones use config defaults. */
+  npcs?: Partial<Record<NpcId, [number, number]>>;
+}
+/** The square's characters: helpers, Sandy's workshop and Dr. Beton's start. */
+export type NpcId = "patrick" | "krabs" | "sandy" | "squidward" | "beton";
+/** One spot of a level layout; `builds` overrides the site type's techniques. */
+export interface LevelSpot {
+  x: number;
+  z: number;
+  site?: SiteType;
+  builds?: CityTool[];
+}
+/** A level made in the dev-only level builder: name, place and 16 spots. */
+export interface BuiltLevel {
+  /** Place name shown in the story, level header, route and street sign. */
+  location: string;
+  site: LevelSite;
+  spots: LevelSpot[];
 }
 export interface CityState {
   powerups: PowerupState;
@@ -230,7 +254,7 @@ export interface CityLevel {
   origin?: { x: number; z: number };
   story: readonly string[];
   objective: string;
-  layout: readonly { x: number; z: number; site?: SiteType }[];
+  layout: readonly LevelSpot[];
   /** Absent on placeholder levels, which keep the fictional square. */
   site?: LevelSite;
   weather: { dryDuration: number; rainDuration: number; rainRate: number };
