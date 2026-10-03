@@ -12,7 +12,7 @@ Done: added optional rotationY in radians to LevelSpot and CityPlot, defaulting 
 
 Integration: fetched team main at `6c7ab73`. Resolved the city-view conflict by retaining the team's leaderboard sign under the scenery root and keeping fire and mission objects under the builder's visibility group. The combined production build, all 144 unit tests, all six builder and build-zone browser tests, formatter, staged privacy check, and documentation checks pass. Review found no blocking issues. Browser fallback tests intentionally return 404 for model assets; the real-map test loads the assets successfully. Existing Vite extension and chunk-size warnings remain.
 
-Delivery: builder commits `98a9e27` and `d7f3b66` are retained in history. The integration is to be merged into main and pushed to origin in this session; verify delivery with `git ls-remote origin refs/heads/main` against local main. Delete merged, unused branches and preserve unmerged experiments.
+Delivery: builder commits `98a9e27` and `d7f3b66` are retained in history. Integration commit `1183220` was merged into main and pushed successfully to the team's origin; the push privacy check passed. This handoff confirmation follows that commit. Merged, unused local branches are cleaned up; unmerged experiments are preserved.
 
 Next: no implementation work remains. Apply/Restore browser requests use mocks; persistence validation and serialization have unit coverage.
 
