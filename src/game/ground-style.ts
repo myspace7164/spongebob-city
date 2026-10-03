@@ -11,6 +11,8 @@ export interface GroundTile {
 }
 export interface GroundMeta {
   spacing: number;
+  /** Texels covered by the edge-distance channel. */
+  maxDistance: number;
   categories: string[];
   tiles: GroundTile[];
 }
@@ -37,12 +39,14 @@ const code = (name: (typeof groundCategories)[number]) =>
 
 /**
  * Lit terrain material that draws asphalt, curbs, paving, grass, water and
- * rail areas from a land-cover category texture (one code per 0.4 m texel).
+ * rail areas from a land-cover texture: a category code and the distance to
+ * the nearest real edge per 0.4 m texel, so boundaries come out straight.
  */
 export function createGroundMaterial(
   categories: THREE.Texture,
   tile: GroundTile,
   spacing: number,
+  maxDistance: number,
 ): THREE.MeshLambertMaterial {
   categories.magFilter = THREE.NearestFilter;
   categories.minFilter = THREE.NearestFilter;
@@ -63,7 +67,8 @@ export function createGroundMaterial(
     uSpacing: { value: spacing },
     uPaving: { value: style.paving },
     uSlabs: { value: style.slabs },
-    uJitter: { value: style.jitter },
+    uMaxDistance: { value: maxDistance },
+    uCurb: { value: style.curb },
     uBrightness: { value: style.brightness },
     ...colours,
   };
@@ -82,7 +87,7 @@ export function createGroundMaterial(
 varying vec2 vMap;
 uniform sampler2D uCategories;
 uniform vec2 uTileOrigin, uTileSize;
-uniform float uSpacing, uPaving, uSlabs, uJitter, uBrightness;
+uniform float uSpacing, uMaxDistance, uPaving, uSlabs, uCurb, uBrightness;
 ${Object.keys(style.colours)
   .map((name) => `uniform vec3 u_${name};`)
   .join("\n")}
@@ -97,27 +102,59 @@ float groundNoise(vec2 p) {
   return mix(mix(groundHash(i), groundHash(i + vec2(1, 0)), f.x),
              mix(groundHash(i + vec2(0, 1)), groundHash(i + vec2(1, 1)), f.x), f.y);
 }
-int texelCategory(vec2 texel) {
-  ivec2 i = ivec2(clamp(texel, vec2(0.0), uTileSize - 1.0));
-  return int(texelFetch(uCategories, i, 0).r * 255.0 + 0.5);
-}
-// Majority of the four nearest texels, weighted bilinearly: smooth, straight-ish
-// boundaries instead of a 0.4 m staircase, without blending category colours.
-int groundAt(vec2 map) {
+// Each texel holds its category (red) and the distance from its centre to the
+// nearest real land-cover edge (green). Interpolating "+distance inside / -distance
+// outside" per candidate category puts boundaries on straight sub-texel lines.
+int groundAt(vec2 map, out float inside, out int other) {
   vec2 g = (map - uTileOrigin) / uSpacing - 0.5;
   vec2 b = floor(g), f = g - b;
-  int c[4] = int[4](texelCategory(b), texelCategory(b + vec2(1, 0)),
-                    texelCategory(b + vec2(0, 1)), texelCategory(b + vec2(1, 1)));
+  int c[4];
+  float d[4];
+  for (int j = 0; j < 4; j++) {
+    vec2 o = vec2(float(j % 2), float(j / 2));
+    vec4 t = texelFetch(uCategories, ivec2(clamp(b + o, vec2(0.0), uTileSize - 1.0)), 0);
+    c[j] = int(t.r * 255.0 + 0.5);
+    d[j] = t.g * uMaxDistance;
+  }
   float w[4] = float[4]((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y),
                         (1.0 - f.x) * f.y, f.x * f.y);
   int best = c[0];
-  float bestWeight = -1.0;
+  float bestScore = -1e9;
+  other = -1;
+  float otherScore = -1e9;
   for (int k = 0; k < 4; k++) {
+    bool seen = false;
+    for (int m = 0; m < k; m++) seen = seen || c[m] == c[k];
+    if (seen) continue;
     float s = 0.0;
-    for (int j = 0; j < 4; j++) s += c[j] == c[k] ? w[j] : 0.0;
-    if (s > bestWeight) { bestWeight = s; best = c[k]; }
+    for (int j = 0; j < 4; j++) s += w[j] * (c[j] == c[k] ? d[j] : -d[j]);
+    if (s > bestScore) {
+      other = best == c[k] ? other : best;
+      otherScore = bestScore;
+      bestScore = s;
+      best = c[k];
+    } else if (s > otherScore) {
+      otherScore = s;
+      other = c[k];
+    }
   }
+  inside = bestScore * uSpacing;
+  if (otherScore < -1e8) other = -1;
   return best;
+}
+// Is a sidewalk or island within the 4×4 texels around this point? The 2×2
+// interpolation window alone misses edges just beyond it, which cut gaps into curbs.
+bool besideFootway(vec2 map) {
+  vec2 b = floor((map - uTileOrigin) / uSpacing - 0.5) - 1.0;
+  for (int j = 0; j < 16; j++) {
+    vec2 o = vec2(float(j % 4), float(j / 4));
+    vec4 t = texelFetch(uCategories, ivec2(clamp(b + o, vec2(0.0), uTileSize - 1.0)), 0);
+    int c = int(t.r * 255.0 + 0.5);
+    // Only texels right at an edge count, so footways farther away are ignored.
+    if ((c == ${code("sidewalk")} || c == ${code("island")}) && t.g * uMaxDistance * uSpacing < uCurb + uSpacing)
+      return true;
+  }
+  return false;
 }
 // Seams between square stones; fades to plain where they shrink below a pixel.
 float seams(vec2 p, float size) {
@@ -127,17 +164,13 @@ float seams(vec2 p, float size) {
   return mix(smoothstep(0.015, 0.035 + w, edge), 1.0, smoothstep(0.08, 0.3, w / size));
 }
 vec3 groundColour() {
-  // Low-frequency jitter turns the 0.4 m texel staircase into organic edges.
-  vec2 wobble = (vec2(groundNoise(vMap * 1.3), groundNoise(vMap * 1.3 + 17.0)) - 0.5) * uJitter;
-  vec2 p = vMap + wobble;
-  int c = groundAt(p);
+  float inside;
+  int neighbour;
+  int c = groundAt(vMap, inside, neighbour);
   float speckle = mix(groundHash(floor(vMap * 6.0)), 0.5, smoothstep(0.05, 0.25, max(fwidth(vMap.x), fwidth(vMap.y))));
   if (c == ${code("road")}) {
-    for (int i = 0; i < 4; i++) {
-      vec2 d = vec2(i == 0 ? 1.0 : i == 1 ? -1.0 : 0.0, i == 2 ? 1.0 : i == 3 ? -1.0 : 0.0);
-      int n = groundAt(p + d * 0.45);
-      if (n == ${code("sidewalk")} || n == ${code("island")}) return u_curb;
-    }
+    // A straight curb band of fixed width where the road meets a sidewalk or island.
+    if (inside < uCurb && besideFootway(vMap)) return u_curb;
     return u_road * (0.9 + 0.16 * speckle);
   }
   if (c == ${code("sidewalk")})
@@ -162,6 +195,6 @@ vec3 groundColour() {
         "#include <color_fragment>\ndiffuseColor.rgb = groundColour() * uBrightness;",
       );
   };
-  material.customProgramCacheKey = () => "basel-ground-style";
+  material.customProgramCacheKey = () => "basel-ground-style-v2";
   return material;
 }

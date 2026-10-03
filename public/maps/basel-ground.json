@@ -11,6 +11,7 @@
   1059.089999999851
  ],
  "spacing": 0.4,
+ "maxDistance": 2.0,
  "categories": [
   "other",
   "road",

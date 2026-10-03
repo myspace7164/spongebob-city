@@ -14,7 +14,9 @@ spec.loader.exec_module(ground)
 
 
 def read_png(data):
+    """Width, height, channel count and unfiltered pixel bytes (filter 0 only)."""
     width, height = struct.unpack(">II", data[16:24])
+    channels = {0: 1, 2: 3}[data[25]]
     chunks, offset = b"", 8
     while offset < len(data):
         length = struct.unpack(">I", data[offset:offset + 4])[0]
@@ -22,8 +24,9 @@ def read_png(data):
             chunks += data[offset + 8:offset + 8 + length]
         offset += 12 + length
     raw = zlib.decompress(chunks)
-    return width, height, b"".join(raw[r * (width + 1) + 1:(r + 1) * (width + 1)]
-                                   for r in range(height))
+    stride = width * channels + 1
+    return width, height, channels, b"".join(raw[r * stride + 1:(r + 1) * stride]
+                                             for r in range(height))
 
 
 class GroundTests(unittest.TestCase):
@@ -52,8 +55,21 @@ class GroundTests(unittest.TestCase):
 
     def test_png_round_trip(self):
         pixels = bytes(range(12))
-        width, height, data = read_png(ground.png(4, 3, pixels))
-        self.assertEqual((width, height, data), (4, 3, pixels))
+        self.assertEqual(read_png(ground.png(4, 3, pixels)), (4, 3, 1, pixels))
+        rgb = bytes(range(36))
+        self.assertEqual(read_png(ground.png(4, 3, rgb, 3)), (4, 3, 3, rgb))
+
+    def test_edge_distances_follow_a_straight_edge(self):
+        # Vertical edge at x = 5 texels: distance grows by one texel per column.
+        width, height = 10, 4
+        distance = bytearray(b"\xff") * (width * height)
+        ground.edge_distances(distance, width, height, [[(5, -10), (5, 20)]])
+        step = 255 / ground.MAX_DISTANCE
+        row = distance[width:2 * width]
+        self.assertEqual(row[4], row[5])            # 0.5 texel on either side
+        self.assertAlmostEqual(row[4], 0.5 * step, delta=17)
+        self.assertAlmostEqual(row[3], 1.5 * step, delta=17)
+        self.assertEqual(row[0], 255)               # farther than MAX_DISTANCE
 
     def test_tiles_cover_bounds_within_texture_limits(self):
         bounds = [-1251.8, -1059.09, 1251.8, 1059.09]
@@ -69,9 +85,11 @@ class GroundTests(unittest.TestCase):
         meta = json.loads((ROOT / "public/maps/basel-ground.json").read_text())
         self.assertEqual(meta["categories"], ground.CATEGORIES)
         for tile in meta["tiles"]:
-            width, height, data = read_png((ROOT / "public/maps" / tile["file"]).read_bytes())
-            self.assertEqual((width, height), (tile["columns"], tile["rows"]))
-            self.assertLess(max(data), len(ground.CATEGORIES))
+            width, height, channels, data = read_png(
+                (ROOT / "public/maps" / tile["file"]).read_bytes())
+            self.assertEqual((width, height, channels), (tile["columns"], tile["rows"], 3))
+            self.assertLess(max(data[0::3]), len(ground.CATEGORIES))
+        self.assertEqual(meta["maxDistance"], ground.MAX_DISTANCE)
 
 
 if __name__ == "__main__":
