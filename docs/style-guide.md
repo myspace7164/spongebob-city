@@ -7,6 +7,7 @@ Direction: cartoon sponge adventure meets Frutiger Aero. Chosen from a flat comi
 1. Be joyfully excessive: chunky outlined titles, wonky stickers, sponge pores, flowers and bubbles.
 2. Make controls feel touchable: glassy aqua surfaces, bright highlights, thick outlines and raised buttons.
 3. Keep the square playable: ornaments ignore pointer input, key numbers remain obvious, dangers show text and icons, and overlays fit shorter desktop windows.
+4. Keep the cast's expressive cartoon silhouettes, while giving recurring characters tactile material grain, layered clothing, and small signature details that read at gameplay distance.
 
 ## Tokens and components
 

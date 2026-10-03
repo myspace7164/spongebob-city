@@ -4,6 +4,7 @@ import { downhillNeighbours } from "../game/city-water";
 import { cityMetrics, spongeCapacity, weather } from "../game/city";
 import { levelAchievements } from "../game/campaign";
 import { fundingConfig } from "../../config/funding";
+import { activeModifier } from "../game/level-modifiers";
 import type { CityPlot, CityState, CityTool } from "../interfaces";
 
 const element = (id: string) => document.getElementById(id)!;
@@ -43,6 +44,12 @@ export class CityUI {
     const m = cityMetrics(s),
       w = weather(s),
       capacity = spongeCapacity(s);
+    const modifier = activeModifier(s);
+    const modifierHud = element("active-modifier");
+    modifierHud.hidden = !modifier;
+    modifierHud.textContent = modifier
+      ? `${modifier.icon} ${modifier.name} · ${modifier.effectText} · THIS LEVEL ONLY`
+      : "";
     element("weather").textContent = w.raining
       ? `⛈ STORM · ${Math.ceil(w.remaining)}s until dry`
       : `☀ DRY HEAT · storm in ${Math.ceil(w.remaining)}s`;

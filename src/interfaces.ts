@@ -159,6 +159,39 @@ export interface CampaignProgress {
   completed: string[];
   stormCompleted: boolean;
   connectFrom: number | null;
+  /** A wheel choice is pending between successful campaign levels. */
+  wheelPending: boolean;
+  pendingModifier: LevelModifierId | null;
+  activeModifier: LevelModifierId | null;
+}
+export type LevelModifierId =
+  | "speedBoost"
+  | "waterBoost"
+  | "slowBeton"
+  | "doubleCoins"
+  | "miniSponge"
+  | "reducedWater"
+  | "angryBeton"
+  | "heatWave";
+export interface LevelModifierEffects {
+  playerSpeed?: number;
+  absorptionSpeed?: number;
+  waterCapacity?: number;
+  betonSpeed?: number;
+  coinReward?: number;
+  playerScale?: number;
+  heatWarming?: number;
+  angryBeton?: boolean;
+}
+export interface LevelModifierDefinition {
+  id: LevelModifierId;
+  kind: "positive" | "negative";
+  weight: number;
+  icon: string;
+  name: string;
+  shortName: string;
+  effectText: string;
+  effects: LevelModifierEffects;
 }
 export type LevelMetric =
   | "permeable"

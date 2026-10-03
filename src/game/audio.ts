@@ -17,6 +17,7 @@ export class CityAudio {
   private readonly stages = new Map<string, HTMLAudioElement>();
   private context?: AudioContext;
   private coinVoices = new Set<OscillatorNode>();
+  private wheelVoices = new Set<OscillatorNode>();
 
   constructor() {
     for (const [id, settings] of Object.entries(citySounds)) {
@@ -74,6 +75,70 @@ export class CityAudio {
   private stopFunding(): void {
     for (const voice of this.coinVoices) voice.stop();
     this.coinVoices.clear();
+  }
+
+  private playWheelTone(
+    frequencies: number[],
+    duration: number,
+    wave: OscillatorType,
+  ): void {
+    if (this.muted) return;
+    try {
+      this.context ??= new AudioContext();
+      const context = this.context;
+      void context.resume().catch(() => {});
+      for (const [index, frequency] of frequencies.entries()) {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        const start = context.currentTime + index * 0.018;
+        oscillator.type = wave;
+        oscillator.frequency.setValueAtTime(frequency, start);
+        if (wave === "sawtooth")
+          oscillator.frequency.exponentialRampToValueAtTime(
+            frequency * 2.2,
+            start + duration,
+          );
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.08, start + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+        oscillator.connect(gain).connect(context.destination);
+        this.wheelVoices.add(oscillator);
+        oscillator.onended = () => {
+          this.wheelVoices.delete(oscillator);
+          oscillator.disconnect();
+          gain.disconnect();
+        };
+        oscillator.start(start);
+        oscillator.stop(start + duration + 0.01);
+      }
+    } catch {
+      // The wheel remains usable if Web Audio is unavailable.
+    }
+  }
+
+  playWheelStart(): void {
+    this.playWheelTone([95], 0.48, "sawtooth");
+  }
+  playWheelTick(): void {
+    this.playWheelTone([980], 0.035, "square");
+  }
+  playWheelResult(positive: boolean): void {
+    this.playWheelTone(
+      positive ? [523, 659, 784] : [220, 185],
+      positive ? 0.34 : 0.42,
+      "triangle",
+    );
+  }
+
+  private stopWheelSound(): void {
+    for (const voice of this.wheelVoices) {
+      try {
+        voice.stop();
+      } catch {
+        /* it may have ended already */
+      }
+    }
+    this.wheelVoices.clear();
   }
 
   private reportFailure(sound: CitySound): void {
@@ -152,6 +217,7 @@ export class CityAudio {
   /** Commit this frame's loops; pause, hidden tab and outcomes silence all voices. */
   update(active: boolean, raining: boolean, levelId?: string): void {
     if (!active || this.muted) this.stopFunding();
+    if (document.hidden) this.stopWheelSound();
     for (const [level, clip] of this.stages) {
       if (!active || this.muted || level !== levelId) {
         clip.pause();
@@ -172,7 +238,10 @@ export class CityAudio {
 
   toggleMuted(): boolean {
     this.muted = !this.muted;
-    if (this.muted) this.update(false, false);
+    if (this.muted) {
+      this.update(false, false);
+      this.stopWheelSound();
+    }
     return this.muted;
   }
 }

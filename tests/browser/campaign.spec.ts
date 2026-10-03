@@ -48,6 +48,14 @@ test("actual game loop automatically enters each next story and shows the ending
     expect(body).not.toBe(original);
     await route.fulfill({ response, body });
   });
+  await page.route("**/config/modifiers.ts*", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    await route.fulfill({
+      response,
+      body: source.replace("spinDurationMs: 4100", "spinDurationMs: 120"),
+    });
+  });
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
@@ -58,7 +66,29 @@ test("actual game loop automatically enters each next story and shows the ending
     "St. Johann",
     "VoltaNord",
   ].entries()) {
+    await expect(page.locator("#modifier-wheel")).toBeVisible();
+    await expect(page.locator("#wheel-options li")).toHaveCount(8);
+    await expect(page.locator(".wheel-odds-summary")).toContainText("60%");
+    await expect(page.locator(".wheel-odds-summary")).toContainText("40%");
+    await expect(page.locator("#active-modifier")).toBeHidden();
+    if (index === 0)
+      await page.screenshot({ path: "/tmp/sponge-modifier-wheel.png" });
+    await page.locator("#wheel-spin").click();
+    await expect(page.locator("#wheel-continue")).toBeVisible({
+      timeout: 5000,
+    });
+    await expect(page.locator("#wheel-spin")).toBeHidden();
+    const resultName = (await page
+      .locator("#wheel-outcome strong")
+      .textContent())!;
+    await expect(page.locator("#wheel-outcome")).toContainText(
+      "NUR IM NÄCHSTEN LEVEL",
+    );
+    if (index === 0)
+      await page.screenshot({ path: "/tmp/sponge-modifier-wheel-result.png" });
+    await page.locator("#wheel-continue").click();
     await expect(page.locator("#campaign-story")).toBeVisible();
+    await expect(page.locator("#modifier-wheel")).toBeHidden();
     await expect(page.locator("#story-title")).toContainText(location);
     await expect(page.locator("#mission-level")).toContainText(
       `LEVEL ${index + 2}/4`,
@@ -80,7 +110,18 @@ test("actual game loop automatically enters each next story and shows the ending
     await page.waitForTimeout(100);
     await expect(page.locator("#weather")).toHaveText(weather!);
     await page.locator("#story-start").click();
+    await expect(page.locator("#active-modifier")).toBeVisible();
+    await expect(page.locator("#active-modifier")).toContainText(
+      "THIS LEVEL ONLY",
+    );
+    const selectedName = resultName
+      .replaceAll("✨", "")
+      .replaceAll("⚠️", "")
+      .trim();
+    await expect(page.locator("#active-modifier")).toContainText(selectedName);
   }
+  // The modifier from Level 3 expires as that level completes; the final level
+  // has no following campaign stage, so it does not open another wheel.
   await expect(page.locator("#result")).toBeVisible();
   await expect(page.locator("#result-title")).toHaveText(
     "Basel wird Schwammstadt",
@@ -127,6 +168,10 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   await page.goto("/");
   await page.locator("#play").click();
   await page.locator("#story-start").click();
+  await expect(page.locator("#modifier-wheel")).toBeVisible();
+  await page.locator("#wheel-spin").click();
+  await page.locator("#wheel-continue").waitFor({ state: "visible" });
+  await page.locator("#wheel-continue").click();
   await expect(page.locator("#story-title")).toContainText("Erlenmatt");
   await page.locator("#story-start").click();
   await expect(page.locator("#campaign-story")).toBeHidden();
@@ -146,6 +191,7 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   });
   await expect(page.locator("#result")).toBeVisible();
   await expect(page.locator("#restart")).toHaveText("Retry this level ↻");
+  await expect(page.locator("#active-modifier")).toBeHidden();
   await page.evaluate(() => {
     (window as unknown as { forceCampaignLoss: boolean }).forceCampaignLoss =
       false;

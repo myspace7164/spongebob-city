@@ -25,7 +25,11 @@ function move(s: CityState, dt: number, speed: number): boolean {
 const exposed = (kind: string) => kind === "soil" || kind === "basin";
 
 /** Fixed-step roam → approach → seal; a plot changes only after the visible attack. */
-export function updateSaboteur(s: CityState, dt: number): void {
+export function updateSaboteur(
+  s: CityState,
+  dt: number,
+  speedMultiplier = 1,
+): void {
   const v = s.saboteur;
   if (s.machineDisabled > 0) {
     s.machineDisabled = Math.max(0, s.machineDisabled - dt);
@@ -39,7 +43,7 @@ export function updateSaboteur(s: CityState, dt: number): void {
   }
   if (v.phase === "roaming") {
     if (v.step === 0) waypoint(s);
-    if (move(s, dt, b.roamSpeed)) waypoint(s);
+    if (move(s, dt, b.roamSpeed * speedMultiplier)) waypoint(s);
     s.sabotageIn -= dt;
     if (s.sabotageIn > 0) return;
     const choices = s.plots.filter((p) => exposed(p.kind));
@@ -64,14 +68,14 @@ export function updateSaboteur(s: CityState, dt: number): void {
     return;
   }
   if (v.phase === "approaching") {
-    if (move(s, dt, b.attackSpeed)) {
+    if (move(s, dt, b.attackSpeed * speedMultiplier)) {
       v.phase = "sealing";
       v.sealTime = b.sealingSeconds;
       s.feedback = `Dr. Beton is sealing #${victim.id + 1}! Stop him now!`;
     }
     return;
   }
-  v.sealTime -= dt;
+  v.sealTime -= dt * speedMultiplier;
   if (v.sealTime > 0) return;
   victim.kind = "asphalt";
   victim.surface += victim.moisture + victim.stored;

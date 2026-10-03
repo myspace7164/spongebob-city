@@ -11,6 +11,7 @@ import {
   levelAchievements,
   levelPosition,
   recyclePlot,
+  startNextCampaignLevel,
 } from "../src/game/campaign.ts";
 import {
   performCityAction as act,
@@ -262,7 +263,10 @@ function playLegalStrategy(elevate?: (s: CityState) => void) {
     let rainfallBeforeCompletion = 0;
     for (
       let step = 0;
-      step < 4000 && s.campaign!.level === level && s.outcome === "playing";
+      step < 4000 &&
+      s.campaign!.level === level &&
+      s.outcome === "playing" &&
+      !s.campaign!.wheelPending;
       step++
     ) {
       if (s.machineDisabled < 1)
@@ -308,6 +312,9 @@ function playLegalStrategy(elevate?: (s: CityState) => void) {
       ) < 1e-6,
     );
     if (level < 3) {
+      assert.equal(s.campaign!.wheelPending, true);
+      s.campaign!.pendingModifier = "speedBoost";
+      assert.equal(startNextCampaignLevel(s), true);
       assert.equal(s.campaign!.level, level + 1);
       assert.equal(s.elapsed, 0);
       assert.ok(
@@ -381,6 +388,9 @@ test("the last missing achievement blocks advancement; next neighbourhood resets
   assert.equal(advanceCampaign(s), false);
   s.reused = 400;
   assert.equal(advanceCampaign(s), true);
+  assert.equal(s.campaign!.wheelPending, true);
+  s.campaign!.pendingModifier = "doubleCoins";
+  assert.equal(startNextCampaignLevel(s), true);
   assert.equal(total(s), c.plotCount * c.initialSurface);
   assert.equal(s.sponge, 0);
   assert.equal(s.plots[0].moisture, 0);

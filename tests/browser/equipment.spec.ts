@@ -102,6 +102,7 @@ for (const imported of [true, false]) {
         if (o.userData.whiteTooth) teeth.push(o.material.color.getHex());
       });
       const villain = scene.getObjectByName("roaming-asphaltinator");
+      const villainActor = scene.getObjectByName("dr-beton");
       const before = villain.getWorldPosition(new THREE.Vector3());
       updateSaboteur(state, 1);
       render();
@@ -114,7 +115,7 @@ for (const imported of [true, false]) {
       render();
       const phase = villain.userData.phase;
       const eyes: any[] = [];
-      villain.traverse((o: any) => {
+      villainActor.traverse((o: any) => {
         if (o.name === "evil-eye") eyes.push(o.material.emissive.getHex());
       });
       Object.assign(window, {

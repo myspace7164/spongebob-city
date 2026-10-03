@@ -16,6 +16,7 @@ import {
   currentLevel,
   levelPosition,
   recyclePlot,
+  startNextCampaignLevel,
 } from "./game/campaign";
 import { clampToLevel, worldToMap } from "./game/streets";
 import { assignElevations, levelScenery } from "./game/terrain";
@@ -23,6 +24,8 @@ import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
 import { CityUI } from "./ui/city";
+import { ModifierWheelUI } from "./ui/modifier-wheel";
+import { modifierMultiplier } from "./game/level-modifiers";
 import type { CityAction, TerrainGrid } from "./interfaces";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game")!;
@@ -66,6 +69,25 @@ function startGame(): void {
   let checkpoint = structuredClone(city);
   let storyPending = true;
   const campaignUI = new CampaignUI();
+  const modifierWheel = new ModifierWheelUI(
+    () => city,
+    () => audio.playWheelStart(),
+    () => audio.playWheelTick(),
+    (positive) => audio.playWheelResult(positive),
+    () => {
+      if (!startNextCampaignLevel(city)) return;
+      player = spawnPlayer();
+      input.yaw = 0;
+      input.pitch = 0.28;
+      targetId = null;
+      accumulator = 0;
+      hudTime = 0;
+      checkpoint = structuredClone(city);
+      placeScenery();
+      storyPending = true;
+      showStory();
+    },
+  );
   let characterModel: THREE.Group | null = null;
   const cityView = createCityView(scene, city);
   // Basel buildings, roads and photo move together so each level's street meets the play area.
@@ -118,11 +140,13 @@ function startGame(): void {
     audio.update(false, false);
     city =
       city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
+    if (city.campaign?.activeModifier) city.campaign.activeModifier = null;
     player = spawnPlayer();
     checkpoint = structuredClone(city);
     placeScenery();
     storyPending = true;
     campaignUI.hide();
+    modifierWheel.hide();
     input.clear();
     input.yaw = 0;
     input.pitch = 0.28;
@@ -154,6 +178,15 @@ function startGame(): void {
     menu.hidden = true;
     campaignUI.show(city);
   };
+  const showModifierWheel = () => {
+    audio.update(false, false);
+    input.clear();
+    ui.setOpen(false);
+    document.exitPointerLock();
+    campaignUI.hide();
+    menu.hidden = true;
+    modifierWheel.show();
+  };
   const enterGame = async () => {
     try {
       canvas.focus({ preventScroll: true });
@@ -184,7 +217,11 @@ function startGame(): void {
     if (!input.active) audio.update(false, false);
     if (!input.active && city.campaign) city.campaign.connectFrom = null;
     menu.hidden =
-      input.active || ui.open || campaignUI.open || city.outcome !== "playing";
+      input.active ||
+      ui.open ||
+      campaignUI.open ||
+      modifierWheel.open ||
+      city.outcome !== "playing";
     crosshair.hidden = !input.active;
     accumulator = 0;
     lastTime = performance.now();
@@ -298,7 +335,10 @@ function startGame(): void {
     lastTime = time;
     if (document.hidden) return;
     const active =
-      input.active && !campaignUI.open && city.outcome === "playing";
+      input.active &&
+      !campaignUI.open &&
+      !modifierWheel.open &&
+      city.outcome === "playing";
     if (active) {
       input.updateLook(dt);
       const actions = input.consumeActions();
@@ -328,6 +368,7 @@ function startGame(): void {
           input.yaw,
           gameConfig.fixedStep,
           groundAt,
+          modifierMultiplier(city, "playerSpeed"),
         );
         if (currentLevel(city)?.site)
           clampToLevel(player.position, currentLevel(city)?.site);
@@ -370,6 +411,7 @@ function startGame(): void {
           );
         const spongeBeforeUpdate = city.sponge;
         const previousLevel = city.campaign!.level;
+        const wasWheelPending = city.campaign!.wheelPending;
         updateCity(city, gameConfig.fixedStep, player.position);
         if (city.campaign!.level !== previousLevel) {
           player = spawnPlayer();
@@ -382,6 +424,11 @@ function startGame(): void {
           placeScenery();
           storyPending = true;
           showStory();
+          break;
+        }
+        if (!wasWheelPending && city.campaign!.wheelPending) {
+          accumulator = 0;
+          showModifierWheel();
           break;
         }
         if (city.sponge > spongeBeforeUpdate) audio.requestAbsorption();
@@ -409,7 +456,8 @@ function startGame(): void {
       city.selected,
     );
     world.character.scale.setScalar(
-      city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1,
+      (city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1) *
+        modifierMultiplier(city, "playerScale"),
     );
     target.set(
       player.position.x,

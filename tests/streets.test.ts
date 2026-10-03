@@ -3,7 +3,11 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { cityConfig as c } from "../config/city.ts";
 import { cityLevels, riehenringSite } from "../config/levels.ts";
-import { advanceCampaign, createCampaign } from "../src/game/campaign.ts";
+import {
+  advanceCampaign,
+  createCampaign,
+  startNextCampaignLevel,
+} from "../src/game/campaign.ts";
 import { performCityAction as act } from "../src/game/city.ts";
 import { clampToLevel, playToMap, sceneryPose } from "../src/game/streets.ts";
 import type { CityState, RoadNetwork } from "../src/interfaces.ts";
@@ -121,6 +125,8 @@ test("street sites stay on Riehenring; later placeholder levels have no site lim
   Object.assign(s, { heat: 50, flood: 0, reused: 400 });
   s.campaign!.stormCompleted = true;
   assert.equal(advanceCampaign(s), true);
+  s.campaign!.pendingModifier = "speedBoost";
+  assert.equal(startNextCampaignLevel(s), true);
   assert.equal(cityLevels[1].site, undefined);
   assert.ok(s.plots.every((p) => p.site === undefined));
   assert.equal(s.plots[0].kind, "asphalt");

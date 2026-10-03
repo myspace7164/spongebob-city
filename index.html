@@ -63,6 +63,7 @@
         ></progress>
       </div>
     </section>
+    <aside id="active-modifier" hidden aria-live="polite"></aside>
     <aside id="mission">
       <div class="mission-tab">🌴 OPERATION: LESS CONCRETE!</div>
       <p id="mission-level" class="eyebrow"></p>
@@ -176,6 +177,38 @@
       <p id="story-fulltext" class="sr-only"></p>
       <p id="story-status" role="status"></p>
       <button id="story-start" class="cta">Level starten ➜</button>
+    </section>
+    <section
+      id="modifier-wheel"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="wheel-title"
+      lang="de"
+    >
+      <p class="eyebrow">LEVEL COMPLETE · GLÜCKSRAD</p>
+      <h2 id="wheel-title">Dreh das Rad!</h2>
+      <p class="wheel-intro">
+        Ein zufälliger Power-up oder Power-down gilt nur für den nächsten Level.
+      </p>
+      <p class="wheel-odds-summary">Power-ups: 60% · Power-downs: 40%</p>
+      <div class="wheel-stage">
+        <span class="wheel-pointer" aria-hidden="true">▼</span>
+        <div
+          id="wheel-disc"
+          role="img"
+          aria-label="Glücksrad mit acht möglichen Level-Modifiers"
+        ></div>
+        <span class="wheel-center" aria-hidden="true">🧽</span>
+      </div>
+      <div id="wheel-outcome" aria-live="polite"></div>
+      <button id="wheel-spin" class="cta">🎡 SPIN!</button>
+      <button id="wheel-continue" class="cta" hidden>CONTINUE ➜</button>
+      <p id="wheel-status" class="small" role="status"></p>
+      <details class="wheel-odds">
+        <summary>Alle Modifier &amp; Chancen ansehen</summary>
+        <ol id="wheel-options"></ol>
+      </details>
     </section>
     <section id="inventory-panel" hidden aria-label="Sponge city field guide">
       <p class="eyebrow">SANDY'S VERY SCIENTIFIC FIELD GUIDE</p>

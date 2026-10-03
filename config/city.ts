@@ -44,6 +44,7 @@ export const cityConfig = {
     passiveWarmingPerSecond: 0.0002,
     sealedPlotWarmingPerSecond: 0.0012,
     concreteProductionWarmingPerSecond: 0.004,
+    levelWarmingMultiplier: { first: 0.75, last: 1.35 },
     rainCoolingPerSecond: 0.014,
     treeCoolingPerSecond: 0.00055,
     greenAreaCoolingPerSecond: 0.00022,
