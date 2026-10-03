@@ -8,6 +8,7 @@ import {
   startNextCampaignLevel,
 } from "../src/game/campaign.ts";
 import {
+  effectivePlayerVisualScale,
   modifierMultiplier,
   chooseLevelModifier,
   modifierAtWheelPointer,
@@ -76,6 +77,10 @@ test("one selected modifier starts only the next level and expires at its comple
   assert.equal(state.campaign!.activeModifier, "miniSponge");
   assert.equal(state.campaign!.wheelPending, false);
   assert.equal(modifierMultiplier(state, "playerScale"), 0.8);
+  assert.equal(modifierMultiplier(state, "waterCapacity"), 0.8);
+  assert.equal(spongeCapacity(state), c.capacity * 0.8);
+  assert.equal(effectivePlayerVisualScale(state), 0.8);
+  assert.equal(effectivePlayerVisualScale(state, 2.5), 0.8);
   satisfyCurrentLevel(state);
   assert.equal(advanceCampaign(state), true);
   assert.equal(state.campaign!.activeModifier, null);

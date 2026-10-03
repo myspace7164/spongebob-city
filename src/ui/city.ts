@@ -252,16 +252,6 @@ export class CityUI {
       : "Aim at a plot on the street or square";
     const powers = [
       [
-        "Q",
-        "Boost",
-        s.powerups.held
-          ? "READY"
-          : s.powerups.active
-            ? `${Math.ceil(s.powerups.remaining)}s active`
-            : "Find a drop",
-        !!s.powerups.held,
-      ],
-      [
         "B",
         "Bubbles",
         s.upgraded || isPowerupActive(s, "bubbles")

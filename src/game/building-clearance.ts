@@ -87,3 +87,13 @@ export function createBuildingClearance(model: THREE.Group) {
     }
   };
 }
+
+/** Upstream polygon footprints identify buildings by rounded GLB seed. */
+export function hiddenBuildingKeys(s: CityState) {
+  const keys = new Set<string>();
+  for (const id of buildingPlacement(s).hidden) {
+    identifier.setUint32(0, id);
+    keys.add(`building-${Math.round(identifier.getFloat32(0) * 1_000_000)}`);
+  }
+  return keys;
+}

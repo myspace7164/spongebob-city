@@ -4,6 +4,8 @@ import type { PlayerState, CityTool } from "../interfaces.ts";
 import { makeCharacter } from "./characters.ts";
 import { createLocomotion } from "./locomotion.ts";
 import { createHeldTools } from "./held-tools.ts";
+import { createHatModel, disposeHatModel } from "./hats.ts";
+import type { HatId } from "../interfaces.ts";
 
 /** Fixed-size visuals that follow the player; world geometry never accumulates. */
 export function createWorld(scene: THREE.Scene) {
@@ -29,6 +31,7 @@ export function createWorld(scene: THREE.Scene) {
   character.add(placeholder);
   let rig = createLocomotion(placeholder, false);
   let equipment = createHeldTools(rig.rightHand);
+  let wearableHat: THREE.Group | null = null;
   scene.add(character);
 
   // A single transparent disc gives a readable height cue without shadow maps.
@@ -53,6 +56,22 @@ export function createWorld(scene: THREE.Scene) {
       character.add(model);
       rig = nextRig;
       equipment = createHeldTools(rig.rightHand);
+    },
+    equipHat(id: HatId | null) {
+      if (character.userData.equippedHat === id) return;
+      if (wearableHat) {
+        character.remove(wearableHat);
+        disposeHatModel(wearableHat);
+        wearableHat = null;
+      }
+      character.userData.equippedHat = id;
+      if (!id) return;
+      wearableHat = createHatModel(id);
+      wearableHat.name = "equipped-hat";
+      character.add(wearableHat);
+    },
+    get wearableHat() {
+      return wearableHat;
     },
     /** The flat plane only stands in while no terrain is loaded. */
     useTerrain() {

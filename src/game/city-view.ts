@@ -22,6 +22,8 @@ import {
 } from "./characters.ts";
 import { betonConfig as betonTuning } from "../../config/beton.ts";
 import { createCityFireView } from "./city-fire-view.ts";
+import { gameplayColliders } from "./world-colliders.ts";
+import type { SolidCollider } from "./collisions.ts";
 
 function dispose(group: THREE.Group): void {
   group.traverse((object) => {
@@ -662,6 +664,10 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     useImportedLevel() {
       importedLevel = true;
       architecture.visible = false;
+    },
+    /** Only intended footprints block movement; labels, rain, fire and effects stay non-solid. */
+    colliders(s: CityState): SolidCollider[] {
+      return gameplayColliders(s, groundAt, architecture.visible);
     },
     target(s: CityState, camera: THREE.Camera): number | null {
       ray.setFromCamera(new THREE.Vector2(0, 0), camera);

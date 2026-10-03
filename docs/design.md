@@ -20,7 +20,7 @@ Dry periods alternate with thunderstorms. Each plot holds surface water, soil mo
 
 Patrick can remove several nearby asphalt slabs. Sandy sells a capacity/bubble upgrade. Squidward comments on shade and Mr. Krabs tracks the construction budget. Dr. Beton's Asphaltinator reseals an exposed green plot periodically; nearby karate disables it temporarily.
 
-The HUD shows city temperature and heat risk, flood danger, sponge capacity, weather, budget and mission progress. Asphalt and Dr. Beton's sealing slowly increase temperature, with campaign warming pressure scaling from 0.75× on the first level to 1.35× on the last; rain, watered trees, green plots, ponds and shade cool it at full strength. SpongeBob's Dry morph starts blending above 36°C, fires begin above 40°C, and temperatures over 60°C lose the mission; prolonged critical flooding also causes a loss. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
+The HUD shows city temperature and heat risk, flood danger, sponge capacity, weather, budget and mission progress. Sealed asphalt and Dr. Beton's sealing slowly increase temperature, with campaign warming pressure scaling from 0.75× on the first level to 1.35× on the last; rain, watered trees, green plots, ponds and shade cool it at full strength. SpongeBob's Dry morph begins at 30°C and reaches full Dry by 45°C, fires begin above 40°C, and temperatures over 60°C lose the mission; prolonged critical flooding also causes a loss. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
 
 ## Structure and limits
 
@@ -81,7 +81,7 @@ The cartoon/Frutiger Aero interface follows `docs/style-guide.md`: sponge-yellow
 
 Cookie identity, room snapshots and commands are defined in [the shared interface](../src/interfaces.ts). A same-origin Node 24 service persists unique usernames, opaque hashed sessions and server-earned rankings in host-managed SQLite. Four-player rooms run one authoritative campaign with shared budget/water and individual movement/tools. The leaderboard orders campaign wins then personal useful-action funding. Live rooms are temporary; accounts and rankings use a persistent host volume. Solo practice remains available without the online service.
 
-All game text is English. Compact colorful gauges put labels and readings inside the scales. A readable wallet celebrates grants with a brief receipt, three coins and a chime. The HUD stays calm; reduced motion disables animation.
+All game text is English. Compact colorful gauges put labels and readings inside the scales. A readable wallet celebrates grants with a brief receipt, three coins and a chime. The footer keeps the most-used controls; the field guide contains the extended shortcuts. The HUD stays calm; reduced motion disables animation.
 
 ## Basel ground collectibles
 
@@ -96,3 +96,8 @@ After each successful non-final level, a full-screen weighted fortune wheel pres
 Dr. Beton is a separate procedural 3D concrete villain with a tracked construction vehicle, a mixer, two eye-origin laser beams, and an attack charge/recovery cycle. His level appearance ramps with campaign progress; the wheel's angry modifier adds a temporary intensity layer. The four recurring side characters keep their rounded cartoon silhouettes and use restrained procedural PBR grain and recognizable gear/details.
 
 Character presentation uses original rounded speech balloons with tails, simulation-time wandering, and synthesized nearby gibberish that fades to zero outside 13 m. G reveals emote choices; the camera faces the dancer. Shift tracks press/release independently of pointer lock. Client and co-op use swept horizontal collisions against actors, solid plot props and approximate building bounds; collision geometry is illustrative.
+The main menu's Hats shop offers six procedural 3D wearables for 1,000 coins each. A purchase equips immediately for the current run, replaces the previous hat, and is cleared only when the run is lost; the remaining coin budget is kept on retry. Temperature rises gradually under sealed ground and concrete activity, while Schwammstadt elements cool it. SpongeBob's heat-driven Dry morph starts at 30°C and reaches full by 45°C. Campaign rain periods are shorter and less intense than dry periods.
+
+## Ambient riverside buddy
+
+A procedural cartoon passerby uses the supplied visual reference for outfit proportions: tan hoodie, loose pale-blue jeans, large dark sneakers, dark cropped hair and a beer can. The photo stays outside the repository. This ambient character adds no quests, rewards or interactions. He follows a shared simulation-time stroll and pauses for drink, cigarette rolling, smoking and cheering poses. Short English encouragement rotates in a cartoon speech bubble, mixing environmental praise with everyday optimism. A softly synthesized nearby voice follows the existing distance, mute and pause rules. Procedural limbs and props match the game's existing visual style; this is an outfit-inspired cartoon rather than a photographic asset.

@@ -45,6 +45,12 @@ test("co-op shares legal construction, refuses client scores/positions and limit
       first.city.campaign!.locations,
     );
     assert.equal(new Set(first.city.campaign!.locations).size, 4);
+    rooms.command(a.id, { equippedHat: "wizard" });
+    assert.equal(rooms.current(b.id)!.city.campaign!.equippedHat, "wizard");
+    assert.throws(
+      () => rooms.command(a.id, { equippedHat: "invalid" as never }),
+      /Unknown hat/,
+    );
     rooms.command(a.id, {
       ready: true,
       movement: { forward: 1, right: 0, run: false, jump: false },

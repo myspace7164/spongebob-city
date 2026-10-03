@@ -28,8 +28,8 @@ export const levelModifiers: readonly LevelModifierDefinition[] = [
     icon: "🔻",
     name: "MINI SPONGE",
     shortName: "Mini",
-    effectText: "SpongeBob shrinks to 80% size",
-    effects: { playerScale: 0.8 },
+    effectText: "SpongeBob shrinks to 80% size · 20% less water capacity",
+    effects: { playerScale: 0.8, waterCapacity: 0.8 },
   },
   {
     id: "waterBoost",

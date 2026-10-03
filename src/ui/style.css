@@ -189,6 +189,7 @@ progress::-moz-progress-bar {
 }
 #menu,
 #mission,
+#hat-shop,
 #inventory-panel,
 #result {
   border: var(--outline) solid var(--border);
@@ -235,6 +236,133 @@ progress::-moz-progress-bar {
   font-family: var(--font-display);
   font-size: var(--font-sm);
   font-weight: 900;
+}
+
+.hat-shop-launch,
+.hat-shop-close,
+.hat-buy {
+  border: var(--outline) solid var(--border);
+  border-radius: var(--radius-sm);
+  font: 900 var(--font-sm) var(--font-display);
+  padding: var(--gap-sm) var(--gap-md);
+  box-shadow: 0 3px 0 var(--border);
+}
+.hat-shop-launch {
+  width: 100%;
+  margin-top: var(--gap-sm);
+  background: var(--button-gradient);
+}
+#hat-shop {
+  position: fixed;
+  z-index: 12;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: min(880px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: clamp(14px, 3vw, 28px);
+  background:
+    radial-gradient(ellipse at 90% 8%, var(--pore-soft), transparent 24%),
+    var(--panel-gradient);
+}
+.hat-shop-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-md);
+}
+.hat-shop-heading h2 {
+  margin: 0;
+  font-size: clamp(25px, 4vw, 38px);
+}
+.hat-shop-wallet {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  gap: 0 var(--gap-sm);
+  padding: var(--gap-sm) var(--gap-md);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--cream);
+  white-space: nowrap;
+}
+.hat-shop-wallet > span {
+  grid-row: span 2;
+  font-size: 25px;
+}
+.hat-shop-wallet strong {
+  font-size: var(--font-lg);
+  font-variant-numeric: tabular-nums;
+}
+.hat-shop-wallet small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 900;
+}
+.hat-shop-note {
+  color: var(--muted);
+  margin: var(--gap-sm) 0 var(--gap-md);
+}
+.hat-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap-md);
+}
+.hat-card {
+  min-width: 0;
+  padding: var(--gap-sm);
+  border: 2px solid var(--glass-edge);
+  border-radius: var(--radius-sm);
+  background: var(--gloss-soft);
+  text-align: center;
+}
+.hat-card[data-equipped] {
+  border-color: var(--aqua-deep);
+  box-shadow: 0 0 0 2px var(--mint);
+}
+.hat-preview {
+  display: grid;
+  place-items: center;
+  height: 82px;
+  margin-bottom: var(--gap-xs);
+  border-radius: var(--radius-sm);
+  background: radial-gradient(ellipse, var(--pore-soft), transparent 70%);
+}
+.hat-preview svg {
+  width: min(100%, 126px);
+  height: 78px;
+  overflow: visible;
+}
+.hat-card h3 {
+  min-height: 2.2em;
+  margin: 0;
+  font-size: clamp(12px, 1.8vw, 16px);
+}
+.hat-price {
+  margin: var(--gap-xs) 0 var(--gap-sm);
+  font-size: var(--font-xs);
+  font-weight: 800;
+}
+.hat-buy {
+  width: 100%;
+  min-height: 38px;
+  background: var(--button-gradient);
+}
+.hat-buy:disabled {
+  cursor: default;
+  filter: saturate(0.45);
+  opacity: 0.74;
+}
+#hat-shop-status {
+  min-height: 1.4em;
+  margin: var(--gap-sm) 0;
+  color: var(--aqua-deep);
+  font-weight: 900;
+  text-align: center;
+}
+.hat-shop-close {
+  width: 100%;
+  background: var(--cream);
 }
 .eyebrow {
   color: var(--aqua-deep);
@@ -755,15 +883,6 @@ footer {
   align-items: center;
   gap: var(--gap-xs);
 }
-.world-label {
-  padding: var(--gap-xs) var(--gap-sm);
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-pill);
-  font-size: 8px;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
 #inventory-panel,
 #result {
   position: fixed;
@@ -969,9 +1088,6 @@ body:has(#result:not([hidden])) {
     flex-direction: row;
     justify-content: space-between;
   }
-  .world-label {
-    display: none;
-  }
 }
 @media (max-height: 760px) {
   :root {
@@ -1058,9 +1174,6 @@ body:has(#result:not([hidden])) {
   .power-pill {
     font-size: 9px;
     padding: 3px 5px;
-  }
-  footer .controls span:nth-child(n + 5) {
-    display: none;
   }
   #mission {
     padding: var(--gap-md);

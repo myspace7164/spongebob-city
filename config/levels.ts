@@ -90,7 +90,7 @@ export const cityLevels: readonly CityLevel[] = [
     origin: origins[0],
     layout: riehenringLayout,
     site: riehenringSite,
-    weather: { dryDuration: 25, rainDuration: 25, rainRate: 8 },
+    weather: { dryDuration: 35, rainDuration: 15, rainRate: 6 },
     story: [
       "“Asphalt is no drain, people!”",
       "Crack the ground. Catch puddles. Give rain a home.",
@@ -117,7 +117,7 @@ export const cityLevels: readonly CityLevel[] = [
     title: "ROOTS BEAT HEAT",
     origin: origins[1],
     layout: placeholderLayout(1),
-    weather: { dryDuration: 35, rainDuration: 30, rainRate: 12 },
+    weather: { dryDuration: 45, rainDuration: 18, rainRate: 8 },
     story: [
       "“More roots. Less barbecue.”",
       "Plant trees and rain gardens. Thirstiest roots drink first.",
@@ -145,7 +145,7 @@ export const cityLevels: readonly CityLevel[] = [
     title: "SHADE THE STREETS",
     origin: origins[2],
     layout: placeholderLayout(2),
-    weather: { dryDuration: 45, rainDuration: 35, rainRate: 16 },
+    weather: { dryDuration: 55, rainDuration: 20, rainRate: 10 },
     story: [
       "“Your roof can do more than roast!”",
       "Green roofs. Cool streets. Route rain somewhere safe.",
@@ -177,7 +177,7 @@ export const cityLevels: readonly CityLevel[] = [
     title: "MAKE ROOM FOR THE STORM",
     origin: origins[3],
     layout: placeholderLayout(3),
-    weather: { dryDuration: 55, rainDuration: 45, rainRate: 20 },
+    weather: { dryDuration: 65, rainDuration: 22, rainRate: 12 },
     story: [
       "“My belly is no reservoir!”",
       "Fill tanks. Build ponds. Hold the rain. Bring on the storm.",

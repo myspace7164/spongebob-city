@@ -1,5 +1,6 @@
 import { castPosition } from "./cast.ts";
 import { isToolAvailable } from "./progression.ts";
+import { gameConfig } from "../../config/game.ts";
 import {
   createPowerups,
   isPowerupActive,
@@ -16,14 +17,32 @@ import { fundingConfig as funding } from "../../config/funding.ts";
 import { cityLevels } from "../../config/levels.ts";
 import { grantFunding } from "./funding.ts";
 import { updateSaboteur } from "./sabotage.ts";
+import type { CollisionWorld } from "./collisions.ts";
 import { modifierMultiplier } from "./level-modifiers.ts";
 import type {
   CityAction,
   CityMetrics,
   CityPlot,
   CityState,
+  PlayerState,
   Vector3State,
 } from "../interfaces.ts";
+
+/** Sprinting slowly sweats stored sponge water back into the city. */
+export function sweatDuringSprint(
+  city: CityState,
+  player: PlayerState,
+  dt: number,
+): number {
+  if (!player.sprinting || !Number.isFinite(dt) || dt <= 0) return 0;
+  const lost = Math.min(
+    Math.max(0, city.sponge),
+    gameConfig.sprintSweatLitresPerSecond * dt,
+  );
+  city.sponge -= lost;
+  city.evaporated += lost;
+  return lost;
+}
 
 export function createCity(): CityState {
   return {
@@ -297,15 +316,10 @@ function act(
     ["tree", "basin", "roof", "shade", "pond", "tank"].includes(action) &&
     p.kind === "asphalt"
   )
-    return "Unseal this plot first with karate (3), then build on the open soil.";
+    return "Sealed plot. Unseal it with karate (3), then build on the open soil.";
   if (action === "tree" && p.kind !== "soil")
     return "Trees need unsealed soil. Use karate (3) or a Patrick boost first.";
-  if (
-    action !== "karate" &&
-    action !== "tree" &&
-    p.kind !== "soil" &&
-    p.kind !== "asphalt"
-  )
+  if (action !== "karate" && action !== "tree" && p.kind !== "soil")
     return "This plot already has an upgrade. Choose an unused plot.";
   const tool = cityTools.find((t) => t.id === action)!;
   if (s.budget < tool.cost)
@@ -434,6 +448,8 @@ export function updateCity(
   s: CityState,
   dt: number,
   position: Vector3State,
+  collisions?: CollisionWorld,
+  groundAt: (x: number, z: number) => number = () => 0,
 ): void {
   if (s.outcome !== "playing" || !Number.isFinite(dt) || dt <= 0) return;
   collectPowerups(s, position);
@@ -468,7 +484,13 @@ export function updateCity(
     "patrickCooldown",
   ] as const)
     s[field] = Math.max(0, s[field] - dt);
-  updateSaboteur(s, dt, modifierMultiplier(s, "betonSpeed"));
+  updateSaboteur(
+    s,
+    dt,
+    modifierMultiplier(s, "betonSpeed"),
+    collisions,
+    groundAt,
+  );
   updateTemperature(s, dt, raining);
   updateFires(s, dt);
   s.flood = Math.min(
@@ -497,5 +519,6 @@ export function updateCity(
     s.campaign.activeModifier = null;
     s.campaign.pendingModifier = null;
     s.campaign.wheelPending = false;
+    s.campaign.equippedHat = null;
   }
 }

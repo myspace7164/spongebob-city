@@ -26,6 +26,15 @@ import {
 } from "../src/game/terrain.ts";
 import type { CityState } from "../src/interfaces.ts";
 const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
+const build = (
+  s: CityState,
+  action: "tree" | "basin" | "roof" | "tank" | "pond" | "shade" | "karate",
+  id: number,
+) => {
+  if (action !== "karate" && s.plots[id].kind === "asphalt")
+    act(s, "karate", at(s, id), id);
+  return act(s, action, at(s, id), id);
+};
 const total = (s: CityState) =>
   s.sponge +
   s.evaporated +
@@ -58,7 +67,7 @@ test("campaign starts with the four story levels and cannot skip incomplete achi
   updateCity(s, 0, at(s, 0));
   updateCity(s, Number.NaN, at(s, 0));
   assert.equal(s.elapsed, 0);
-  s.elapsed = 26;
+  s.elapsed = cityLevels[0].weather.dryDuration + 1;
   assert.equal(weather(s).raining, true);
   assert.equal(s.campaign!.stormCompleted, false);
 });
@@ -81,10 +90,8 @@ test("runoff requires reachable safe destinations, rejects loops and conserves w
     [1, "tank"],
     [2, "basin"],
     [3, "tank"],
-  ] as const) {
-    if (s.plots[id].kind === "asphalt") act(s, "karate", at(s, id), id);
-    act(s, kind, at(s, id), id);
-  }
+  ] as const)
+    build(s, kind, id);
   connectRunoff(s, 0, { x: 99, y: 0, z: 99 });
   assert.equal(s.campaign!.connectFrom, null);
   connectRunoff(s, 0, at(s, 0));
@@ -121,37 +128,28 @@ test("recycling restores build choices without new grants or deleting retained w
   const s = createCampaign();
   onPlaceholderLevel(s, 3);
   const budget = s.budget;
-  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
-  act(s, "tank", at(s, 0), 0);
+  const karateCost = cityTools.find((tool) => tool.id === "karate")!.cost;
+  build(s, "tank", 0);
   const grants = s.funding.earned;
   s.plots[0].stored = 1000;
   const before = total(s);
   recyclePlot(s, 0, at(s, 0));
   assert.equal(s.plots[0].kind, "soil");
-  assert.equal(
-    s.budget,
-    budget - cityTools.find((t) => t.id === "karate")!.cost + grants,
-  );
+  assert.equal(s.budget, budget + grants - karateCost);
   assert.equal(total(s), before);
   recyclePlot(s, 0, at(s, 0));
-  assert.equal(
-    s.budget,
-    budget - cityTools.find((t) => t.id === "karate")!.cost + grants,
-  );
+  assert.equal(s.budget, budget + grants - karateCost);
 });
 
 test("separated shaded plots do not satisfy a connected shade zone", () => {
   const s = createCampaign();
   onPlaceholderLevel(s, 2);
-  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
-  act(s, "shade", at(s, 0), 0);
-  if (s.plots[14].kind === "asphalt") act(s, "karate", at(s, 14), 14);
-  act(s, "shade", at(s, 14), 14);
+  build(s, "shade", 0);
+  build(s, "shade", 14);
   const goal = () =>
     levelAchievements(s).find((g) => g.metric === "shadeConnected")!;
   assert.equal(goal().done, false);
-  if (s.plots[1].kind === "asphalt") act(s, "karate", at(s, 1), 1);
-  act(s, "shade", at(s, 1), 1);
+  build(s, "shade", 1);
   assert.equal(goal().done, true);
 });
 
@@ -271,11 +269,7 @@ function playLegalStrategy(
     assert.equal(s.outcome, "playing");
     elevate?.(s);
     const initialWater = total(s) - s.rainfall;
-    for (const [id, kind] of construction[level]) {
-      if (kind !== "karate" && s.plots[id].kind === "asphalt")
-        act(s, "karate", at(s, id), id);
-      act(s, kind, at(s, id), id);
-    }
+    for (const [id, kind] of construction[level]) build(s, kind, id);
     let levelWaterBeforeCompletion = 0;
     let rainfallBeforeCompletion = 0;
     for (
@@ -395,11 +389,8 @@ test("the last missing achievement blocks advancement; next neighbourhood resets
     [1, "basin"],
     [2, "karate"],
     [3, "karate"],
-  ] as const) {
-    if (kind !== "karate" && s.plots[id].kind === "asphalt")
-      act(s, "karate", at(s, id), id);
-    act(s, kind, at(s, id), id);
-  }
+  ] as const)
+    build(s, kind, id);
   act(s, "upgrade", { ...c.sandy, y: 0 }, null);
   s.plots.forEach((p) => {
     p.surface = 0;
@@ -431,10 +422,8 @@ test("the last missing achievement blocks advancement; next neighbourhood resets
 test("Level 3 shade plots across the wider street gap connect and permit Level 4", () => {
   const s = createCampaign();
   onPlaceholderLevel(s, 2);
-  if (s.plots[4].kind === "asphalt") act(s, "karate", at(s, 4), 4);
-  act(s, "shade", at(s, 4), 4);
-  if (s.plots[8].kind === "asphalt") act(s, "karate", at(s, 8), 8);
-  act(s, "shade", at(s, 8), 8);
+  build(s, "shade", 4);
+  build(s, "shade", 8);
   assert.equal(
     Math.hypot(s.plots[4].x - s.plots[8].x, s.plots[4].z - s.plots[8].z),
     7,
@@ -443,13 +432,10 @@ test("Level 3 shade plots across the wider street gap connect and permit Level 4
     levelAchievements(s).find((g) => g.metric === "shadeConnected")!.done,
     true,
   );
-  for (const id of [0, 1]) {
-    act(s, "karate", at(s, id), id);
-    act(s, "roof", at(s, id), id);
-  }
+  for (const id of [0, 1]) build(s, "roof", id);
   for (const id of [2, 3, 5]) {
     act(s, "karate", at(s, id), id);
-    act(s, "tree", at(s, id), id);
+    build(s, "tree", id);
     s.plots[id].moisture = c.moistureHealthy;
   }
   s.reused = 1000;

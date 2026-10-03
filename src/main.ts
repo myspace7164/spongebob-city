@@ -1,5 +1,7 @@
-import { createBuildingClearance } from "./game/building-clearance.ts";
-import { cityObstacles, resolvePlayerCollisions } from "./game/collisions.ts";
+import {
+  createBuildingClearance,
+  hiddenBuildingKeys,
+} from "./game/building-clearance.ts";
 import { EmoteUI } from "./ui/emotes.ts";
 import { emoteConfig } from "../config/emotes.ts";
 import { startEmote } from "./game/emotes.ts";
@@ -12,7 +14,12 @@ import { GameInput, keyCode } from "./game/input.ts";
 import { createPlayer, updatePlayer } from "./game/player.ts";
 import { createWorld } from "./game/world.ts";
 import { loadModel, updateSpongeWaterState } from "./game/assets.ts";
-import { spongeCapacity, updateCity, weather } from "./game/city.ts";
+import {
+  spongeCapacity,
+  sweatDuringSprint,
+  updateCity,
+  weather,
+} from "./game/city.ts";
 import { loadMapLayers } from "./game/map-layers.ts";
 import type { createTrees } from "./game/trees.ts";
 import { styleBuildings } from "./game/building-style.ts";
@@ -40,9 +47,26 @@ import { PowerupUI } from "./ui/powerups.ts";
 import { OnlineConnection } from "./game/network.ts";
 import { createRemotePlayers } from "./game/remote-players.ts";
 import { OnlineUI } from "./ui/online.ts";
-import type { RoomSnapshot, CityAction, TerrainGrid } from "./interfaces.ts";
+import type {
+  RoomSnapshot,
+  CityAction,
+  HatId,
+  TerrainGrid,
+} from "./interfaces.ts";
 import { ModifierWheelUI } from "./ui/modifier-wheel.ts";
-import { modifierMultiplier } from "./game/level-modifiers.ts";
+import {
+  effectivePlayerVisualScale,
+  modifierMultiplier,
+} from "./game/level-modifiers.ts";
+import { purchaseHat } from "./game/hats.ts";
+import { HatShopUI } from "./ui/hat-shop.ts";
+import { CollisionDebugView } from "./game/collision-debug.ts";
+import {
+  CollisionWorld,
+  buildingColliders,
+  circleCollider,
+  transformCollider,
+} from "./game/collisions.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game")!;
 const menu = document.querySelector<HTMLElement>("#menu")!;
@@ -60,8 +84,14 @@ function startGame(): void {
   const scene = new THREE.Scene();
   const scenery = new THREE.Group();
   scene.add(scenery);
+  const collisions = new CollisionWorld();
+  const collisionDebug = new CollisionDebugView(
+    scene,
+    new URLSearchParams(location.search).get("debugCollisions") === "1",
+  );
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 150);
   const world = createWorld(scene);
+  canvas.dataset.equippedHat = "none";
   const input = new GameInput(canvas);
   const audio = new CityAudio();
   const emoteUI = new EmoteUI();
@@ -112,10 +142,27 @@ function startGame(): void {
   let sceneryLoaded = false;
   let clearBuildings: ((s: typeof city) => void) | undefined;
   let terrain: TerrainGrid | null = null;
+  let buildingModel: THREE.Group | null = null;
   let ground = levelScenery(currentLevel(city), terrain).groundAt;
   /** World height of the Basel terrain under a point; flat (0) until it loads. */
   const groundAt = (x: number, z: number) => ground(x, z);
   let trees: ReturnType<typeof createTrees> | undefined;
+  const rebuildStaticCollisions = () => {
+    scenery.updateMatrixWorld(true);
+    const hidden = hiddenBuildingKeys(city);
+    const buildings = buildingModel
+      ? buildingColliders(buildingModel).filter(
+          (b) => !hidden.has(b.id.split(":")[0]),
+        )
+      : [];
+    const mapTrees =
+      trees
+        ?.colliders()
+        .map((collider) => transformCollider(collider, scenery)) ?? [];
+    const solids = [...buildings, ...mapTrees];
+    collisions.setStatic(solids);
+    collisionDebug.setStatic(solids);
+  };
   const placeScenery = () => {
     const site = currentLevel(city)?.mapSite ?? currentLevel(city)?.site;
     clearBuildings?.(city);
@@ -126,6 +173,7 @@ function startGame(): void {
     if (terrain) assignElevations(city, groundAt);
     // Real trees never stand on this level's unsealing spots.
     trees?.clearAround(city.plots.map((p) => worldToMap(placed, p.x, p.z)));
+    rebuildStaticCollisions();
     if (sceneryLoaded)
       levelStatus.textContent = `Basel buildings loaded · ${site ? site.street : "fictional mission square"}`;
   };
@@ -177,7 +225,13 @@ function startGame(): void {
       (city.outcome !== "playing" && room.city.outcome === "playing");
     receivedCode = room.code;
     const ledger = city.funding;
+    const previousHat = city.campaign?.equippedHat ?? null;
     city = room.city;
+    const nextHat = city.campaign?.equippedHat ?? null;
+    if (previousHat !== nextHat) {
+      world.equipHat(nextHat);
+      canvas.dataset.equippedHat = nextHat ?? "none";
+    }
     city.selected = selected;
     if (!changedLevel && !freshRoom) {
       ledger.earned = city.funding.earned;
@@ -228,6 +282,49 @@ function startGame(): void {
           : cityConfig.reach * powerupMultiplier(city, "bell"))
     );
   };
+  let hatShopReturnToGame = false;
+  const hatShop = new HatShopUI(
+    () => city.budget,
+    () => city.campaign?.equippedHat ?? null,
+    (id: HatId) => {
+      if (!purchaseHat(city, id)) return false;
+      world.equipHat(id);
+      canvas.dataset.equippedHat = id;
+      checkpoint.budget = city.budget;
+      if (checkpoint.campaign) checkpoint.campaign.equippedHat = id;
+      if (network.room) void network.action({ equippedHat: id });
+      ui.render(city, targetId, inReach());
+      return true;
+    },
+    () => {
+      hatShop.hide();
+      if (hatShopReturnToGame) {
+        hatShopReturnToGame = false;
+        void enterGame();
+      } else {
+        menu.hidden = false;
+        document.querySelector<HTMLButtonElement>("#open-hat-shop")!.focus();
+      }
+    },
+  );
+  document
+    .querySelector<HTMLButtonElement>("#open-hat-shop")!
+    .addEventListener("click", () => {
+      hatShopReturnToGame = false;
+      menu.hidden = true;
+      hatShop.show();
+    });
+  const openHatShopDuringGame = () => {
+    if (city.outcome !== "playing") return;
+    hatShopReturnToGame = input.active;
+    if (input.active) {
+      input.clear();
+      audio.update(false, false);
+      document.exitPointerLock();
+    }
+    menu.hidden = true;
+    hatShop.show(hatShopReturnToGame);
+  };
   const reset = () => {
     if (network.room) {
       void network.action({ action: "reset" });
@@ -237,6 +334,8 @@ function startGame(): void {
     city =
       city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
     if (city.campaign?.activeModifier) city.campaign.activeModifier = null;
+    world.equipHat(city.campaign?.equippedHat ?? null);
+    canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";
     player = spawnPlayer();
     checkpoint = structuredClone(city);
     placeScenery();
@@ -289,7 +388,7 @@ function startGame(): void {
     menu.hidden = true;
     modifierWheel.show();
   };
-  const enterGame = async () => {
+  async function enterGame() {
     try {
       canvas.focus({ preventScroll: true });
       await canvas.requestPointerLock();
@@ -302,7 +401,7 @@ function startGame(): void {
       document.querySelector("#story-status")!.textContent =
         message.textContent;
     }
-  };
+  }
   play.addEventListener("click", () => {
     if (!onlineUI.requireAccount()) return;
     storyPending ? showStory() : void enterGame();
@@ -327,6 +426,7 @@ function startGame(): void {
       input.active ||
       ui.open ||
       campaignUI.open ||
+      hatShop.open ||
       modifierWheel.open ||
       city.outcome !== "playing";
     crosshair.hidden = !input.active;
@@ -337,6 +437,10 @@ function startGame(): void {
     if (!event.repeat && keyCode(event) === "KeyM") soundToggle.click();
     if (event.repeat || !input.active || city.outcome !== "playing") return;
     const code = keyCode(event);
+    if (code === "KeyT") {
+      openHatShopDuringGame();
+      return;
+    }
     if (
       input.emoteChord &&
       !event.altKey &&
@@ -416,6 +520,7 @@ function startGame(): void {
         const model = await loadModel(config);
         if (name === "character") {
           characterModel = model;
+          remotePlayers.setCharacterTemplate(model, true);
           updateSpongeWaterState(
             model,
             city.sponge,
@@ -427,6 +532,7 @@ function startGame(): void {
         } else {
           styleBuildings(model);
           clearBuildings = createBuildingClearance(model);
+          buildingModel = model;
           scenery.add(model);
           cityView.useImportedLevel();
           void loadMapLayers(
@@ -500,17 +606,34 @@ function startGame(): void {
       while (accumulator >= gameConfig.fixedStep) {
         const movement = input.consume();
         pendingJump ||= movement.jump;
-        const previousPosition = { ...player.position };
+        const teammates =
+          network.room?.players
+            .filter((member) => member.id !== network.account?.id)
+            .map((member) =>
+              circleCollider(
+                `teammate-${member.id}`,
+                member.player.position.x,
+                member.player.position.z,
+                gameConfig.playerCollisionRadius,
+                member.player.position.y,
+                member.player.position.y + gameConfig.playerCollisionHeight,
+                "character",
+              ),
+            ) ?? [];
+        const dynamicSolids = [...cityView.colliders(city), ...teammates];
+        collisions.setDynamic(dynamicSolids);
+        collisionDebug.setDynamic(dynamicSolids);
         updatePlayer(
           player,
           movement,
           input.yaw,
           gameConfig.fixedStep,
           groundAt,
-          modifierMultiplier(city, "playerSpeed") *
-            (movement.run ? powerupMultiplier(city, "laeckerli") : 1),
+          modifierMultiplier(city, "playerSpeed"),
+          collisions,
+          powerupMultiplier(city, "laeckerli"),
         );
-        resolvePlayerCollisions(player, previousPosition, cityObstacles(city));
+        sweatDuringSprint(city, player, gameConfig.fixedStep);
         if (currentLevel(city)?.site)
           clampToLevel(player.position, currentLevel(city)?.site);
         else {
@@ -554,8 +677,34 @@ function startGame(): void {
         const spongeBeforeUpdate = city.sponge;
         const previousLevel = city.campaign!.level;
         const wasWheelPending = city.campaign!.wheelPending;
-        if (!network.room)
-          updateCity(city, gameConfig.fixedStep, player.position);
+        if (!network.room) {
+          const hatBeforeUpdate = city.campaign!.equippedHat;
+          collisions.setDynamic([
+            ...cityView.colliders(city),
+            circleCollider(
+              "local-player",
+              player.position.x,
+              player.position.z,
+              gameConfig.playerCollisionRadius,
+              player.position.y,
+              player.position.y + gameConfig.playerCollisionHeight,
+              "character",
+            ),
+          ]);
+          updateCity(
+            city,
+            gameConfig.fixedStep,
+            player.position,
+            collisions,
+            groundAt,
+          );
+          if (hatBeforeUpdate && city.campaign!.equippedHat === null) {
+            world.equipHat(null);
+            canvas.dataset.equippedHat = "none";
+            checkpoint.budget = city.budget;
+            if (checkpoint.campaign) checkpoint.campaign.equippedHat = null;
+          }
+        }
         if (city.campaign!.level !== previousLevel) {
           player = spawnPlayer();
           input.yaw = 0;
@@ -584,12 +733,23 @@ function startGame(): void {
       }
     }
     if (network.room) {
-      remotePlayers.update(
+      const powerVisualScale =
+        city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1;
+      const remoteCount = remotePlayers.update(
         network.room.players,
         network.account!.id,
         time / 1000,
         matchMedia("(prefers-reduced-motion: reduce)").matches,
+        {
+          sponge: city.sponge,
+          capacity: spongeCapacity(city),
+          temperature: city.temperature,
+          equippedHat: city.campaign?.equippedHat ?? null,
+          visualScale: effectivePlayerVisualScale(city, powerVisualScale),
+        },
       );
+      canvas.dataset.remotePlayerCount = String(remoteCount);
+      canvas.dataset.remoteCharacterAsset = remotePlayers.assetKind;
       networkTime -= dt;
       if (networkTime <= 0) {
         networkTime = 0.1;
@@ -641,9 +801,10 @@ function startGame(): void {
       matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
     canvas.dataset.emote = player.emote?.id ?? "";
+    const powerVisualScale =
+      city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1;
     world.character.scale.setScalar(
-      (city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1) *
-        modifierMultiplier(city, "playerScale"),
+      effectivePlayerVisualScale(city, powerVisualScale),
     );
     target.set(
       player.position.x,
@@ -697,8 +858,13 @@ function startGame(): void {
     );
     hudTime -= dt;
     if (hudTime <= 0) {
+      const sprintCooldown = player.sprintCooldown ?? 0;
       document.getElementById("sprint-status")!.textContent =
-        active && input.sprinting ? "RUNNING" : "sprint";
+        active && sprintCooldown > 0
+          ? `REST ${Math.ceil(sprintCooldown)}s`
+          : active && player.sprinting
+            ? "SWEATING"
+            : "sprint";
       ui.render(city, targetId, inReach());
       powerupUI.render(city);
       campaignUI.render(city);
@@ -709,6 +875,7 @@ function startGame(): void {
       document.exitPointerLock();
       menu.hidden = true;
     }
+    collisionDebug.updatePlayer(player.position);
     renderer.render(scene, camera);
   });
 }

@@ -16,6 +16,14 @@ const network: RoadNetwork = JSON.parse(
   readFileSync("public/maps/basel-roads.json", "utf8"),
 );
 const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
+const build = (
+  s: CityState,
+  action: "tree" | "basin" | "roof" | "tank" | "pond" | "shade",
+  id: number,
+) => {
+  if (s.plots[id].kind === "asphalt") act(s, "karate", at(s, id), id);
+  return act(s, action, at(s, id), id);
+};
 const riehenring = network.roads
   .filter((road) => road.name === "Riehenring")
   .flatMap((road) => road.segments)
@@ -103,16 +111,14 @@ test("each street site only takes the techniques that fit it", () => {
   act(s, "tree", at(s, 0), 0);
   assert.equal(kind(0), "soil");
   assert.match(s.feedback, /Fits here: .*Rain garden/i);
-  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
-  act(s, "basin", at(s, 0), 0);
+  build(s, "basin", 0);
   assert.equal(kind(0), "basin");
   // Verge (2): tree pit after unsealing.
   act(s, "karate", at(s, 2), 2);
-  act(s, "tree", at(s, 2), 2);
+  build(s, "tree", 2);
   assert.equal(kind(2), "tree");
   // Building edge (7): green roof.
-  if (s.plots[7].kind === "asphalt") act(s, "karate", at(s, 7), 7);
-  act(s, "roof", at(s, 7), 7);
+  build(s, "roof", 7);
   assert.equal(kind(7), "roof");
 });
 
@@ -123,11 +129,9 @@ test("street sites stay on Riehenring; later placeholder levels have no site lim
     [1, "basin"],
     [2, "karate"],
     [3, "karate"],
-  ] as const) {
-    if (kind !== "karate" && s.plots[id].kind === "asphalt")
-      act(s, "karate", at(s, id), id);
-    act(s, kind, at(s, id), id);
-  }
+  ] as const)
+    if (kind === "karate") act(s, kind, at(s, id), id);
+    else build(s, kind, id);
   s.plots.forEach((p) => (p.surface = 0));
   Object.assign(s, { heat: 50, flood: 0, reused: 400 });
   s.campaign!.stormCompleted = true;

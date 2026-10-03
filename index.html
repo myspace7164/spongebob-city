@@ -146,6 +146,9 @@
       <button id="play" class="cta">
         SOLO PRACTICE <span aria-hidden="true">➜</span>
       </button>
+      <button id="open-hat-shop" class="hat-shop-launch" type="button">
+        🎩 HAT SHOP
+      </button>
       <p id="message" role="status">
         Click to capture your mouse. Escape pauses. H opens the field guide.
       </p>
@@ -227,6 +230,33 @@
       <button id="online-close">Back to game</button>
     </section>
     <div id="reward-shout" role="status" hidden></div>
+    <section
+      id="hat-shop"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hat-shop-title"
+    >
+      <div class="hat-shop-heading">
+        <div>
+          <p class="eyebrow">DRESS UP YOUR SPONGE</p>
+          <h2 id="hat-shop-title">Hat Shop 🎩</h2>
+        </div>
+        <div class="hat-shop-wallet" aria-live="polite">
+          <span aria-hidden="true">🪙</span>
+          <strong id="hat-shop-balance">0</strong>
+          <small>COINS AVAILABLE</small>
+        </div>
+      </div>
+      <p class="hat-shop-note">
+        Each hat costs 1,000 coins. It stays with you until you lose this run.
+      </p>
+      <div id="hat-cards" class="hat-cards"></div>
+      <p id="hat-shop-status" role="status" aria-live="polite"></p>
+      <button id="hat-shop-close" class="hat-shop-close" type="button">
+        Back to menu
+      </button>
+    </section>
     <div id="crosshair" hidden>+</div>
     <div id="target-info"></div>
     <section
@@ -317,7 +347,7 @@
         Q: activate your collected power-up once. A new pickup replaces the old
         boost. B: hold for distant bubble irrigation during a bubble boost or
         after Sandy’s upgrade. E: workshop / machine. C: connect runoff. V:
-        recycle an upgrade.
+        recycle an upgrade. T: open the hat shop during a run.
       </p>
       <p class="small">
         Emotes: hold G + 1 for 67, 2 Macarena, 3 teabag, 4 dab, 5 floss. Move or
@@ -360,9 +390,8 @@
         ><span><kbd>E</kbd> workshop / machine</span
         ><span><kbd>C</kbd> runoff</span><span><kbd>V</kbd> recycle</span
         ><span><kbd>G + 1–5</kbd> emotes · <kbd>H</kbd> guide</span
-        ><span><kbd>R</kbd> retry level</span>
+        ><span><kbd>R</kbd> retry level</span><span><kbd>T</kbd> hats</span>
       </div>
-      <span class="world-label">FICTIONAL CITY SIMULATION</span>
     </footer>
     <script type="module" src="/src/main.ts"></script>
   </body>

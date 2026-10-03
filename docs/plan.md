@@ -208,3 +208,8 @@ Done when: four geographic locations differ, their source-based urgency increase
 T20 follow-up: all construction requires unsealed soil, including rain gardens, roofs, shade, ponds and tanks. Enforce in shared action rules so keyboard/mouse/co-op cannot bypass it; rejected builds preserve plot, coins and water. Verify legal campaign strategies explicitly unseal before building.
 
 T21 revision: expand to eight source-sampled candidates, split into four increasing flood/heat priority tiers with two eligible sites each. Choose one candidate per tier randomly per new campaign; store the shared route in campaign state, preserve it on retries and progression, and use authoritative room choices in co-op. Scenery, terrain, labels and collisions follow the chosen candidate; tutorials and tool unlocks follow the level number.
+
+#### T22 Ambient riverside buddy
+Owner: Codex. Needs: T20–T21.
+Scope: procedural reference-inspired tan-hoodie/jeans/sneaker character, beer-sipping stroll, occasional cigarette rolling/smoking and cheering, varied positive English speech bubbles. No game effects. Shared simulation-time poses, moving collision footprint and proximity voice; original photo remains outside repository.
+Done when: the character appears and wanders in every chosen location, drinks/rolls/smokes/cheers visibly, rotates varied encouragement, pauses with the game, and co-op clients show the same ambient behavior.
