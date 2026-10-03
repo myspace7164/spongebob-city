@@ -1,4 +1,6 @@
 :root {
+  --wallet-width: 190px;
+  --wallet-number-size: 30px;
   /* The interface palette; the world palette below keeps the scene grounded. */
   --background: #a7e7ef;
   --text: #183e55;

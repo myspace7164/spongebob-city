@@ -2,6 +2,8 @@ import { updateWater } from "./city-water";
 import { advanceCampaign, currentLevel, levelPosition } from "./campaign";
 import { cityConfig as c, cityTools, plotCooling } from "../../config/city";
 import { siteTechniques } from "../../config/sites";
+import { fundingConfig as funding } from "../../config/funding";
+import { grantFunding } from "./funding";
 import type {
   CityAction,
   CityMetrics,
@@ -26,6 +28,7 @@ export function createCity(): CityState {
     flood: (100 * c.plotCount * c.initialSurface) / c.floodLitres,
     sponge: 0,
     budget: c.budget,
+    funding: { earned: 0, claimed: [] },
     reused: 0,
     rainfall: 0,
     evaporated: 0,
@@ -94,6 +97,7 @@ function spray(s: CityState, p: CityPlot, amount: number): number {
   p[field] += transferred;
   s.sponge -= transferred;
   s.reused += transferred;
+  if (transferred > 0) grantFunding(s, `irrigate:${p.id}`, funding.irrigate);
   return transferred;
 }
 function absorb(s: CityState, p: CityPlot, amount: number): number {
@@ -103,6 +107,7 @@ function absorb(s: CityState, p: CityPlot, amount: number): number {
   );
   p.surface -= transferred;
   s.sponge += transferred;
+  if (transferred > 0) grantFunding(s, `collect:${p.id}`, funding.collect);
   return transferred;
 }
 
@@ -153,12 +158,14 @@ function act(
       return "Mr. Krabs: You need 250 coins for Sandy's upgrade.";
     s.budget -= c.upgradeCost;
     s.upgraded = true;
+    grantFunding(s, "upgrade", funding.upgrade);
     return "Sandy: Upgrade installed! 700 L capacity and B for long-range bubble irrigation.";
   }
   if (action === "machine") {
     if (distance(levelPosition(s, c.machine), position) > c.reach)
       return "Get closer to Dr. Beton's Asphaltinator to disable it.";
     s.machineDisabled = c.machineDisableTime;
+    grantFunding(s, "machine", funding.machine);
     return "KARATE! Asphaltinator disabled for 45 seconds. Protect the green plots!";
   }
   if (action === "patrick") {
@@ -172,7 +179,10 @@ function act(
     );
     if (!plots.length)
       return "Patrick: Bring me close to those boring asphalt stones!";
-    plots.forEach((p) => (p.kind = "soil"));
+    plots.forEach((p) => {
+      p.kind = "soil";
+      grantFunding(s, `build:${p.id}:soil`, funding.construction.soil);
+    });
     s.patrickCooldown = c.patrickCooldown;
     return `Patrick: SMASH! ${plots.length * c.plotArea} m² unsealed. Now plant and water!`;
   }
@@ -222,6 +232,7 @@ function act(
     return "Mr. Krabs: Not enough coins. Use Patrick to unseal for free.";
   s.budget -= tool.cost;
   p.kind = action === "karate" ? "soil" : action;
+  grantFunding(s, `build:${p.id}:${p.kind}`, funding.construction[p.kind]);
   return action === "tree"
     ? "Thaddäus: Finally, a tree. Now give it water so it can make shade!"
     : `${tool.name} built · ${c.plotArea} m² transformed. ${s.budget} coins left.`;

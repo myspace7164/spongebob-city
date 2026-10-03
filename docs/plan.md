@@ -116,6 +116,6 @@ Notes: replaces T9's carried improvements with independent levels at the user's 
 
 Owner: @myspace7164
 Needs: T10
-Files: config/funding.ts, src/interfaces.ts, src/game/funding.ts, src/game/city.ts, src/game/campaign.ts, src/game/audio.ts, src/ui/city.ts, src/ui/style.css, src/ui/theme.css, index.html, tests/funding.test.ts, tests/city.test.ts, tests/campaign.test.ts, tests/browser/funding.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/style-guide.md, docs/SOURCES.md
-Done when: available coins stay prominent during play; useful actions award actual spendable coins with a rising chime and coin animation; failed/repeated actions and recycling cannot farm grants; mute/pause/reduced motion and fresh-level resets work.
+Files: config/funding.ts, config/audio.ts, public/audio/*stage*.wav, src/interfaces.ts, src/game/funding.ts, src/game/city.ts, src/game/campaign.ts, src/game/audio.ts, src/main.ts, src/ui/city.ts, src/ui/style.css, src/ui/theme.css, index.html, tests/funding.test.ts, tests/city.test.ts, tests/campaign.test.ts, tests/browser/funding.spec.ts, tests/browser/audio.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/style-guide.md, docs/SOURCES.md
+Done when: available coins stay prominent during play; useful actions award actual spendable coins with a rising chime and coin animation; failed/repeated actions and recycling cannot farm grants; each level plays its supplied stage track, rain is quieter, and mute/pause/reduced motion and fresh-level resets work.
 Notes: grant ledger tracks earned coins separately from costs/refunds, so rewarded construction celebrates even when wallet balance decreases. See handoff/t11-city-funding.md.

@@ -1,4 +1,5 @@
-import { citySounds } from "../../config/audio";
+import { citySounds, levelSounds } from "../../config/audio";
+import { fundingConfig as funding } from "../../config/funding";
 import { performCityAction } from "./city";
 import type {
   CityAction,
@@ -13,6 +14,9 @@ export class CityAudio {
   private readonly requested = new Set<CitySound>();
   private readonly failed = new Set<CitySound>();
   private muted = false;
+  private readonly stages = new Map<string, HTMLAudioElement>();
+  private context?: AudioContext;
+  private coinVoices = new Set<OscillatorNode>();
 
   constructor() {
     for (const [id, settings] of Object.entries(citySounds)) {
@@ -25,6 +29,51 @@ export class CityAudio {
       clip.addEventListener("error", () => this.reportFailure(sound));
       this.clips.set(sound, clip);
     }
+    for (const [level, settings] of Object.entries(levelSounds)) {
+      const clip = new Audio(
+        `${import.meta.env.BASE_URL}audio/${settings.file}`,
+      );
+      clip.preload = "metadata";
+      clip.volume = settings.volume;
+      clip.loop = true;
+      this.stages.set(level, clip);
+    }
+  }
+
+  /** An original, brief rising coin chime; one celebration per HUD reward batch. */
+  playFunding(): void {
+    if (this.muted) return;
+    try {
+      this.context ??= new AudioContext();
+      const context = this.context;
+      void context.resume().catch(() => {});
+      this.stopFunding();
+      for (const [i, frequency] of funding.chimeNotes.entries()) {
+        const voice = context.createOscillator();
+        const gain = context.createGain();
+        const start = context.currentTime + i * funding.noteSeconds;
+        voice.type = "sine";
+        voice.frequency.value = frequency;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(funding.chimeVolume, start + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.15);
+        voice.connect(gain).connect(context.destination);
+        this.coinVoices.add(voice);
+        voice.onended = () => {
+          this.coinVoices.delete(voice);
+          voice.disconnect();
+          gain.disconnect();
+        };
+        voice.start(start);
+        voice.stop(start + 0.16);
+      }
+    } catch {
+      // The wallet still celebrates if Web Audio is unavailable.
+    }
+  }
+  private stopFunding(): void {
+    for (const voice of this.coinVoices) voice.stop();
+    this.coinVoices.clear();
   }
 
   private reportFailure(sound: CitySound): void {
@@ -101,7 +150,16 @@ export class CityAudio {
   }
 
   /** Commit this frame's loops; pause, hidden tab and outcomes silence all voices. */
-  update(active: boolean, raining: boolean): void {
+  update(active: boolean, raining: boolean, levelId?: string): void {
+    if (!active || this.muted) this.stopFunding();
+    for (const [level, clip] of this.stages) {
+      if (!active || this.muted || level !== levelId) {
+        clip.pause();
+        clip.currentTime = 0;
+      } else if (clip.paused) {
+        void clip.play().catch(() => {});
+      }
+    }
     if (active && raining) this.requested.add("rain");
     for (const [sound, clip] of this.clips) {
       if (!active || this.muted || (clip.loop && !this.requested.has(sound))) {

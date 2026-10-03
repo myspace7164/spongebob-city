@@ -9,6 +9,8 @@ import type {
   Vector3State,
 } from "../interfaces";
 import { createCity, cityMetrics } from "./city";
+import { grantFunding } from "./funding";
+import { fundingConfig } from "../../config/funding";
 
 export function currentLevel(s: CityState): CityLevel | undefined {
   return s.campaign ? cityLevels[s.campaign.level] : undefined;
@@ -102,6 +104,7 @@ export function connectRunoff(
   }
   progress.connectFrom = null;
   s.feedback = `Runoff connected: #${source.id + 1} → #${target.id + 1}. Roofs release slowly; tank overflow uses this route.`;
+  grantFunding(s, `route:${source.id}`, fundingConfig.route);
 }
 /** Reclaim an upgrade so an accidental build cannot exhaust the campaign's plots. */
 export function recyclePlot(

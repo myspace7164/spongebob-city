@@ -82,10 +82,15 @@ function startGame(): void {
       levelStatus.textContent = `Basel buildings loaded · ${site ? site.street : "fictional mission square"}`;
   };
   placeScenery();
-  const ui = new CityUI((tool) => {
-    city.selected = tool;
-    ui.render(city, targetId, inReach());
-  });
+  const ui = new CityUI(
+    (tool) => {
+      city.selected = tool;
+      ui.render(city, targetId, inReach());
+    },
+    () => {
+      if (input.active && city.outcome === "playing") audio.playFunding();
+    },
+  );
   canvas.tabIndex = 0;
   let targetId: number | null = null;
   let accumulator = 0,
@@ -349,7 +354,11 @@ function startGame(): void {
           break;
         }
         if (city.sponge > spongeBeforeUpdate) audio.requestAbsorption();
-        audio.update(city.outcome === "playing", weather(city).raining);
+        audio.update(
+          city.outcome === "playing",
+          weather(city).raining,
+          currentLevel(city)?.id,
+        );
         accumulator -= gameConfig.fixedStep;
       }
     }

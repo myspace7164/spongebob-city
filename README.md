@@ -70,12 +70,18 @@ npm run test:browser
 
 ## Extend
 
+The large gold wallet shows available coins throughout play. Useful first actions at each site earn government-funding grants, celebrated by a coin burst, receipt and rising chime. Collection, useful irrigation, construction, safe runoff routes, disabling sabotage and upgrading the sponge count; repeated actions and recycling do not generate extra grants. Funding resets with each fresh level or retry.
+
+Each neighbourhood loops its supplied stage track while playing. Pausing, story screens and mute stop the music and coin chime. Rain is mixed at 8% volume; levels use 22%.
+
 - `config/levels.ts`: short German briefings, per-level achievements/weather and independent locations/layouts, including the real Riehenring street; replace coordinates when the actual level layouts arrive.
 - `config/sites.ts`: street situations and which unsealing technique fits each one.
 - `src/game/campaign.ts`: shared achievement evaluation, automatic progression and runoff/recycling rules.
 - `src/ui/campaign.ts`: paused story screens, campaign route and ending.
 - `config/briefing.ts` and `src/ui/story-speech.ts`: 300-word/minute text reveal and original Web Audio wah-wah voice, capped at 12 seconds. Start early to skip; M/Sound mutes the voice too. Reduced motion disables mascot bobbing.
 - `config/city.ts`: fictional simulation tuning, tools, prices and standalone mission goals.
+- `config/funding.ts` and `src/game/funding.ts`: grant amounts and the once-per-level claim ledger.
+- `config/audio.ts`: action sounds, quiet rain and neighbourhood stage-track mapping; the fifth supplied stage track is reserved for a future level.
 - `src/game/city.ts`: mission actions, weather, heat, sabotage and outcome.
 - `src/game/city-water.ts`: rain, infiltration and tank irrigation.
 - `src/game/city-view.ts`: plot transformations, rain and revived city life.

@@ -60,8 +60,10 @@ test("construction requires reach, soil, available budget and an unused plot", (
   s.budget = 0;
   act(s, "tank", at(s, 1), 1);
   assert.equal(s.plots[1].kind, "asphalt");
+  const earnedBeforePatrick = s.funding.earned;
   act(s, "patrick", at(s, 1), null);
-  assert.equal(s.budget, 0);
+  assert.equal(s.budget, s.funding.earned - earnedBeforePatrick);
+  assert.ok(s.budget > 0);
   assert.ok(cityMetrics(s).permeable >= 2);
   const permeable = cityMetrics(s).permeable;
   act(s, "patrick", at(s, 15), null);
@@ -103,9 +105,9 @@ test("Sandy upgrade enables distant bubbles, is charged once and requires visiti
   const sandy = { ...c.sandy, y: 0 };
   act(s, "upgrade", sandy, null);
   assert.equal(s.upgraded, true);
-  assert.equal(s.budget, c.budget - c.upgradeCost);
+  assert.equal(s.budget, c.budget - c.upgradeCost + s.funding.earned);
   act(s, "upgrade", sandy, null);
-  assert.equal(s.budget, c.budget - c.upgradeCost);
+  assert.equal(s.budget, c.budget - c.upgradeCost + s.funding.earned);
   act(s, "spray", position, 3, 100);
   assert.equal(s.reused, 0);
   act(s, "spray", position, 3, 100, true);

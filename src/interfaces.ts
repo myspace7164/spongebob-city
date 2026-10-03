@@ -99,6 +99,8 @@ export interface CityState {
   flood: number;
   sponge: number;
   budget: number;
+  /** Per-level grants; total earned is independent of spending and refunds. */
+  funding: { earned: number; claimed: string[] };
   reused: number;
   rainfall: number;
   evaporated: number;

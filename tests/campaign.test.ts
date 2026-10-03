@@ -115,18 +115,19 @@ test("runoff requires reachable safe destinations, rejects loops and conserves w
   assert.ok(Math.abs(total(s) - before) < 1e-8);
 });
 
-test("recycling restores build choices without creating money or deleting retained water", () => {
+test("recycling restores build choices without new grants or deleting retained water", () => {
   const s = createCampaign();
   const budget = s.budget;
   act(s, "tank", at(s, 0), 0);
+  const grants = s.funding.earned;
   s.plots[0].stored = 1000;
   const before = total(s);
   recyclePlot(s, 0, at(s, 0));
   assert.equal(s.plots[0].kind, "soil");
-  assert.equal(s.budget, budget);
+  assert.equal(s.budget, budget + grants);
   assert.equal(total(s), before);
   recyclePlot(s, 0, at(s, 0));
-  assert.equal(s.budget, budget);
+  assert.equal(s.budget, budget + grants);
 });
 
 test("separated shaded plots do not satisfy a connected shade zone", () => {

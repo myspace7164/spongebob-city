@@ -1,5 +1,7 @@
 # Sources
 
+City funding update: five stage WAV files (`18_stage_1_calm.wav` through `22_stage_5_insane.wav`) were supplied in the workspace by the team. Original provenance and licence are not recorded. The first four are used for Riehenring, Erlenmatt, St. Johann and VoltaNord; stage five is reserved. The coin-reward chime is original local Web Audio synthesis. Government grants and reward values are fictional gameplay, not municipal funding policy.
+
 Every dataset, API, notable library and AI tool used, with licence. Feeds the sources slide on Sunday.
 
 | What                                               | Source / URL                                                                                                                                                     | Licence or permission                                                                                                                                                                                                                                                                                                                                              | Used for                                                                                                                                                                     |
