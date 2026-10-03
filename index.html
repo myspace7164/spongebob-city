@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#171b22" />
+    <meta name="theme-color" content="#14a3d2" />
+    <link rel="icon" type="image/svg+xml" href="/ui/sea-flower.svg" />
     <title>Sponge City · Basel</title>
   </head>
   <body>
@@ -11,9 +12,19 @@
       id="game"
       aria-label="SpongeBob sponge city mission in a stylised Basel square"
     ></canvas>
+    <div class="sea-decor" aria-hidden="true">
+      <i class="sea-flower"></i><i class="sea-flower"></i
+      ><i class="sea-flower"></i> <i class="bubble"></i><i class="bubble"></i
+      ><i class="bubble"></i><i class="bubble"></i>
+    </div>
     <header>
-      <span class="brand">🧽 SPONGE CITY <small>BASEL</small></span
-      ><span id="weather" class="badge"></span>
+      <span class="brand"
+        ><span class="brand-icon" aria-hidden="true">🧽</span
+        ><span class="brand-name"
+          >SPONGE<b>CITY!</b><small>BASEL EDITION</small></span
+        ></span
+      >
+      <span id="weather" class="badge"></span>
     </header>
     <section id="city-hud" aria-label="City danger and water capacity">
       <div class="meter heat">
@@ -37,26 +48,95 @@
       </div>
     </section>
     <aside id="mission">
+      <div class="mission-tab">🌴 OPERATION: LESS CONCRETE!</div>
       <p class="eyebrow">MISSION 01 · BARFÜSSERPLATZ</p>
-      <h2>From grey to green.</h2>
+      <h2>A little greener.<br />A lot more awesome.</h2>
       <p id="budget"></p>
       <div id="goals"></div>
       <p id="city-change"></p>
-      <p class="small">Cool the square AND reuse the rain.</p>
+      <p class="small">Make shade. Save rain. Be a sponge! 🧽</p>
     </aside>
     <aside id="menu">
-      <p class="eyebrow">HEAT BATTLE AT BARFÜSSERPLATZ</p>
-      <h1>Maximum<br />sponge. 🌳</h1>
+      <span class="welcome-sticker">Aye-aye, Basel! ✦</span>
+      <p class="eyebrow">BARFÜSSERPLATZ NEEDS A HERO</p>
+      <div class="welcome-hero">
+        <h1>LET'S GET<br /><em>SPONGEY!</em></h1>
+        <svg class="hero-sponge" viewBox="0 0 220 280" aria-hidden="true">
+          <path
+            class="yellow outline"
+            d="M49 165 25 194 14 186M174 160 192 140 207 145"
+            fill="none"
+          />
+          <path class="yellow outline" d="m68 221-4 27m84-25 9 25" />
+          <path
+            class="dark outline"
+            d="M47 246q20-10 34 0v14H39q-4-9 8-14Zm90 0q13-11 29 0l15 14h-44Z"
+          />
+          <path
+            class="yellow outline"
+            d="m35 28 20-8 30 5 28-6 30 8 32-5 9 26-4 29 8 25-8 25 5 30-9 27-132-1-10-25 4-28-5-24 6-27-8-24Z"
+          />
+          <ellipse class="pore" cx="49" cy="46" rx="9" ry="6" />
+          <ellipse class="pore" cx="163" cy="55" rx="7" ry="11" />
+          <ellipse class="pore" cx="46" cy="146" rx="6" ry="10" />
+          <ellipse class="pore" cx="165" cy="156" rx="9" ry="6" />
+          <path class="paper outline" d="M43 180h133v23H43Z" />
+          <path class="brown outline" d="M43 203h133v23H43Z" />
+          <path class="red outline" d="m100 184 11 9-9 19 15 4 5-24-10-8Z" />
+          <ellipse class="paper outline" cx="79" cy="84" rx="29" ry="34" />
+          <ellipse class="paper outline" cx="135" cy="84" rx="29" ry="34" />
+          <ellipse class="blue outline" cx="86" cy="88" rx="14" ry="18" />
+          <ellipse class="blue outline" cx="128" cy="88" rx="14" ry="18" />
+          <ellipse class="dark" cx="88" cy="90" rx="7" ry="11" />
+          <ellipse class="dark" cx="126" cy="90" rx="7" ry="11" />
+          <circle class="paper" cx="89" cy="83" r="4" />
+          <circle class="paper" cx="128" cy="82" r="4" />
+          <path
+            class="outline"
+            d="m64 51-7-11m20 7-1-14m16 18 6-10m16 7-4-14m20 15 3-13m14 18 9-9"
+            fill="none"
+          />
+          <path class="yellow outline" d="M105 109q17-8 21 7t-21 9Z" />
+          <path
+            class="dark outline"
+            d="M64 136q45 20 91-3-8 45-43 45-36 0-48-42Z"
+          />
+          <path class="paper" d="M94 145h13v17H94Zm17 0h13v17h-13Z" />
+          <path class="red" d="M88 169q18-17 43 0-17 12-43 0Z" />
+          <circle class="red" cx="60" cy="125" r="8" />
+          <circle class="red" cx="158" cy="121" r="8" />
+        </svg>
+      </div>
       <p class="description">
-        37 °C. Too much asphalt. A storm on its way.<br />Help SpongeBob turn
-        Basel into a sponge city.
+        Too hot? Too wet? Too much boring asphalt?<br />One very absorbent hero.
+        One greener Basel.
       </p>
       <ol class="quick-start">
-        <li><b>3 / P</b> break asphalt. <b>4</b> plant trees.</li>
-        <li><b>1 + hold click</b> absorb blue puddles.</li>
-        <li><b>2 + hold click</b> water plants and fill tanks.</li>
+        <li>
+          <span><b>3 / P</b> smash asphalt. <b>4</b> plant trees.</span>
+        </li>
+        <li>
+          <span><b>1 + hold click</b> slurp up those puddles!</span>
+        </li>
+        <li>
+          <span><b>2 + hold click</b> give thirsty plants a drink.</span>
+        </li>
       </ol>
-      <button id="play">Enter the square <span>↗</span></button>
+      <button id="play" class="cta">
+        I'M READY! <span aria-hidden="true">➜</span>
+      </button>
+      <p id="message" role="status">
+        Click to capture your mouse. Escape pauses. H opens the field guide.
+      </p>
+    </aside>
+    <div id="crosshair" hidden>+</div>
+    <div id="target-info"></div>
+    <section id="inventory-panel" hidden aria-label="Sponge city field guide">
+      <p class="eyebrow">SANDY'S VERY SCIENTIFIC FIELD GUIDE</p>
+      <h2>Your bag of sponge tricks! 🫧</h2>
+      <p class="description">
+        Rain → absorb → store & distribute → greenery → cooling
+      </p>
       <p id="level-status" class="small" role="status"></p>
       <p class="small">
         Buildings:
@@ -65,17 +145,6 @@
         >
         · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> ·
         adapted.
-      </p>
-      <p id="message" role="status">
-        Click to capture your mouse. Escape pauses. H opens the field guide.
-      </p>
-    </aside>
-    <div id="crosshair" hidden>+</div>
-    <div id="target-info"></div>
-    <section id="inventory-panel" hidden aria-label="Sponge city field guide">
-      <h2>Sponge city field guide</h2>
-      <p class="description">
-        Rain → absorb → store & distribute → greenery → cooling
       </p>
       <div id="inventory-list"></div>
       <p class="small">
