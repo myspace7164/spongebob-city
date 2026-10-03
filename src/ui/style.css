@@ -677,7 +677,7 @@ header #sound-toggle {
 }
 #target-info {
   position: fixed;
-  top: calc(50% + 30px);
+  top: calc(50% + 145px);
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
@@ -2686,4 +2686,26 @@ body.building #game {
 #level-builder .lb-danger {
   background: #ffe1dc;
   border-color: var(--coral);
+}
+#emote-choices {
+  position: fixed;
+  top: 125px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 10px 18px;
+  border: 3px solid var(--border);
+  border-radius: 28px;
+  background: var(--panel);
+  color: var(--text);
+  text-align: center;
+  pointer-events: none;
+}
+#emote-choices strong,
+#emote-choices span {
+  display: block;
+}
+#emote-choices b {
+  display: inline-block;
+  margin: 6px;
 }

@@ -1,23 +1,28 @@
-import { emoteConfig } from "../config/emotes";
-import { startEmote } from "./game/emotes";
-import { isToolAvailable } from "./game/progression";
+import {
+  createBuildingClearance,
+  hiddenBuildingKeys,
+} from "./game/building-clearance.ts";
+import { EmoteUI } from "./ui/emotes.ts";
+import { emoteConfig } from "../config/emotes.ts";
+import { startEmote } from "./game/emotes.ts";
+import { isToolAvailable } from "./game/progression.ts";
 import * as THREE from "three";
 import "./ui/style.css";
-import { gameConfig } from "../config/game";
-import { cityConfig, cityTools } from "../config/city";
-import { GameInput, keyCode } from "./game/input";
-import { createPlayer, updatePlayer } from "./game/player";
-import { createWorld } from "./game/world";
-import { loadModel, updateSpongeWaterState } from "./game/assets";
+import { gameConfig } from "../config/game.ts";
+import { cityConfig, cityTools } from "../config/city.ts";
+import { GameInput, keyCode } from "./game/input.ts";
+import { createPlayer, updatePlayer } from "./game/player.ts";
+import { createWorld } from "./game/world.ts";
+import { loadModel, updateSpongeWaterState } from "./game/assets.ts";
 import {
   spongeCapacity,
   sweatDuringSprint,
   updateCity,
   weather,
-} from "./game/city";
-import { loadMapLayers } from "./game/map-layers";
-import type { createTrees } from "./game/trees";
-import { styleBuildings } from "./game/building-style";
+} from "./game/city.ts";
+import { loadMapLayers } from "./game/map-layers.ts";
+import type { createTrees } from "./game/trees.ts";
+import { styleBuildings } from "./game/building-style.ts";
 import {
   connectRunoff,
   createCampaign,
@@ -26,45 +31,45 @@ import {
   levelPosition,
   recyclePlot,
   startNextCampaignLevel,
-} from "./game/campaign";
-import { clampToLevel, worldToMap } from "./game/streets";
-import { assignElevations, levelScenery } from "./game/terrain";
-import { CampaignUI } from "./ui/campaign";
-import { applyBuiltLevel } from "../config/levels";
-import type { createLevelBuilder } from "./ui/level-builder";
-import { CityAudio } from "./game/audio";
-import { createCityView } from "./game/city-view";
-import { CityUI } from "./ui/city";
+} from "./game/campaign.ts";
+import { clampToLevel, worldToMap } from "./game/streets.ts";
+import { assignElevations, levelScenery } from "./game/terrain.ts";
+import { CampaignUI } from "./ui/campaign.ts";
+import { applyBuiltLevel } from "../config/levels.ts";
+import type { createLevelBuilder } from "./ui/level-builder.ts";
+import { CityAudio } from "./game/audio.ts";
+import { createCityView } from "./game/city-view.ts";
+import { CityUI } from "./ui/city.ts";
 import {
   activatePowerup,
   powerupMultiplier,
   isPowerupActive,
-} from "./game/powerups";
-import { createPowerupView } from "./game/powerup-view";
-import { PowerupUI } from "./ui/powerups";
-import { OnlineConnection } from "./game/network";
-import { createRemotePlayers } from "./game/remote-players";
-import { OnlineUI } from "./ui/online";
+} from "./game/powerups.ts";
+import { createPowerupView } from "./game/powerup-view.ts";
+import { PowerupUI } from "./ui/powerups.ts";
+import { OnlineConnection } from "./game/network.ts";
+import { createRemotePlayers } from "./game/remote-players.ts";
+import { OnlineUI } from "./ui/online.ts";
 import type {
   RoomSnapshot,
   CityAction,
   HatId,
   TerrainGrid,
-} from "./interfaces";
-import { ModifierWheelUI } from "./ui/modifier-wheel";
+} from "./interfaces.ts";
+import { ModifierWheelUI } from "./ui/modifier-wheel.ts";
 import {
   effectivePlayerVisualScale,
   modifierMultiplier,
-} from "./game/level-modifiers";
-import { purchaseHat } from "./game/hats";
-import { HatShopUI } from "./ui/hat-shop";
-import { CollisionDebugView } from "./game/collision-debug";
+} from "./game/level-modifiers.ts";
+import { purchaseHat } from "./game/hats.ts";
+import { HatShopUI } from "./ui/hat-shop.ts";
+import { CollisionDebugView } from "./game/collision-debug.ts";
 import {
   CollisionWorld,
   buildingColliders,
   circleCollider,
   transformCollider,
-} from "./game/collisions";
+} from "./game/collisions.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game")!;
 const menu = document.querySelector<HTMLElement>("#menu")!;
@@ -92,6 +97,7 @@ function startGame(): void {
   canvas.dataset.equippedHat = "none";
   const input = new GameInput(canvas);
   const audio = new CityAudio();
+  const emoteUI = new EmoteUI();
   const soundToggle =
     document.querySelector<HTMLButtonElement>("#sound-toggle")!;
   soundToggle.addEventListener("click", () => {
@@ -140,6 +146,7 @@ function startGame(): void {
   // Basel buildings, roads and photo move together so each level's street meets the play area.
   const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
   let sceneryLoaded = false;
+  let clearBuildings: ((s: typeof city) => void) | undefined;
   let terrain: TerrainGrid | null = null;
   let buildingModel: THREE.Group | null = null;
   let ground = levelScenery(currentLevel(city), terrain).groundAt;
@@ -148,7 +155,12 @@ function startGame(): void {
   let trees: ReturnType<typeof createTrees> | undefined;
   const rebuildStaticCollisions = () => {
     scenery.updateMatrixWorld(true);
-    const buildings = buildingModel ? buildingColliders(buildingModel) : [];
+    const hidden = hiddenBuildingKeys(city);
+    const buildings = buildingModel
+      ? buildingColliders(buildingModel).filter(
+          (b) => !hidden.has(b.id.split(":")[0]),
+        )
+      : [];
     const mapTrees =
       trees
         ?.colliders()
@@ -158,7 +170,8 @@ function startGame(): void {
     collisionDebug.setStatic(solids);
   };
   const placeScenery = () => {
-    const site = currentLevel(city)?.site;
+    const site = currentLevel(city)?.mapSite ?? currentLevel(city)?.site;
+    clearBuildings?.(city);
     const placed = levelScenery(currentLevel(city), terrain);
     scenery.rotation.y = placed.rotationY;
     scenery.position.set(placed.x, placed.y, placed.z);
@@ -591,8 +604,10 @@ function startGame(): void {
             city.temperature,
           );
           world.useCharacter(model);
+          canvas.dataset.character = "loaded";
         } else {
           styleBuildings(model);
+          clearBuildings = createBuildingClearance(model);
           buildingModel = model;
           scenery.add(model);
           cityView.useImportedLevel();
@@ -871,12 +886,19 @@ function startGame(): void {
       player.position.y + gameConfig.cameraTargetHeight,
       player.position.z,
     );
+    emoteUI.update(
+      active && input.emoteChord,
+      active
+        ? emoteConfig.items.find((item) => item.id === player.emote?.id)?.name
+        : undefined,
+    );
+    const cameraYaw = player.emote ? player.facing : input.yaw;
     const horizontalDistance =
       Math.cos(input.pitch) * gameConfig.cameraDistance;
     camera.position.set(
-      target.x + Math.sin(input.yaw) * horizontalDistance,
+      target.x + Math.sin(cameraYaw) * horizontalDistance,
       target.y + Math.sin(input.pitch) * gameConfig.cameraDistance,
-      target.z + Math.cos(input.yaw) * horizontalDistance,
+      target.z + Math.cos(cameraYaw) * horizontalDistance,
     );
     // Keep the camera out of hillsides behind the player.
     camera.position.y = Math.max(
@@ -906,6 +928,13 @@ function startGame(): void {
             : null
         : null,
       input.held("KeyB") && city.upgraded,
+    );
+    audio.updateCharacters(
+      active,
+      city,
+      player.position,
+      input.yaw,
+      !!player.emote,
     );
     hudTime -= dt;
     if (hudTime <= 0) {

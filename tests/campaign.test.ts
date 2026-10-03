@@ -208,8 +208,11 @@ test("Level 4 removes both runoff objectives and keeps its other goals", () => {
 });
 
 /** Same legal play on flat ground, or with real terrain heights so water runs downhill. */
-function playLegalStrategy(elevate?: (s: CityState) => void) {
-  const s = createCampaign();
+function playLegalStrategy(
+  elevate?: (s: CityState) => void,
+  random: () => number = () => 0,
+) {
+  const s = createCampaign(random);
   const construction = [
     [
       [0, "basin"],
@@ -362,15 +365,21 @@ test("the same strategy still wins on real Basel terrain where water runs downhi
     JSON.parse(readFileSync("public/maps/basel-terrain.json", "utf8")),
     readFileSync("public/maps/basel-terrain.bin").buffer.slice(0),
   );
-  playLegalStrategy((s) => {
-    assignElevations(s, levelScenery(currentLevel(s), grid).groundAt);
-    assert.ok(s.plots.every((p) => p.elevation !== undefined));
-    if (currentLevel(s)!.site === undefined)
-      assert.ok(
-        s.plots.some((p) => downhillNeighbours(s, p).length > 0),
-        "sloped stages send water downhill",
-      );
-  });
+  for (let route = 0; route < 16; route++) {
+    let tier = 0;
+    playLegalStrategy(
+      (s) => {
+        assignElevations(s, levelScenery(currentLevel(s), grid).groundAt);
+        assert.ok(s.plots.every((p) => p.elevation !== undefined));
+        if (currentLevel(s)!.site === undefined)
+          assert.ok(
+            s.plots.some((p) => downhillNeighbours(s, p).length > 0),
+            "sloped stages send water downhill",
+          );
+      },
+      () => ((route >> tier++) & 1 ? 0.999 : 0),
+    );
+  }
 });
 
 test("the last missing achievement blocks advancement; next neighbourhood resets water, upgrades and funds", () => {

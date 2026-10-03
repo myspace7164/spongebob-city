@@ -1,11 +1,11 @@
 import * as THREE from "three";
-import { gameConfig } from "../../config/game";
-import type { PlayerState, CityTool } from "../interfaces";
-import { makeCharacter } from "./characters";
-import { createLocomotion } from "./locomotion";
-import { createHeldTools } from "./held-tools";
-import { createHatModel, disposeHatModel } from "./hats";
-import type { HatId } from "../interfaces";
+import { gameConfig } from "../../config/game.ts";
+import type { PlayerState, CityTool } from "../interfaces.ts";
+import { makeCharacter } from "./characters.ts";
+import { createLocomotion } from "./locomotion.ts";
+import { createHeldTools } from "./held-tools.ts";
+import { createHatModel, disposeHatModel } from "./hats.ts";
+import type { HatId } from "../interfaces.ts";
 
 /** Fixed-size visuals that follow the player; world geometry never accumulates. */
 export function createWorld(scene: THREE.Scene) {

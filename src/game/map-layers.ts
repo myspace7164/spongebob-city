@@ -1,16 +1,16 @@
 import * as THREE from "three";
-import { mapConfig as c } from "../../config/map";
-import type { RoadNetwork, TerrainGrid } from "../interfaces";
-import { themeColor } from "./characters";
-import { heightAt, terrainFromBuffer, terrainTiles } from "./terrain";
-import { groundStyle, treeStyle } from "../../config/ground";
-import { createTrees, type TreeRow } from "./trees";
+import { mapConfig as c } from "../../config/map.ts";
+import type { RoadNetwork, TerrainGrid } from "../interfaces.ts";
+import { themeColor } from "./characters.ts";
+import { heightAt, terrainFromBuffer, terrainTiles } from "./terrain.ts";
+import { groundStyle, treeStyle } from "../../config/ground.ts";
+import { createTrees, type TreeRow } from "./trees.ts";
 import {
   checkGroundMeta,
   createGroundMaterial,
   groundTileAt,
   type GroundMeta,
-} from "./ground-style";
+} from "./ground-style.ts";
 
 type Ground = (x: number, z: number) => number;
 

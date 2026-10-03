@@ -1,7 +1,15 @@
-import { cityConfig } from "../../config/city";
-import type { CityState } from "../interfaces";
-import { currentLevel } from "./campaign";
-import { boxCollider, circleCollider, type SolidCollider } from "./collisions";
+import { riversideBuddy as buddyConfig } from "../../config/riverside-buddy.ts";
+import { riversideBuddyPose } from "./riverside-buddy.ts";
+import { cast } from "../../config/characters.ts";
+import { castPosition } from "./cast.ts";
+import { cityConfig } from "../../config/city.ts";
+import type { CityState } from "../interfaces.ts";
+import { currentLevel } from "./campaign.ts";
+import {
+  boxCollider,
+  circleCollider,
+  type SolidCollider,
+} from "./collisions.ts";
 
 /** Shared world-space physical footprints for solo rendering and co-op authority. */
 export function gameplayColliders(
@@ -83,14 +91,9 @@ export function gameplayColliders(
       );
     }
   }
-  for (const [kind, x, z] of [
-    ["patrick", -11, -3],
-    ["sandy", cityConfig.sandy.x, cityConfig.sandy.z],
-    ["squid", 12, -5],
-    ["krabs", -11, 2],
-  ] as const) {
-    const worldX = x + origin.x;
-    const worldZ = z + origin.z;
+  for (const [index, actor] of cast.entries()) {
+    const kind = actor.id;
+    const { x: worldX, z: worldZ } = castPosition(state, index);
     const y = groundAt(worldX, worldZ);
     solids.push(
       circleCollider(
@@ -104,6 +107,19 @@ export function gameplayColliders(
       ),
     );
   }
+  const buddy = riversideBuddyPose(state);
+  const buddyGround = groundAt(buddy.x, buddy.z);
+  solids.push(
+    circleCollider(
+      "character-buddy",
+      buddy.x,
+      buddy.z,
+      buddyConfig.collisionRadius,
+      buddyGround,
+      buddyGround + 2.25,
+      "character",
+    ),
+  );
   const villain = state.saboteur;
   const machineGround = groundAt(villain.x, villain.z);
   solids.push(

@@ -1,12 +1,16 @@
-import { citySounds, levelSounds } from "../../config/audio";
-import { fundingConfig as funding } from "../../config/funding";
-import { performCityAction } from "./city";
+import { riversideBuddy as buddyConfig } from "../../config/riverside-buddy.ts";
+import { riversideBuddyPose } from "./riverside-buddy.ts";
+import { cast, characterConfig } from "../../config/characters.ts";
+import { castPosition, characterAudibility } from "./cast.ts";
+import { citySounds, levelSounds } from "../../config/audio.ts";
+import { fundingConfig as funding } from "../../config/funding.ts";
+import { performCityAction } from "./city.ts";
 import type {
   CityAction,
   CitySound,
   CityState,
   Vector3State,
-} from "../interfaces";
+} from "../interfaces.ts";
 
 /** One voice per clip; successful transfers request loops for the current frame. */
 export class CityAudio {
@@ -18,6 +22,10 @@ export class CityAudio {
   private context?: AudioContext;
   private coinVoices = new Set<OscillatorNode>();
   private wheelVoices = new Set<OscillatorNode>();
+  private characterVoices = new Map<
+    string,
+    { oscillator: OscillatorNode; gain: GainNode; pan: StereoPannerNode }
+  >();
 
   constructor() {
     for (const [id, settings] of Object.entries(citySounds)) {
@@ -216,7 +224,10 @@ export class CityAudio {
 
   /** Commit this frame's loops; pause, hidden tab and outcomes silence all voices. */
   update(active: boolean, raining: boolean, levelId?: string): void {
-    if (!active || this.muted) this.stopFunding();
+    if (!active || this.muted) {
+      this.stopFunding();
+      this.stopCharacters();
+    }
     if (document.hidden) this.stopWheelSound();
     for (const [level, clip] of this.stages) {
       if (!active || this.muted || level !== levelId) {
@@ -236,6 +247,103 @@ export class CityAudio {
     this.requested.clear();
   }
 
+  /** Original gibberish voices fade with distance and freeze with the simulation. */
+  updateCharacters(
+    active: boolean,
+    s: CityState,
+    listener: Vector3State,
+    yaw: number,
+    playerSpeaking = false,
+  ): void {
+    if (!active || this.muted || document.hidden) {
+      this.stopCharacters();
+      return;
+    }
+    const buddy = riversideBuddyPose(s);
+    const sources = [
+      ...cast.map((actor, index) => ({
+        id: actor.id as string,
+        pitch: actor.pitch as number,
+        ...castPosition(s, index),
+      })),
+      { id: "buddy", pitch: buddyConfig.voicePitch, x: buddy.x, z: buddy.z },
+      { id: "beton", pitch: 65, x: s.saboteur.x, z: s.saboteur.z },
+      { id: "sponge", pitch: 420, x: listener.x, z: listener.z },
+    ];
+    try {
+      this.context ??= new AudioContext();
+      void this.context.resume().catch(() => {});
+      for (const [index, source] of sources.entries()) {
+        const dx = source.x - listener.x,
+          dz = source.z - listener.z;
+        const audible = characterAudibility(Math.hypot(dx, dz));
+        const speaking =
+          source.id === "sponge"
+            ? playerSpeaking
+            : source.id === "buddy"
+              ? buddy.speaking
+              : (s.elapsed + index * 1.3) % 6 < 1.8;
+        if (!audible || !speaking) {
+          const old = this.characterVoices.get(source.id);
+          if (old) {
+            old.oscillator.stop();
+            old.oscillator.disconnect();
+            old.gain.disconnect();
+            old.pan.disconnect();
+            this.characterVoices.delete(source.id);
+          }
+          continue;
+        }
+        let voice = this.characterVoices.get(source.id);
+        if (!voice) {
+          const oscillator = this.context.createOscillator(),
+            gain = this.context.createGain(),
+            pan = this.context.createStereoPanner();
+          oscillator.type = source.id === "beton" ? "sawtooth" : "triangle";
+          gain.gain.value = 0;
+          oscillator
+            .connect(gain)
+            .connect(pan)
+            .connect(this.context.destination);
+          oscillator.start();
+          voice = { oscillator, gain, pan };
+          this.characterVoices.set(source.id, voice);
+        }
+        const syllable = Math.floor(s.elapsed * 9);
+        voice.oscillator.frequency.setTargetAtTime(
+          source.pitch * (0.8 + ((syllable + index * 3) % 5) * 0.13),
+          this.context.currentTime,
+          0.025,
+        );
+        voice.gain.gain.setTargetAtTime(
+          audible *
+            characterConfig.voiceVolume *
+            (0.35 + Math.abs(Math.sin(s.elapsed * 28))),
+          this.context.currentTime,
+          0.025,
+        );
+        voice.pan.pan.value = Math.max(
+          -1,
+          Math.min(
+            1,
+            (dx * Math.cos(yaw) - dz * Math.sin(yaw)) /
+              characterConfig.voiceDistance,
+          ),
+        );
+      }
+    } catch {
+      this.stopCharacters();
+    }
+  }
+  private stopCharacters(): void {
+    for (const voice of this.characterVoices.values()) {
+      voice.oscillator.stop();
+      voice.oscillator.disconnect();
+      voice.gain.disconnect();
+      voice.pan.disconnect();
+    }
+    this.characterVoices.clear();
+  }
   toggleMuted(): boolean {
     this.muted = !this.muted;
     if (this.muted) {

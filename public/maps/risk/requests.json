@@ -1,0 +1,232 @@
+{
+  "sampledAt": "2026-10-03T21:32:33.888Z",
+  "candidates": [
+    {
+      "id": "st-alban-vorstadt",
+      "name": "St. Alban-Vorstadt",
+      "x": 555.975,
+      "z": 163.952
+    },
+    {
+      "id": "johanniter",
+      "name": "Johanniterstrasse",
+      "x": -842.03,
+      "z": -1025.836
+    },
+    {
+      "id": "st-alban",
+      "name": "St. Alban-Kirchrain",
+      "x": 538.406,
+      "z": 39.345
+    },
+    {
+      "id": "riehenring",
+      "name": "Riehenring",
+      "x": 428.15,
+      "z": -898.98
+    },
+    {
+      "id": "matthaeus",
+      "name": "Klybeckstrasse · Matthäus",
+      "x": -165.629,
+      "z": -949.276
+    },
+    {
+      "id": "st-johann",
+      "name": "St. Johanns-Ring",
+      "x": -1185.689,
+      "z": -1056.09
+    },
+    {
+      "id": "aeschen",
+      "name": "Aeschenplatz",
+      "x": 122.555,
+      "z": 387.873
+    },
+    {
+      "id": "clara",
+      "name": "Clarastrasse",
+      "x": 50.995,
+      "z": -741.887
+    }
+  ],
+  "evidence": [
+    {
+      "site": "st-alban-vorstadt",
+      "kind": "heat",
+      "bbox": [
+        2611831.7770000002,
+        1266612.814,
+        2612631.7770000002,
+        1267412.814
+      ],
+      "url": "https://wms.geo.bs.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=KL_HumanbioklimaSituation&STYLES=&CRS=EPSG%3A2056&BBOX=2611831.7770000002%2C1266612.814%2C2612631.7770000002%2C1267412.814&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "st-alban-vorstadt",
+      "kind": "flood",
+      "bbox": [
+        2611831.7770000002,
+        1266612.814,
+        2612631.7770000002,
+        1267412.814
+      ],
+      "url": "https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.bafu.gefaehrdungskarte-oberflaechenabfluss&STYLES=&CRS=EPSG%3A2056&BBOX=2611831.7770000002%2C1266612.814%2C2612631.7770000002%2C1267412.814&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "johanniter",
+      "kind": "heat",
+      "bbox": [
+        2610433.7720000003,
+        1267802.602,
+        2611233.7720000003,
+        1268602.602
+      ],
+      "url": "https://wms.geo.bs.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=KL_HumanbioklimaSituation&STYLES=&CRS=EPSG%3A2056&BBOX=2610433.7720000003%2C1267802.602%2C2611233.7720000003%2C1268602.602&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "johanniter",
+      "kind": "flood",
+      "bbox": [
+        2610433.7720000003,
+        1267802.602,
+        2611233.7720000003,
+        1268602.602
+      ],
+      "url": "https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.bafu.gefaehrdungskarte-oberflaechenabfluss&STYLES=&CRS=EPSG%3A2056&BBOX=2610433.7720000003%2C1267802.602%2C2611233.7720000003%2C1268602.602&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "st-alban",
+      "kind": "heat",
+      "bbox": [
+        2611814.208,
+        1266737.421,
+        2612614.208,
+        1267537.421
+      ],
+      "url": "https://wms.geo.bs.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=KL_HumanbioklimaSituation&STYLES=&CRS=EPSG%3A2056&BBOX=2611814.208%2C1266737.421%2C2612614.208%2C1267537.421&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "st-alban",
+      "kind": "flood",
+      "bbox": [
+        2611814.208,
+        1266737.421,
+        2612614.208,
+        1267537.421
+      ],
+      "url": "https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.bafu.gefaehrdungskarte-oberflaechenabfluss&STYLES=&CRS=EPSG%3A2056&BBOX=2611814.208%2C1266737.421%2C2612614.208%2C1267537.421&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "riehenring",
+      "kind": "heat",
+      "bbox": [
+        2611703.952,
+        1267675.746,
+        2612503.952,
+        1268475.746
+      ],
+      "url": "https://wms.geo.bs.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=KL_HumanbioklimaSituation&STYLES=&CRS=EPSG%3A2056&BBOX=2611703.952%2C1267675.746%2C2612503.952%2C1268475.746&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "riehenring",
+      "kind": "flood",
+      "bbox": [
+        2611703.952,
+        1267675.746,
+        2612503.952,
+        1268475.746
+      ],
+      "url": "https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.bafu.gefaehrdungskarte-oberflaechenabfluss&STYLES=&CRS=EPSG%3A2056&BBOX=2611703.952%2C1267675.746%2C2612503.952%2C1268475.746&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "matthaeus",
+      "kind": "heat",
+      "bbox": [
+        2611110.173,
+        1267726.0420000001,
+        2611910.173,
+        1268526.0420000001
+      ],
+      "url": "https://wms.geo.bs.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=KL_HumanbioklimaSituation&STYLES=&CRS=EPSG%3A2056&BBOX=2611110.173%2C1267726.0420000001%2C2611910.173%2C1268526.0420000001&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "matthaeus",
+      "kind": "flood",
+      "bbox": [
+        2611110.173,
+        1267726.0420000001,
+        2611910.173,
+        1268526.0420000001
+      ],
+      "url": "https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.bafu.gefaehrdungskarte-oberflaechenabfluss&STYLES=&CRS=EPSG%3A2056&BBOX=2611110.173%2C1267726.0420000001%2C2611910.173%2C1268526.0420000001&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "st-johann",
+      "kind": "heat",
+      "bbox": [
+        2610090.1130000004,
+        1267832.8560000001,
+        2610890.1130000004,
+        1268632.8560000001
+      ],
+      "url": "https://wms.geo.bs.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=KL_HumanbioklimaSituation&STYLES=&CRS=EPSG%3A2056&BBOX=2610090.1130000004%2C1267832.8560000001%2C2610890.1130000004%2C1268632.8560000001&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "st-johann",
+      "kind": "flood",
+      "bbox": [
+        2610090.1130000004,
+        1267832.8560000001,
+        2610890.1130000004,
+        1268632.8560000001
+      ],
+      "url": "https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.bafu.gefaehrdungskarte-oberflaechenabfluss&STYLES=&CRS=EPSG%3A2056&BBOX=2610090.1130000004%2C1267832.8560000001%2C2610890.1130000004%2C1268632.8560000001&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "aeschen",
+      "kind": "heat",
+      "bbox": [
+        2611398.3570000003,
+        1266388.8930000002,
+        2612198.3570000003,
+        1267188.8930000002
+      ],
+      "url": "https://wms.geo.bs.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=KL_HumanbioklimaSituation&STYLES=&CRS=EPSG%3A2056&BBOX=2611398.3570000003%2C1266388.8930000002%2C2612198.3570000003%2C1267188.8930000002&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "aeschen",
+      "kind": "flood",
+      "bbox": [
+        2611398.3570000003,
+        1266388.8930000002,
+        2612198.3570000003,
+        1267188.8930000002
+      ],
+      "url": "https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.bafu.gefaehrdungskarte-oberflaechenabfluss&STYLES=&CRS=EPSG%3A2056&BBOX=2611398.3570000003%2C1266388.8930000002%2C2612198.3570000003%2C1267188.8930000002&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "clara",
+      "kind": "heat",
+      "bbox": [
+        2611326.7970000003,
+        1267518.6530000002,
+        2612126.7970000003,
+        1268318.6530000002
+      ],
+      "url": "https://wms.geo.bs.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=KL_HumanbioklimaSituation&STYLES=&CRS=EPSG%3A2056&BBOX=2611326.7970000003%2C1267518.6530000002%2C2612126.7970000003%2C1268318.6530000002&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    },
+    {
+      "site": "clara",
+      "kind": "flood",
+      "bbox": [
+        2611326.7970000003,
+        1267518.6530000002,
+        2612126.7970000003,
+        1268318.6530000002
+      ],
+      "url": "https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.bafu.gefaehrdungskarte-oberflaechenabfluss&STYLES=&CRS=EPSG%3A2056&BBOX=2611326.7970000003%2C1267518.6530000002%2C2612126.7970000003%2C1268318.6530000002&WIDTH=160&HEIGHT=160&FORMAT=image%2Fpng&TRANSPARENT=TRUE"
+    }
+  ],
+  "scaleNote": "800 m / 160 px = 5 m/px; approx 1:18,900 at 96 dpi. Area comparison only, not plot-level risk."
+}

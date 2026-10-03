@@ -1,21 +1,22 @@
+import { hiddenBuildingKeys } from "../src/game/building-clearance.ts";
 import {
   chooseLevelModifier,
   modifierMultiplier,
-} from "../src/game/level-modifiers";
-import { isEmoteId, startEmote } from "../src/game/emotes";
-import { isToolAvailable } from "../src/game/progression";
+} from "../src/game/level-modifiers.ts";
+import { isEmoteId, startEmote } from "../src/game/emotes.ts";
+import { isToolAvailable } from "../src/game/progression.ts";
 import {
   collectPowerups,
   isPowerupActive,
   activatePowerup,
   powerupMultiplier,
-} from "../src/game/powerups";
+} from "../src/game/powerups.ts";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { gameConfig } from "../config/game";
-import { hats } from "../config/hats";
+import { gameConfig } from "../config/game.ts";
+import { hats } from "../config/hats.ts";
 import {
   createCampaign,
   currentLevel,
@@ -23,30 +24,30 @@ import {
   levelPosition,
   connectRunoff,
   recyclePlot,
-} from "../src/game/campaign";
+} from "../src/game/campaign.ts";
 import {
   performCityAction,
   sweatDuringSprint,
   updateCity,
-} from "../src/game/city";
-import { createPlayer, updatePlayer } from "../src/game/player";
+} from "../src/game/city.ts";
+import { createPlayer, updatePlayer } from "../src/game/player.ts";
 import {
   buildingColliders,
   circleCollider,
   CollisionWorld,
   transformCollider,
   type SolidCollider,
-} from "../src/game/collisions";
-import { gameplayColliders } from "../src/game/world-colliders";
-import { treeColliders, treesNear, type TreeRow } from "../src/game/trees";
+} from "../src/game/collisions.ts";
+import { gameplayColliders } from "../src/game/world-colliders.ts";
+import { treeColliders, treesNear, type TreeRow } from "../src/game/trees.ts";
 import {
   assignElevations,
   heightAt,
   levelScenery,
   terrainFromBuffer,
-} from "../src/game/terrain";
-import { cityConfig, cityTools } from "../config/city";
-import { clampToLevel, worldToMap } from "../src/game/streets";
+} from "../src/game/terrain.ts";
+import { cityConfig, cityTools } from "../config/city.ts";
+import { clampToLevel, worldToMap } from "../src/game/streets.ts";
 import type {
   Account,
   OnlinePlayer,
@@ -54,8 +55,8 @@ import type {
   RoomSnapshot,
   TerrainGrid,
   CityState,
-} from "../src/interfaces";
-import type { AccountStore } from "./store";
+} from "../src/interfaces.ts";
+import type { AccountStore } from "./store.ts";
 const idle = () => ({ forward: 0, right: 0, run: false, jump: false });
 interface Member {
   public: OnlinePlayer;
@@ -110,7 +111,7 @@ export class Rooms {
   private terrain: TerrainGrid | null = null;
   private trees: TreeRow[] = [];
   private buildings: SolidCollider[] = [];
-  private staticWorlds = new Map<number, CollisionWorld>();
+  private staticWorlds = new Map<string, CollisionWorld>();
   constructor(private store: AccountStore) {
     try {
       const meta = JSON.parse(
@@ -454,7 +455,7 @@ export class Rooms {
     }
   }
   private staticWorld(city: CityState): CollisionWorld {
-    const levelIndex = city.campaign?.level ?? 0;
+    const levelIndex = `${city.campaign?.level ?? 0}/${currentLevel(city)?.location ?? ""}`;
     const cached = this.staticWorlds.get(levelIndex);
     if (cached) return cached;
     const placed = levelScenery(currentLevel(city), this.terrain);
@@ -462,9 +463,10 @@ export class Rooms {
     parent.position.set(placed.x, placed.y, placed.z);
     parent.rotation.y = placed.rotationY;
     parent.updateMatrixWorld(true);
-    const buildings = this.buildings.map((collider) =>
-      transformCollider(collider, parent),
-    );
+    const hidden = hiddenBuildingKeys(city);
+    const buildings = this.buildings
+      .filter((collider) => !hidden.has(collider.id.split(":")[0]))
+      .map((collider) => transformCollider(collider, parent));
     const plotPoints = city.plots.map((plot) =>
       worldToMap(placed, plot.x, plot.z),
     );

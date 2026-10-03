@@ -68,6 +68,7 @@ test("construction requires reach, soil, available budget and an unused plot", (
   build(s, "tree", 0);
   const spent = s.budget;
   act(s, "tree", at(s, 0), 0);
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "pond", at(s, 0), 0);
   assert.equal(s.budget, spent);
   assert.equal(s.plots[0].kind, "tree");
@@ -274,5 +275,32 @@ test("flooded and full plots reject irrigation without spending water or paying 
     act(s, "spray", at(s, 0), 0, 50);
     assert.equal(s.sponge, 50);
     assert.equal(s.reused, 50);
+  }
+});
+
+test("every construction tool rejects sealed plots without spending coins, awarding funding or changing water", () => {
+  for (const action of [
+    "tree",
+    "basin",
+    "roof",
+    "shade",
+    "pond",
+    "tank",
+  ] as const) {
+    const s = createCity();
+    const before = structuredClone(s);
+    assert.match(act(s, action, at(s, 0), 0), /Unseal/);
+    assert.deepEqual(s.plots, before.plots);
+    assert.equal(s.budget, before.budget);
+    assert.deepEqual(s.funding, before.funding);
+    assert.equal(totalWater(s), totalWater(before));
+    act(s, "karate", at(s, 0), 0);
+    act(s, action, at(s, 0), 0);
+    assert.equal(s.plots[0].kind, action);
+    // Dr. Beton can reseal previously improved ground: the prerequisite applies again.
+    s.plots[0].kind = "asphalt";
+    const budget = s.budget;
+    assert.match(act(s, action, at(s, 0), 0), /Unseal/);
+    assert.equal(s.budget, budget);
   }
 });

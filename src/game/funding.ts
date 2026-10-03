@@ -1,6 +1,6 @@
-import { powerupMultiplier } from "./powerups";
-import type { CityState } from "../interfaces";
-import { modifierMultiplier } from "./level-modifiers";
+import { powerupMultiplier } from "./powerups.ts";
+import type { CityState } from "../interfaces.ts";
+import { modifierMultiplier } from "./level-modifiers.ts";
 
 /** Costs/refunds are separate; claimed grants survive recycling and sabotage. */
 export function grantFunding(s: CityState, key: string, coins: number): void {

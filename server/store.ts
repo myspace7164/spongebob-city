@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
-import type { Account, LeaderboardEntry } from "../src/interfaces";
+import type { Account, LeaderboardEntry } from "../src/interfaces.ts";
 const hash = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 export class AccountStore {

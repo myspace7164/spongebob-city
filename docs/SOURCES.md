@@ -15,7 +15,7 @@ Every dataset, API, notable library and AI tool used, with licence. This registe
 - **Character visuals:** held-tool miniatures and Dr. Beton's outfit/eyes are original procedural Three.js geometry. Runtime locomotion adjusts the supplied GLB's limb transforms/materials while preserving morph targets.
 - **Imported SpongeBob model:** supplied Blender scene and GLB export. Model author and asset licence are not established; SpongeBob is a third-party fictional character.
 - **Audio:** eight team-supplied WAV clips in `public/audio/`; original provenance and licence are not recorded. The coin-reward chime and briefing voice are local Web Audio synthesis, with no recorded character voice.
-- **City funding music:** five team-supplied stage WAV files (`18_stage_1_calm.wav` through `22_stage_5_insane.wav`); original provenance and licence are not recorded. The first four play in Riehenring, Erlenmatt, St. Johann and VoltaNord; stage five is reserved.
+- **City funding music:** five team-supplied stage WAV files (`18_stage_1_calm.wav` through `22_stage_5_insane.wav`); original provenance and licence are not recorded. The first four follow campaign difficulty stages regardless of randomly selected map location; stage five is reserved.
 
 ## Basel data
 
@@ -25,9 +25,17 @@ Every dataset, API, notable library and AI tool used, with licence. This registe
 - **Terrain heights:** [swissALTI3D](https://www.swisstopo.admin.ch/en/height-model-swissalti3d), 2 m XYZ tiles (2025 release) via the [STAC API](https://data.geo.admin.ch/api/stac/v0.9/collections/ch.swisstopo.swissalti3d). Free use with attribution under [swisstopo terms](https://www.swisstopo.admin.ch/en/faq-free-geodata); © swisstopo. Downloaded 2026-10-03. Used for a 4 m height grid and downhill runoff; rebuild steps: `public/maps/README.md`.
 - **Land cover:** [Bodenbedeckung, dataset 100477](https://data.bs.ch/explore/dataset/100477/) (amtliche Vermessung), CC BY 4.0; attribution: Quelle: Geodaten Kanton Basel-Stadt. Downloaded 2026-10-03. Drawn as 0.4 m category tiles; rebuild steps: `public/maps/README.md`.
 - **Trees:** [Baumkataster: Baumbestand, dataset 100052](https://data.bs.ch/explore/dataset/100052/) (Stadtgärtnerei), CC BY 4.0; attribution: Quelle: Geodaten Kanton Basel-Stadt. The portal licence label also names OpenStreetMap; only tree points are used. Downloaded 2026-10-03. Species indicates broadleaf/conifer; height is estimated from age.
-- **Campaign narrative and locations:** team-supplied level-system request; story content lives in `config/levels.ts`. Riehenring plot positions were placed by hand on dataset 100250 street centrelines and checked against the building model and SWISSIMAGE photo. Other levels' coordinates, weather, drainage capacities and achievement thresholds are fictional placeholders.
+- **Campaign narrative and locations:** team-supplied level-system request; story content lives in `config/levels.ts`. The tutorial plot template derives from illustrative Riehenring street situations. Current mission plots and water/heat coefficients remain fictional even though the randomized map anchors are real. See [level geography](level-geography.md) for official climate/runoff evidence and limitations.
 - **Sponge-city terminology:** permeable paving, tree pit/Baumrigole and swale/Versickerungsmulde follow common Swiss Schwammstadt terms. They illustrate options, not planned municipal measures.
 
 ## Online service
 
 Node.js 24 [SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html) supplies the embedded host database. MDN documents [cookie attributes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie) and [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource/EventSource). No external identity provider, account dataset or remote leaderboard service is used. Real usernames and session records stay in the ignored host database.
+
+## Climate-based location pool
+
+Eight eligible Basel locations are ranked from official GeoBS human-bioclimate WMS, Basel city-climate policy and FOEN surface-runoff WMS. Original samples, legends and requests are retained in public/maps/risk/. Primary source links, reproduction, selection method and coarse-map limits have their single home in [level geography](level-geography.md). Preserve provider attribution when reusing the source maps.
+
+## Original ambient character and voices
+
+A user-supplied outfit reference remains outside the repository. The riverside buddy's hoodie, jeans, sneakers, can, cigarette, smoke and poses are original procedural geometry; no real name or photograph is stored. Twenty positive English lines, cartoon speech balloons and nearby synthesized cast/buddy gibberish are original game content. Voices are not recordings.

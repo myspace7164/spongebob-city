@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { CityFire, CityPlot } from "../interfaces";
+import type { CityFire, CityPlot } from "../interfaces.ts";
 
 function makeFire(fire: CityFire): THREE.Group {
   const flame = new THREE.Group();

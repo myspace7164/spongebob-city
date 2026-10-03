@@ -1,13 +1,14 @@
-import { isToolAvailable, levelsUntilTool } from "../game/progression";
-import { isPowerupActive } from "../game/powerups";
-import { cityConfig as c, cityTools, plotNames } from "../../config/city";
-import { siteTechniques } from "../../config/sites";
-import { downhillNeighbours } from "../game/city-water";
-import { cityMetrics, spongeCapacity, weather } from "../game/city";
-import { levelAchievements } from "../game/campaign";
-import { fundingConfig } from "../../config/funding";
-import { activeModifier } from "../game/level-modifiers";
-import type { CityPlot, CityState, CityTool } from "../interfaces";
+import { toolUnlockLevel } from "../../config/progression.ts";
+import { isToolAvailable, levelsUntilTool } from "../game/progression.ts";
+import { isPowerupActive } from "../game/powerups.ts";
+import { cityConfig as c, cityTools, plotNames } from "../../config/city.ts";
+import { siteTechniques } from "../../config/sites.ts";
+import { downhillNeighbours } from "../game/city-water.ts";
+import { cityMetrics, spongeCapacity, weather } from "../game/city.ts";
+import { levelAchievements } from "../game/campaign.ts";
+import { fundingConfig } from "../../config/funding.ts";
+import { activeModifier } from "../game/level-modifiers.ts";
+import type { CityPlot, CityState, CityTool } from "../interfaces.ts";
 
 const element = (id: string) => document.getElementById(id)!;
 const number = (value: number) => Math.round(value).toLocaleString("en-CH");
@@ -168,8 +169,8 @@ export class CityUI {
       for (const container of [element("hotbar"), element("inventory-list")]) {
         const button = container.children[i] as HTMLButtonElement;
         button.disabled = !isToolAvailable(s, tool.id);
+        button.style.order = String(toolUnlockLevel[tool.id] * 100 + i);
         if (container.id === "inventory-list") {
-          button.style.order = String(remaining > 0 ? 100 + i : i);
           button.querySelector("small")!.textContent =
             remaining > 0
               ? `Unlocks in ${remaining} level${remaining === 1 ? "" : "s"}`

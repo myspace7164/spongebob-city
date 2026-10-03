@@ -1,9 +1,9 @@
-import { levelModifiers } from "../../config/modifiers";
+import { levelModifiers } from "../../config/modifiers.ts";
 import type {
   CityState,
   LevelModifierDefinition,
   LevelModifierId,
-} from "../interfaces";
+} from "../interfaces.ts";
 
 export function modifierDefinition(
   id: LevelModifierId | null | undefined,

@@ -1,4 +1,4 @@
-import type { Account, RoomSnapshot, OnlineCommand } from "../interfaces";
+import type { Account, RoomSnapshot, OnlineCommand } from "../interfaces.ts";
 export async function onlineRequest<T>(
   path: string,
   body?: unknown,

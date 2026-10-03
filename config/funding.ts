@@ -1,4 +1,4 @@
-import type { PlotKind } from "../src/interfaces";
+import type { PlotKind } from "../src/interfaces.ts";
 
 /** Fictional government grants, awarded once per useful action/site each level. */
 export const fundingConfig = {

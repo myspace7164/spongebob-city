@@ -1,7 +1,7 @@
-import { updateEmote } from "./emotes";
-import { gameConfig as config } from "../../config/game";
-import type { MovementInput, PlayerState } from "../interfaces";
-import type { CollisionWorld } from "./collisions";
+import { updateEmote } from "./emotes.ts";
+import { gameConfig as config } from "../../config/game.ts";
+import type { MovementInput, PlayerState } from "../interfaces.ts";
+import type { CollisionWorld } from "./collisions.ts";
 
 export function createPlayer(): PlayerState {
   return {

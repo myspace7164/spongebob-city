@@ -1,4 +1,4 @@
-import type { CityTool, SiteType } from "../src/interfaces";
+import type { CityTool, SiteType } from "../src/interfaces.ts";
 
 /** Street situations and the unsealing techniques that fit them; karate unseals every site. */
 export const siteTechniques: Record<

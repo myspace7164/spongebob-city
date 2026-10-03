@@ -1,0 +1,85 @@
+{
+  "method": "800 m area samples; weighted coverage of the three overland-flow legend classes, excluding mapped water; 60% normalized flood-class coverage score plus 40% normalized heat warm-color coverage. Not temperatures or parcel-level predictions.",
+  "ranked": [
+    {
+      "id": "st-alban",
+      "name": "St. Alban-Kirchrain",
+      "x": 538.406,
+      "z": 39.345,
+      "floodCoverage": 0.242,
+      "floodScore": 0.3797,
+      "warmColorShare": 0.1469,
+      "priority": 0.1392
+    },
+    {
+      "id": "matthaeus",
+      "name": "Klybeckstrasse · Matthäus",
+      "x": -165.629,
+      "z": -949.276,
+      "floodCoverage": 0.234,
+      "floodScore": 0.3542,
+      "warmColorShare": 0.4609,
+      "priority": 0.2658
+    },
+    {
+      "id": "st-alban-vorstadt",
+      "name": "St. Alban-Vorstadt",
+      "x": 555.975,
+      "z": 163.952,
+      "floodCoverage": 0.2522,
+      "floodScore": 0.4063,
+      "warmColorShare": 0.1535,
+      "priority": 0.29
+    },
+    {
+      "id": "clara",
+      "name": "Clarastrasse",
+      "x": 50.995,
+      "z": -741.887,
+      "floodCoverage": 0.2358,
+      "floodScore": 0.362,
+      "warmColorShare": 0.4675,
+      "priority": 0.314
+    },
+    {
+      "id": "aeschen",
+      "name": "Aeschenplatz",
+      "x": 122.555,
+      "z": 387.873,
+      "floodCoverage": 0.2479,
+      "floodScore": 0.3931,
+      "warmColorShare": 0.3744,
+      "priority": 0.405
+    },
+    {
+      "id": "johanniter",
+      "name": "Johanniterstrasse",
+      "x": -842.03,
+      "z": -1025.836,
+      "floodCoverage": 0.247,
+      "floodScore": 0.4278,
+      "warmColorShare": 0.3095,
+      "priority": 0.5395
+    },
+    {
+      "id": "riehenring",
+      "name": "Riehenring",
+      "x": 428.15,
+      "z": -898.98,
+      "floodCoverage": 0.2462,
+      "floodScore": 0.3858,
+      "warmColorShare": 0.6013,
+      "priority": 0.5572
+    },
+    {
+      "id": "st-johann",
+      "name": "St. Johanns-Ring",
+      "x": -1185.689,
+      "z": -1056.09,
+      "floodCoverage": 0.2727,
+      "floodScore": 0.4641,
+      "warmColorShare": 0.6194,
+      "priority": 1
+    }
+  ]
+}

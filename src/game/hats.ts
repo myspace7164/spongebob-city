@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { hatDefinition } from "../../config/hats";
-import type { CityState, HatId } from "../interfaces";
+import { hatDefinition } from "../../config/hats.ts";
+import type { CityState, HatId } from "../interfaces.ts";
 
 function material(color: number, roughness = 0.72): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ color, roughness });

@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { ball, box, themeColor } from "./characters";
-import type { CityTool } from "../interfaces";
-import { cityTools } from "../../config/city";
+import { ball, box, themeColor } from "./characters.ts";
+import type { CityTool } from "../interfaces.ts";
+import { cityTools } from "../../config/city.ts";
 
 /** Cache one miniature per tool; swaps never rebuild geometry or accumulate props. */
 export function createHeldTools(parent: THREE.Group) {

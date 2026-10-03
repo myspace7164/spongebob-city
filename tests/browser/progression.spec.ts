@@ -7,14 +7,14 @@ test("first level offers essentials and locked keyboard selections do not equip 
   await registerTestAccount(page);
   await page.goto("/");
   await expect(page.locator("#hotbar .slot:not(:disabled)")).toHaveCount(4);
-  await expect(page.locator("#hotbar .slot").nth(3)).toContainText(
+  await expect(page.locator("#hotbar .slot").nth(4)).toContainText(
     "🔒 1 level",
   );
   await expect(page.locator("#hotbar .slot").nth(8)).toContainText(
     "🔒 3 levels",
   );
   await enterCampaign(page);
-  await page.keyboard.press("Digit4");
+  await page.keyboard.press("Digit5");
   await expect(page.locator("#hotbar .slot").nth(0)).toHaveAttribute(
     "aria-pressed",
     "true",

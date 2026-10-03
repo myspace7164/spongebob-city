@@ -1,6 +1,6 @@
 # Sponge City · Basel
 
-A playable four-level 3D sponge-city campaign through Riehenring, Erlenmatt, St. Johann and VoltaNord, with Riehenring played on the real street (spots on its parking lane, sidewalk verges, corners and building edges) and placeholder layouts for the other levels until their map data is added. Collect storm water with SpongeBob, distribute it to plants and storage, and transform asphalt into a cooler, greener square. Manage heat and flooding together while Dr. Beton tries to reseal your work.
+A playable four-level 3D sponge-city campaign across eight Basel location candidates. Each new campaign randomly chooses one of two locations per difficulty tier. Real Basel scenery follows each location; mission plots remain illustrative. Locations increase in climate urgency using official surface-runoff and heat maps; see [geographic evidence and limits](docs/level-geography.md). Collect water, unseal ground before planting or building, and manage heat and flooding while Dr. Beton tries to reseal your work.
 
 Built on Three.js, TypeScript and Vite. See [the design](docs/design.md) for gameplay, scope and limits.
 
@@ -79,7 +79,7 @@ The large gold wallet shows available coins throughout play. Useful first action
 
 Each neighbourhood loops its supplied stage track while playing. Pausing, story screens and mute stop the music and coin chime. Rain is mixed at 8% volume; levels use 22%.
 
-- `config/levels.ts`: short English briefings, per-level achievements/weather and independent locations/layouts, including the real Riehenring street; replace coordinates when the actual level layouts arrive.
+- `config/levels.ts`: short English briefings, per-level achievements/weather and independent locations/layouts, with randomized real map anchors and illustrative mission layouts.
 - `config/sites.ts`: street situations and which unsealing technique fits each one.
 - `src/game/campaign.ts`: shared achievement evaluation, automatic progression and runoff/recycling rules.
 - `src/ui/campaign.ts`: paused story screens, campaign route and ending.
@@ -111,7 +111,7 @@ Optional Blender exports go into `public/models/`. Set `character.url` or `level
 
 ## Limits and sources
 
-Four story levels: Riehenring on its real street, the other three in separate fictional layouts, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. Cookie accounts and rankings persist on the host; live rooms stay in memory and end on server restart. No mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology and runoff links remain fictional; imported Basel buildings are background scenery. Only Riehenring is aligned to its real location; the other levels use offset background scenery, and their neighbourhoods lie outside the current map data. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
+Four levels on real Basel map scenery with illustrative mission topology. Cookie accounts and rankings persist on the host; live rooms end on server restart. No mobile controls. Temperatures, litres and square metres are gameplay values, not a validated climate model. Green roofs remain ground-level interactive props. See [geographic evidence and limits](docs/level-geography.md), [map conversion notes](public/models/README.md) and [sources](docs/SOURCES.md).
 
 ## Online play and hosting
 
@@ -138,3 +138,7 @@ Capacity expiry preserves collected water. Sandy's permanent upgrade remains ava
 Emotes use the existing imported/fallback limb rig and replicate to co-op teammates. Hold G and press 1–5; they expire automatically without affecting city resources or player collision. Movement or jumping cancels them; reduced motion shows a still pose.
 
 Watering rejects flooded plots and full soil/storage without spending sponge water or granting coins. Absorb standing surface water first; spraying a fire remains available. Shade plazas connect across neighboring placeholder street gaps up to 7 m.
+
+Hold G to reveal the emote choices, then press 1–5; the camera faces SpongeBob during the dance. Nearby characters wander and speak original gibberish; voices fade with distance and stop on pause/mute. Solid characters, tree trunks, tanks and building bounds block movement and allow sliding around them. Inventory tiles and their numbered shortcuts follow unlock order: absorb, spray, karate, rain garden, tree, roof, shade, pond, tank.
+
+A cartoon riverside buddy strolls through every level in a tan hoodie, baggy jeans and dark sneakers. He sips his beer, sometimes rolls and smokes a cigarette, and cheers while rotating twenty short positive messages. His speech bubble and soft nearby gibberish are cosmetic; he gives no missions or bonuses. Shared simulation time keeps his poses consistent in co-op and frozen on pause. The character uses original procedural geometry; the reference photograph is not stored in the project.

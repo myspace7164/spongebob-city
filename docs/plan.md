@@ -195,3 +195,22 @@ Done when: G+1–5 triggers 67, Macarena, teabag, dab and floss on both characte
 Owner: Codex. Needs: T18.
 Scope: reproduce the reported Level 3 block, verify its remaining achievements and next-level transition; reject irrigation of flooded or saturated destinations without spending water or awarding coins. Preserve fire extinguishing.
 Done when: Level 3 can complete its achievable goals and enter Level 4; flooded/full plots cannot accept extra irrigation; regression checks cover water conservation and progression.
+
+#### T20 Living characters, visible emotes and collisions
+Owner: Codex. Needs: T18–T19.
+Scope: make G emote chords discoverable and visible in the actual game; cartoon character speech bubbles; nearby character gibberish fades to silence at distance; deterministic wandering with walking limbs; shared collision rules for characters, solid plot props and buildings.
+Done when: emotes visibly animate the real character, the chord presents its choices, bubbles follow moving characters, voices respect distance/mute/pause, and solo/co-op movement stops or slides at obstacles without blocking mission actions.
+
+#### T21 Real Basel levels ordered by climate urgency
+Owner: Codex. Needs: T20.
+Scope: use the supplied Basel city-climate sources and Swiss surface-runoff hazard map to rank distinct real mission locations, prioritizing flooding then heat. Move the actual scenery/terrain and gameplay to each site; record source observations and limits instead of inventing local risk measurements.
+Done when: four geographic locations differ, their source-based urgency increases, the actual rendered map follows each location, and gameplay remains achievable at every site. Sources and reproducible selection evidence are documented.
+
+T20 follow-up: all construction requires unsealed soil, including rain gardens, roofs, shade, ponds and tanks. Enforce in shared action rules so keyboard/mouse/co-op cannot bypass it; rejected builds preserve plot, coins and water. Verify legal campaign strategies explicitly unseal before building.
+
+T21 revision: expand to eight source-sampled candidates, split into four increasing flood/heat priority tiers with two eligible sites each. Choose one candidate per tier randomly per new campaign; store the shared route in campaign state, preserve it on retries and progression, and use authoritative room choices in co-op. Scenery, terrain, labels and collisions follow the chosen candidate; tutorials and tool unlocks follow the level number.
+
+#### T22 Ambient riverside buddy
+Owner: Codex. Needs: T20–T21.
+Scope: procedural reference-inspired tan-hoodie/jeans/sneaker character, beer-sipping stroll, occasional cigarette rolling/smoking and cheering, varied positive English speech bubbles. No game effects. Shared simulation-time poses, moving collision footprint and proximity voice; original photo remains outside repository.
+Done when: the character appears and wanders in every chosen location, drinks/rolls/smokes/cheers visibly, rotates varied encouragement, pauses with the game, and co-op clients show the same ambient behavior.

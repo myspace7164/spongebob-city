@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { AccountStore } from "./store";
-import { Rooms } from "./rooms";
-import type { OnlineCommand } from "../src/interfaces";
+import { AccountStore } from "./store.ts";
+import { Rooms } from "./rooms.ts";
+import type { OnlineCommand } from "../src/interfaces.ts";
 export function createOnlineServer(
   database = process.env.DATABASE_PATH ?? "data/accounts.sqlite",
 ) {

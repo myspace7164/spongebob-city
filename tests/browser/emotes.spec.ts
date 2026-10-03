@@ -44,3 +44,33 @@ test("G plus 1–5 plays each emote without equipping inventory; movement cancel
   await page.keyboard.press("h");
   await expect(page.locator("#inventory-panel")).toContainText("hold G + 1");
 });
+
+test("real imported character plays Macarena with visible chord choices and front camera", async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await registerTestAccount(page);
+  await page.route("**/models/basel-city.glb", (route) =>
+    route.fulfill({
+      status: 404,
+      body: "Use original scenery for the imported-character test",
+    }),
+  );
+  await page.goto("/");
+  await expect(page.locator("#game")).toHaveAttribute(
+    "data-character",
+    "loaded",
+    { timeout: 30000 },
+  );
+  await enterCampaign(page);
+  await page.keyboard.down("g");
+  await expect(page.locator("#emote-choices")).toBeVisible();
+  await expect(page.locator("#emote-choices")).toContainText("2 · Macarena");
+  await page.keyboard.press("2");
+  await page.keyboard.up("g");
+  await expect(page.locator("#emote-choices")).toContainText("MACARENA");
+  await expect(page.locator("#game")).toHaveAttribute("data-emote", "macarena");
+  await page.screenshot({ path: "/tmp/sponge-imported-macarena.png" });
+  await page.keyboard.press("Space");
+  await expect(page.locator("#emote-choices")).toBeHidden();
+});

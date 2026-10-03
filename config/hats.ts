@@ -1,4 +1,4 @@
-import type { HatId } from "../src/interfaces";
+import type { HatId } from "../src/interfaces.ts";
 
 export const hatPrice = 1000;
 

@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { treeStyle as style } from "../../config/ground";
-import { circleCollider, type SolidCollider } from "./collisions";
+import { treeStyle as style } from "../../config/ground.ts";
+import { circleCollider, type SolidCollider } from "./collisions.ts";
 
 /** [x, z, conifer (0/1), height] in map-local metres, from convert-basel-trees.py. */
 export type TreeRow = [number, number, number, number];

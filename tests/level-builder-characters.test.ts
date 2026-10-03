@@ -14,6 +14,7 @@ import {
   startCampaignAt,
 } from "../src/game/campaign.ts";
 import { performCityAction as act } from "../src/game/city.ts";
+import { castPosition } from "../src/game/cast.ts";
 import { categoryAt, decodeGroundPng } from "../src/game/ground-data.ts";
 import {
   checkCharacters,
@@ -159,6 +160,8 @@ test("a level's own character positions move Sandy's workshop and Dr. Beton's st
     const s = startCampaignAt(index);
     assert.equal(s.campaign!.level, index);
     assert.deepEqual(npcPosition(s, "sandy"), { x: 5, z: 5 });
+    const wanderingSandy = castPosition(s, 1);
+    assert.ok(Math.hypot(wanderingSandy.x - 5, wanderingSandy.z - 5) < 2);
     assert.deepEqual({ x: s.saboteur.x, z: s.saboteur.z }, { x: -3, z: -30 });
     // The upgrade works next to the new Sandy, not at the old place.
     act(
