@@ -181,7 +181,7 @@ function addSandyDetails(root: THREE.Group): void {
   const metal = detailMaterial(0x9eabb2, 0.32, 0.68);
   const suit = detailMaterial(0x45aab8, 0.52, 0.08);
   const trim = detailMaterial(0xe6d59a, 0.6, 0.12);
-  const rim = detailMesh(
+  detailMesh(
     root,
     new THREE.TorusGeometry(0.48, 0.018, 8, 32),
     visor,

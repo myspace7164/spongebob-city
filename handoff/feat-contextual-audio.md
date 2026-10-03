@@ -10,4 +10,4 @@ Verification: integrated campaign/map build, formatting, 28 unit tests, all 11 b
 
 Next: try the contextual sound in the game; source/licence limits remain recorded below.
 
-Known limits: sound provenance/licence beyond the team upload is not recorded. No audio dependencies added. Existing sandbox modules remain reusable foundation code as described in docs/design.md.
+Known limits: sound provenance/licence beyond the team upload is not recorded. No audio dependencies added. The disconnected T2 sandbox prototype referenced in the original handoff was later removed; the city mission's field guide is independent.

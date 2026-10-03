@@ -16,7 +16,7 @@ Implementation is on `main` at commit `096f83b`. Production build and all 101 No
 - Releasing Shift no longer resets elapsed sprint time, so tapping Shift cannot bypass the 10-second limit.
 - Mini Sponge applies a visible 80% character scale even while the temporary giant power is active, and reduces effective water capacity to 80%.
 - Reduced repeated HUD information: Q boost status appears in the power-up dock, the footer keeps six frequent shortcuts, and the in-run hat entry is shown there instead of as a separate floating badge. Specialized keys stay in the field guide.
-- Removed no assets or gameplay systems. The sandbox foundation stays because tests use it and documentation describes it as reusable code.
+- The collision work removed no assets or gameplay systems. Later cleanup removed the disconnected T2 placeholder sandbox and its tests after confirming it was not mounted in the city mission.
 
 ## Checks already run
 

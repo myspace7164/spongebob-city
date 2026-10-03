@@ -27,7 +27,7 @@ Open the local URL printed by Vite in a desktop WebGL 2 browser. Claim a unique 
 | E near Sandy / Dr. Beton           | Buy capacity and bubbles / disable sabotage                  |
 | Hold B after upgrade               | Bubble irrigation at extended range                          |
 | Q                                  | Activate the collected boost once                            |
-| G + 1–5                           | 67, Macarena, teabag, dab, floss; move/jump to cancel          |
+| G + 1–5                            | 67, Macarena, teabag, dab, floss; move/jump to cancel        |
 | H                                  | Pause and open the field guide                               |
 | M / Sound button                   | Mute or unmute game audio                                    |
 | C at source, then C at destination | Connect a roof/tank to permeable receiving ground or storage |
@@ -48,7 +48,7 @@ npm run build
 npm run preview
 ```
 
-`dist/` contains the client. Online play also requires the Node server described below; static hosting supports solo practice only. Unit tests cover water conservation, capacity, construction prerequisites, budget, abilities, sabotage, loss and a complete winning strategy, alongside foundation controls and sandbox rules. Campaign tests complete all four production levels through legal actions, verify automatic progression and water conservation, and reject unsafe/cyclic runoff.
+`dist/` contains the client. Online play also requires the Node server described below; static hosting supports solo practice only. Unit tests cover water conservation, capacity, construction prerequisites, budget, abilities, sabotage, loss, player controls and a complete winning strategy. Campaign tests complete all four production levels through legal actions, verify automatic progression and water conservation, and reject unsafe/cyclic runoff.
 
 Browser checks require Chromium and its OS libraries:
 

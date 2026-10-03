@@ -542,6 +542,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   const grounded: { object: THREE.Object3D; base: number }[] = [];
   const keepOnGround = (object: THREE.Object3D) =>
     grounded.push({ object, base: object.position.y });
+  const npcHints: { label: THREE.Sprite; x: number; z: number }[] = [];
   for (const [kind, text, x, z] of [
     ["patrick", "Patrick · P: unseal", -11, -3],
     ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
@@ -553,7 +554,9 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     root.add(npc);
     const name = label(text);
     name.position.set(x, 3, z);
+    name.visible = false;
     root.add(name);
+    npcHints.push({ label: name, x, z });
     keepOnGround(npc);
     keepOnGround(name);
   }
@@ -572,7 +575,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   betonName.position.set(0, 3.05, 0);
   beton.add(betonName);
   const driverPoint = vehicle.driverPoint as THREE.Object3D;
-  const concreteOutput = vehicle.concreteOutput as THREE.Object3D;
   const laserEyes = beton.userData.laserEyes as THREE.Object3D[];
   const laserBeams = [makeLaserBeam(beton, "L"), makeLaserBeam(beton, "R")];
   const laserRaycasters = laserBeams.map(
@@ -604,7 +606,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   let lastBetonPhase = "";
   let phaseStartedAt = 0;
   let sealingEndedAt = Number.NEGATIVE_INFINITY;
-  let previousVehicleTime = 0;
   let previousVehicleX = machine.position.x;
   let previousVehicleZ = machine.position.z;
   const residents = new THREE.Group();
@@ -693,6 +694,13 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       root.updateMatrixWorld(true);
       const ground = (x: number, z: number) => groundAt(x, z);
       playerGround = ground(player.position.x, player.position.z);
+      for (const hint of npcHints) {
+        hint.label.visible =
+          Math.hypot(
+            player.position.x - (origin.x + hint.x),
+            player.position.z - (origin.z + hint.z),
+          ) <= 8;
+      }
       const nextSignature = `${level?.id}/${groundVersion}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
       if (campaignSignature !== nextSignature) {
         campaignSignature = nextSignature;
@@ -838,8 +846,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);
       attribute.needsUpdate = true;
       const villain = s.saboteur;
-      const elapsedDelta = Math.max(0, s.elapsed - previousVehicleTime);
-      previousVehicleTime = s.elapsed;
       machine.position.set(
         villain.x - origin.x,
         ground(villain.x, villain.z),
