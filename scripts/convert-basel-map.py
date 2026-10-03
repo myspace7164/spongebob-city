@@ -104,7 +104,8 @@ def convert(source, output):
     if not nodes:
         raise ValueError("No buildings remain outside the mission area")
     document = {
-        "asset": {"version": "2.0", "generator": "Sponge City Basel converter"},
+        "asset": {"version": "2.0", "generator": "Sponge City Basel converter",
+                  "copyright": "Quelle: Geodaten Kanton Basel-Stadt (CC BY 4.0)"},
         "scene": 0, "scenes": [{"nodes": list(range(len(nodes)))}],
         "nodes": nodes, "meshes": meshes, "bufferViews": views, "accessors": accessors,
         "buffers": [{"byteLength": len(binary)}],
@@ -112,6 +113,9 @@ def convert(source, output):
                        "pbrMetallicRoughness": {"baseColorFactor": [0.75, 0.75, 0.75, 1],
                                                 "metallicFactor": 0, "roughnessFactor": 1}}],
         "extras": {"source": source.name, "origin": [east, north, height],
+                   "sourceUrl": "https://shop.geo.bs.ch/geodaten-katalog/",
+                   "license": "https://creativecommons.org/licenses/by/4.0/",
+                   "modifications": "Tiled GLB, local Y-up coordinates, mission-area buildings omitted",
                    "omittedBuildings": omitted, "missionClearanceXZ": MISSION_CLEARANCE},
     }
     encoded = json.dumps(document, separators=(",", ":")).encode()

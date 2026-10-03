@@ -17,5 +17,5 @@ python3 scripts/convert-basel-map.py /path/to/3D_Stadtmodell.obj public/models/b
 ```
 
 The converter targets this supplied model, whose materials are all the same grey.
-The source OBJ stays outside the repository. See `docs/SOURCES.md` for provenance
-and the unresolved redistribution licence.
+The source OBJ stays outside the repository. See `docs/SOURCES.md` for provenance,
+licence and attribution. The converted GLB embeds the attribution and licence URL.
