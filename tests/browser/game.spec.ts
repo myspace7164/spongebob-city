@@ -13,6 +13,8 @@ test("city renders, water loop and construction work, powers and pause/reset are
   });
   await expect(page.locator("#hotbar .slot")).toHaveCount(9);
   await expect(page.locator("#game")).toHaveAttribute("data-level", "loaded");
+  await expect(page.locator("#game")).toHaveAttribute("data-roads", "loaded");
+  await expect(page.locator("#game")).toHaveAttribute("data-imagery", "loaded");
   await page.screenshot({ path: "/tmp/sponge-city-before.png" });
   await page.locator("#play").click();
   await expect(page.locator("#menu")).toBeHidden();

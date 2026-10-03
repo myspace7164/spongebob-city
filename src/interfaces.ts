@@ -25,6 +25,18 @@ export interface ModelConfig {
   rotationY: number;
 }
 
+/** Derived LV95 road centrelines: local X east, Z south, metres; estimated widths. */
+export interface RoadNetwork {
+  origin: [number, number, number];
+  bounds: [number, number, number, number];
+  roads: {
+    name: string | null;
+    kind: "road" | "path";
+    width: number;
+    segments: [[number, number], [number, number]][];
+  }[];
+}
+
 /** Inventory definitions describe behavior; quantities are runtime state. */
 export interface InventoryItem {
   id: string;

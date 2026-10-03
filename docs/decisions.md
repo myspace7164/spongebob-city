@@ -1,5 +1,6 @@
 # Decisions
 
+
 One line per decision, newest at the bottom. Never edit an old line; add a new one that says what it replaces.
 
 Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or areas> · Why: <short> · Instead of: <alternative, why not>`
@@ -19,3 +20,4 @@ Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or area
 - 2026-10-03 · Share the Basel map integration on main at the user's request, with source attribution and CC BY 4.0 links in the game, GLB and source documentation · Affects: map distribution · Why: official catalogue and public-geodata terms resolve the previous licence uncertainty.
 - 2026-10-03 · Replace the plain HUD with cartoon SpongeBob-inspired lettering and Frutiger Aero glass, using original CSS/vector art and src/ui/theme.css tokens · Affects: UI · Why: user requested a playful, cheesy look; no external font or image dependency.
 - 2026-10-03 · Add CitySound to src/interfaces.ts; organise @aureaphi's eight clips in public/audio with contextual filenames and volumes in config/audio.ts · Affects: sound assets and mission audio · Why: static builds include the clips and successful actions trigger audio without parsing feedback text; existing source, config, test and documentation folders remain their respective homes.
+- 2026-10-03 · Add RoadNetwork to src/interfaces.ts and render dataset 100250 street ribbons over local SWISSIMAGE imagery, sharing the GLB origin · Affects: Basel scenery · Why: user chose combined geometry and photography; approximate widths and flat height preserve the current mission, with independent image fallback and source credits.
