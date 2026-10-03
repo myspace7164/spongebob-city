@@ -6,7 +6,11 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { createLocomotion } from "../src/game/locomotion.ts";
 import { createHeldTools } from "../src/game/held-tools.ts";
 import { makeCharacter } from "../src/game/characters.ts";
-import { updateSpongeWaterState } from "../src/game/assets.ts";
+import {
+  applySpongeEyeTint,
+  spongeEyeBlue,
+  updateSpongeWaterState,
+} from "../src/game/assets.ts";
 import { cityTools } from "../config/city.ts";
 import { cloneCharacterVisual } from "../src/game/remote-players.ts";
 
@@ -27,6 +31,19 @@ test("real GLB has relaxed moving limbs, white teeth, preserved water morphs and
       bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
       "",
     );
+    assert.ok(applySpongeEyeTint(model) > 0);
+    const irisColors = new Set<number>();
+    model.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      for (const material of Array.isArray(object.material)
+        ? object.material
+        : [object.material])
+        if (material.name.toLowerCase() === "iris export")
+          irisColors.add(
+            (material as THREE.MeshStandardMaterial).color.getHex(),
+          );
+    });
+    assert.deepEqual([...irisColors], [spongeEyeBlue]);
     const remoteModel = cloneCharacterVisual(model);
     const sourceMeshes = new Map<string, THREE.Mesh>();
     model.traverse((object) => {
