@@ -61,7 +61,8 @@ class BuildingStyleDataTests(unittest.TestCase):
     def test_bridges_are_flagged(self):
         folder = Path(tempfile.mkdtemp())
         (folder / "city.obj").write_text(OBJ)
-        _, objects, bridges = basel_map.read_objects(folder / "city.obj")
+        _, objects, bridges, names = basel_map.read_objects(folder / "city.obj")
+        self.assertEqual(names, ["mesh-0", "mesh-1", "mesh-2"])
         self.assertEqual(len(objects), 3)
         self.assertEqual(bridges, [False, False, True])
 
@@ -86,6 +87,36 @@ class BuildingStyleDataTests(unittest.TestCase):
         self.assertEqual(by_seed[seed(0)], (0.0, 0.0))
         self.assertEqual(by_seed[seed(1)], (0.0, 0.0))
         self.assertEqual(by_seed[seed(2)], (-5.0, 1.0))
+
+    def test_floating_objects_become_bridges(self):
+        # Flat terrain 10 m below the origin: houses (0 m) float 10 m above it,
+        # so with terrain every object counts as a bridge; at 0 m none floats.
+        folder = Path(tempfile.mkdtemp())
+        (folder / "city.obj").write_text(OBJ)
+        for ground, expected in [(lambda x, z: -10.0, {1.0}),
+                                 (lambda x, z: 0.0, {0.0, 1.0})]:
+            basel_map.convert(folder / "city.obj", folder / "city.glb", ground)
+            document, values = read_glb(folder / "city.glb")
+            flags = set()
+            for mesh in document["meshes"]:
+                data = values(mesh["primitives"][0]["attributes"]["_BUILDING"])
+                flags |= set(data[2::3])
+            self.assertEqual(flags, expected)
+        self.assertFalse(basel_map.floats([(0, 1.0, 0)], lambda x, z: None))
+
+    def test_landmarks_get_their_own_kind(self):
+        folder = Path(tempfile.mkdtemp())
+        (folder / "city.obj").write_text(OBJ)
+        basel_map.LANDMARKS["mesh-1"] = 2
+        try:
+            basel_map.convert(folder / "city.obj", folder / "city.glb")
+        finally:
+            del basel_map.LANDMARKS["mesh-1"]
+        document, values = read_glb(folder / "city.glb")
+        kinds = set()
+        for mesh in document["meshes"]:
+            kinds |= set(values(mesh["primitives"][0]["attributes"]["_BUILDING"])[2::3])
+        self.assertEqual(kinds, {0.0, 1.0, 2.0})
 
     def test_seed_is_stable(self):
         self.assertEqual(basel_map.building_seed(7), basel_map.building_seed(7))

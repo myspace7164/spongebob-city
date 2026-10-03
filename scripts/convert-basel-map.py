@@ -12,6 +12,13 @@ from pathlib import Path
 import struct
 
 TILE_SIZE = 100
+# Unlabelled objects with no vertex this close to the terrain float (walkways, canopies).
+FLOATING_CLEARANCE = 1.5
+# Style kinds in _BUILDING.z: 0 building, 1 bridge, 2 metal-band facade.
+# Landmarks the dataset does not label, keyed by OBJ object name in 3D_Stadtmodell.obj.
+LANDMARKS = {
+    "mesh-5335": 2,  # Messe Basel Halle 1 (2013): aluminium band facade, floats over Messeplatz
+}
 MISSION_CLEARANCE = (-20, 20, -32, 12)  # X/Z bounds including NPCs and camera.
 
 
@@ -21,8 +28,8 @@ def building_seed(index):
 
 
 def read_objects(source):
-    """Vertices, per-object triangles, and whether each object is a bridge."""
-    vertices, objects, bridges, faces, bridge = [], [], [], [], False
+    """Vertices, per-object triangles, bridge flags and object names."""
+    vertices, objects, bridges, names, faces, bridge, name = [], [], [], [], [], False, ""
     with source.open() as stream:
         for line in stream:
             fields = line.split()
@@ -37,8 +44,9 @@ def read_objects(source):
                 if faces:
                     objects.append(faces)
                     bridges.append(bridge)
+                    names.append(name)
                     faces = []
-                bridge = False
+                bridge, name = False, fields[1] if len(fields) > 1 else ""
             elif fields[0] == "f":
                 indices = [int(field.split("/")[0]) for field in fields[1:]]
                 indices = [i - 1 if i > 0 else len(vertices) + i for i in indices]
@@ -47,11 +55,33 @@ def read_objects(source):
     if faces:
         objects.append(faces)
         bridges.append(bridge)
-    return vertices, objects, bridges
+        names.append(name)
+    return vertices, objects, bridges, names
 
 
-def convert(source, output):
-    vertices, objects, bridges = read_objects(source)
+def load_terrain(prefix):
+    """Nearest-cell terrain height (local metres) from convert-basel-terrain.py output."""
+    meta = json.loads(prefix.with_suffix(".json").read_text())
+    heights = array("h", prefix.with_suffix(".bin").read_bytes())
+    left, back = meta["bounds"][0], meta["bounds"][1]
+
+    def ground(x, z):
+        c = round((x - left) / meta["spacing"])
+        r = round((z - back) / meta["spacing"])
+        if 0 <= c < meta["columns"] and 0 <= r < meta["rows"]:
+            return heights[r * meta["columns"] + c] / 100
+        return None
+    return ground
+
+
+def floats(points, ground):
+    """True when no point of an object comes near the terrain beneath it."""
+    gaps = [p[1] - g for p in points for g in [ground(p[0], p[2])] if g is not None]
+    return bool(gaps) and min(gaps) > FLOATING_CLEARANCE
+
+
+def convert(source, output, ground=None):
+    vertices, objects, bridges, names = read_objects(source)
     if not vertices or not objects:
         raise ValueError("The OBJ contains no building geometry")
     east = (min(v[0] for v in vertices) + max(v[0] for v in vertices)) / 2
@@ -66,14 +96,18 @@ def convert(source, output):
         raise ValueError("No nearby building bases found")
     height = sorted(bases)[len(bases) // 2]
     local = [(e - east, h - height, north - n) for e, n, h in vertices]
-    tiles, omitted, buildings = {}, 0, {}
+    tiles, omitted, buildings, floating = {}, 0, {}, 0
     for number, faces in enumerate(objects):
         indices = {i for face in faces for i in face}
         points = [local[i] for i in indices]
         # Floors count from the lowest valid vertex; zero-height outliers are skipped.
         valid = [local[i][1] for i in indices if vertices[i][2] > 0]
         base = min(valid) if valid else min(p[1] for p in points)
-        buildings[number] = (building_seed(number), base, 1.0 if bridges[number] else 0.0)
+        # Basel labels most bridges ("Bru_"); unlabelled spans over streets only float.
+        bridge = bridges[number] or (ground is not None and floats(points, ground))
+        floating += bridge and not bridges[number]
+        kind = LANDMARKS.get(names[number], 1.0 if bridge else 0.0)
+        buildings[number] = (building_seed(number), base, float(kind))
         min_x, max_x = min(v[0] for v in points), max(v[0] for v in points)
         min_z, max_z = min(v[2] for v in points), max(v[2] for v in points)
         left, right, back, front = MISSION_CLEARANCE
@@ -148,7 +182,8 @@ def convert(source, output):
                        + struct.pack("<II", len(encoded), 0x4E4F534A) + encoded
                        + struct.pack("<II", len(binary), 0x004E4942) + binary)
     print(f"Wrote {output}: {total / 1024 / 1024:.1f} MiB, {len(nodes)} tiles, "
-          f"{sum(len(f) for f in tiles.values())} triangles; {omitted} buildings omitted.")
+          f"{sum(len(f) for f in tiles.values())} triangles; {omitted} buildings omitted; "
+          f"{floating} unlabelled floating objects styled as bridges.")
     print(f"Source origin: {east}, {north}, {height}")
 
 
@@ -156,5 +191,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--terrain", type=Path, default=Path("public/maps/basel-terrain"),
+                        help="terrain grid prefix; skipped if missing")
     args = parser.parse_args()
-    convert(args.source, args.output)
+    terrain = args.terrain.with_suffix(".bin").exists() and load_terrain(args.terrain)
+    convert(args.source, args.output, terrain or None)
