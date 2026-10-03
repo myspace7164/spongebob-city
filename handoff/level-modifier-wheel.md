@@ -1,6 +1,6 @@
 # Level modifier wheel
 
-Status: ready for commit
+Status: done
 
 ## Goal
 
@@ -16,13 +16,12 @@ After every successful non-final campaign level, show a weighted fortune wheel. 
 - `npm test`: 66 passing. `npm run build`: passing.
 - Browser campaign transitions test passes; failed-level browser test passes. Local test server requires permission to bind port 5173, which was granted for the test run.
 - Side-cast PBR/details, heat HUD, failed-level cleanup, Dr. Beton 3D vehicle/laser, and character equipment browser checks pass. Wheel screenshots were inspected at `/tmp/sponge-modifier-wheel.png` and `/tmp/sponge-modifier-wheel-result.png`; result content fits short screens.
+- A deterministic browser check forces both Turbo-Schwamm and Hitzewelle, verifies their positive/negative reveals and confirms spin/tick/result oscillators are created.
 - `npm test`: 66 passing after landing-angle checks. `npm run build && bash scripts/doc-check.sh`: passing.
 
 ## Next
 
-- Run prettier check and `git diff --check` on the task changes.
-- Stage verified heat progression, side-cast details, Dr. Beton procedural boss support, and the wheel. Keep `assets/blender/spongebob1.blend` and `spongebob1.glb` unstaged.
-- Run `scripts/hack-guard.sh`, commit the task branch, fast-forward merge into main, and push as authorized by repository instructions.
+- No remaining implementation work. The feature branch was merged and pushed to `main` as `3bafdf8`; local Blender project/export files remain unstaged.
 
 ## Files
 
@@ -30,4 +29,4 @@ Main implementation: `config/modifiers.ts`, `src/interfaces.ts`, `src/game/level
 
 ## Resume prompt
 
-Continue the level modifier wheel task from this handoff. Inspect the browser screenshots, finish runtime checks and docs, then selectively stage only the wheel/heat/side-character task changes. Keep unrelated pre-existing dirty Blender, Dr. Beton and test files unstaged. Run privacy guard before commit/push; use the existing branch and repository auto-ship instructions.
+This handoff is complete. The final browser captures are in `/tmp/sponge-modifier-wheel.png` and `/tmp/sponge-modifier-wheel-result.png` for visual reference.
