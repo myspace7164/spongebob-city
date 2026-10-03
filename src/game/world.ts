@@ -43,14 +43,19 @@ export function createWorld(scene: THREE.Scene) {
   return {
     character,
     placeholder,
-    update(player: PlayerState) {
+    /** The flat plane only stands in while no terrain is loaded. */
+    useTerrain() {
+      ground.visible = false;
+    },
+    update(player: PlayerState, groundY = 0) {
       const { x, y, z } = player.position;
+      const height = y - groundY;
       character.position.set(x, y, z);
       character.rotation.y = player.facing;
       ground.position.set(x, 0, z);
-      shadow.position.set(x, 0.015, z);
-      shadow.scale.setScalar(1 + y * 0.15);
-      shadow.material.opacity = 0.25 / (1 + y);
+      shadow.position.set(x, groundY + 0.015, z);
+      shadow.scale.setScalar(1 + height * 0.15);
+      shadow.material.opacity = 0.25 / (1 + height);
     },
   };
 }

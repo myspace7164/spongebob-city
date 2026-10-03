@@ -15,12 +15,13 @@ import {
   levelPosition,
   recyclePlot,
 } from "./game/campaign";
-import { clampToLevel, sceneryPose } from "./game/streets";
+import { clampToLevel, sceneryPose, worldToMap } from "./game/streets";
+import { assignElevations, heightAt } from "./game/terrain";
 import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
 import { CityUI } from "./ui/city";
-import type { CityAction } from "./interfaces";
+import type { CityAction, TerrainGrid } from "./interfaces";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game")!;
 const menu = document.querySelector<HTMLElement>("#menu")!;
@@ -68,16 +69,31 @@ function startGame(): void {
   // Basel buildings, roads and photo move together so each level's street meets the play area.
   const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
   let sceneryLoaded = false;
+  let terrain: TerrainGrid | null = null;
+  let pose = { rotationY: 0, x: 0, z: 0 };
+  /** World height of the Basel terrain under a point; flat (0) until it loads. */
+  const groundAt = (x: number, z: number) =>
+    terrain
+      ? heightAt(terrain, ...worldToMap(pose, x, z)) + scenery.position.y
+      : 0;
   const placeScenery = () => {
     const site = currentLevel(city)?.site;
-    const pose = sceneryPose(site);
-    scenery.rotation.y = pose.rotationY;
     const origin = currentLevel(city)?.origin;
+    const base = sceneryPose(site);
+    pose = {
+      rotationY: base.rotationY,
+      x: base.x + (origin?.x ?? 0),
+      z: base.z + (origin?.z ?? 0),
+    };
+    scenery.rotation.y = pose.rotationY;
+    // Lower or raise Basel so the level's play area sits at y ≈ 0.
+    const centre = levelPosition(city, { x: 0, z: 0 });
     scenery.position.set(
-      pose.x + (origin?.x ?? 0),
-      0,
-      pose.z + (origin?.z ?? 0),
+      pose.x,
+      terrain ? -heightAt(terrain, ...worldToMap(pose, centre.x, centre.z)) : 0,
+      pose.z,
     );
+    if (terrain) assignElevations(city, groundAt);
     if (sceneryLoaded)
       levelStatus.textContent = `Basel buildings loaded · ${site ? site.street : "fictional mission square"}`;
   };
@@ -243,7 +259,12 @@ function startGame(): void {
         } else {
           scenery.add(model);
           cityView.useImportedLevel();
-          void loadMapLayers(scenery, canvas);
+          void loadMapLayers(scenery, canvas, (grid) => {
+            terrain = grid;
+            placeScenery();
+            world.useTerrain();
+            cityView.useGround(groundAt);
+          });
           canvas.dataset.level = "loaded";
           sceneryLoaded = true;
           placeScenery();
@@ -292,7 +313,13 @@ function startGame(): void {
         act(city.selected);
       accumulator += dt;
       while (accumulator >= gameConfig.fixedStep) {
-        updatePlayer(player, input.consume(), input.yaw, gameConfig.fixedStep);
+        updatePlayer(
+          player,
+          input.consume(),
+          input.yaw,
+          gameConfig.fixedStep,
+          groundAt,
+        );
         if (currentLevel(city)?.site)
           clampToLevel(player.position, currentLevel(city)?.site);
         else {
@@ -357,7 +384,7 @@ function startGame(): void {
     placeScenery();
     if (characterModel)
       updateSpongeWaterState(characterModel, city.sponge, spongeCapacity(city));
-    world.update(player);
+    world.update(player, groundAt(player.position.x, player.position.z));
     world.character.scale.setScalar(
       city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1,
     );
@@ -372,6 +399,11 @@ function startGame(): void {
       target.x + Math.sin(input.yaw) * horizontalDistance,
       target.y + Math.sin(input.pitch) * gameConfig.cameraDistance,
       target.z + Math.cos(input.yaw) * horizontalDistance,
+    );
+    // Keep the camera out of hillsides behind the player.
+    camera.position.y = Math.max(
+      camera.position.y,
+      groundAt(camera.position.x, camera.position.z) + 0.5,
     );
     camera.lookAt(target);
     camera.updateMatrixWorld();

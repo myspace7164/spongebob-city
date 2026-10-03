@@ -10,12 +10,13 @@ export function createPlayer(): PlayerState {
   };
 }
 
-/** Advance a single fixed simulation step on an unbounded flat plane. */
+/** Advance a single fixed simulation step; the player lands on the ground height below. */
 export function updatePlayer(
   player: PlayerState,
   input: MovementInput,
   yaw: number,
   dt: number,
+  groundAt: (x: number, z: number) => number = () => 0,
 ): void {
   const length = Math.max(1, Math.hypot(input.forward, input.right));
   const speed = input.run ? config.runSpeed : config.walkSpeed;
@@ -34,8 +35,16 @@ export function updatePlayer(
   player.position.x += player.velocity.x * dt;
   player.position.y += player.velocity.y * dt;
   player.position.z += player.velocity.z * dt;
-  if (player.position.y <= 0) {
-    player.position.y = 0;
+  const ground = groundAt(player.position.x, player.position.z);
+  // Walking downhill keeps contact instead of briefly falling off each step.
+  if (
+    player.grounded &&
+    player.velocity.y <= 0 &&
+    player.position.y - ground < 0.3
+  )
+    player.position.y = ground;
+  if (player.position.y <= ground) {
+    player.position.y = ground;
     player.velocity.y = 0;
     player.grounded = true;
   }

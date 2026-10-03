@@ -83,7 +83,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     const tile = new THREE.Group();
     tile.position.set(p.x, 0, p.z);
     root.add(tile);
-    const ground = box(tile, [4.7, 0.12, 4.7], [0, 0.01, 0], "asphalt");
+    // A skirt below the surface keeps tiles from floating on slopes.
+    const ground = box(tile, [4.7, 0.5, 4.7], [0, -0.18, 0], "asphalt");
     const props = new THREE.Group();
     tile.add(props);
     const water = box(tile, [4.4, 0.05, 4.4], [0, 0.13, 0], "water");
@@ -138,6 +139,14 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   root.add(routes, entrances);
   let campaignSignature = "";
   let importedLevel = false;
+  // World height of the terrain; flat until the Basel terrain has loaded.
+  let groundAt = (_x: number, _z: number) => 0;
+  let groundVersion = 0;
+  let playerGround = 0;
+  /** Static props keep their height above ground; re-placed when level or terrain changes. */
+  const grounded: { object: THREE.Object3D; base: number }[] = [];
+  const keepOnGround = (object: THREE.Object3D) =>
+    grounded.push({ object, base: object.position.y });
   for (const [kind, text, x, z] of [
     ["patrick", "Patrick · P: unseal", -11, -3],
     ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
@@ -151,10 +160,13 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     const name = label(text);
     name.position.set(x, 3, z);
     root.add(name);
+    keepOnGround(npc);
+    keepOnGround(name);
   }
   const machine = new THREE.Group();
   machine.position.set(c.machine.x, 0, c.machine.z + 2);
   root.add(machine);
+  keepOnGround(machine);
   box(machine, [2.5, 1.4, 2], [0, 0.85, 0], "concrete");
   const roller = box(machine, [3.3, 0.7, 1], [0, 0.4, 1.2], "ink");
   const warning = ball(machine, 0.22, [0, 1.7, 0], "coral");
@@ -166,9 +178,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     ball(person, 0.18, [0, 1.13, 0], "skin");
     person.position.set(((i % 4) - 1.5) * 5, 0, 1 + Math.floor(i / 4) * 2);
     residents.add(person);
+    keepOnGround(person);
   }
   const birds = new THREE.Group();
   root.add(birds);
+  keepOnGround(birds);
   for (let i = 0; i < 6; i++) {
     const bird = box(
       birds,
@@ -201,12 +215,19 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   const point = new THREE.Vector3();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   return {
+    /** Terrain heights for world coordinates; props and plots follow it from the next update. */
+    useGround(ground: (x: number, z: number) => number) {
+      groundAt = ground;
+      groundVersion++;
+    },
     useImportedLevel() {
       importedLevel = true;
       architecture.visible = false;
     },
     target(s: CityState, camera: THREE.Camera): number | null {
       ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+      // Aim at the ground level around the player; nearby slopes are gentle.
+      floor.constant = -playerGround;
       if (!ray.ray.intersectPlane(floor, point)) return null;
       const nearest = [...s.plots].sort(
         (a, b) =>
@@ -228,7 +249,9 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       const level = currentLevel(s);
       const origin = level?.origin ?? { x: 0, z: 0 };
       root.position.set(origin.x, 0, origin.z);
-      const nextSignature = `${level?.id}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
+      const ground = (x: number, z: number) => groundAt(x, z);
+      playerGround = ground(player.position.x, player.position.z);
+      const nextSignature = `${level?.id}/${groundVersion}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
       if (campaignSignature !== nextSignature) {
         campaignSignature = nextSignature;
         dispose(routes);
@@ -243,16 +266,25 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         );
         // The stand-in square would block a real street when the Basel model is missing.
         architecture.visible = !importedLevel && !level?.site;
-        sign.position.set(0, 6, -27);
+        sign.position.set(0, 6 + ground(origin.x, origin.z - 27), -27);
         root.add(sign);
+        for (const { object, base } of grounded)
+          object.position.y =
+            base +
+            ground(origin.x + object.position.x, origin.z + object.position.z);
+        architecture.position.y = ground(origin.x, origin.z);
         for (const p of s.plots) {
           const destination = validDrain(s, p);
           if (destination && (p.kind === "roof" || p.kind === "tank")) {
             const geometry = new THREE.BufferGeometry().setFromPoints([
-              new THREE.Vector3(p.x - origin.x, 0.3, p.z - origin.z),
+              new THREE.Vector3(
+                p.x - origin.x,
+                ground(p.x, p.z) + 0.3,
+                p.z - origin.z,
+              ),
               new THREE.Vector3(
                 destination.x - origin.x,
-                0.3,
+                ground(destination.x, destination.z) + 0.3,
                 destination.z - origin.z,
               ),
             ]);
@@ -267,7 +299,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
             box(
               entrances,
               [4, 0.2, 0.3],
-              [p.x - origin.x, 0.2, p.z - origin.z - 2],
+              [p.x - origin.x, ground(p.x, p.z - 2) + 0.2, p.z - origin.z - 2],
               "accent",
             );
             const marker = label(
@@ -275,7 +307,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
                 ? "SCHULE · KEEP DRY"
                 : "EINGANG · KEEP DRY",
             );
-            marker.position.set(p.x - origin.x, 2, p.z - origin.z);
+            marker.position.set(
+              p.x - origin.x,
+              ground(p.x, p.z) + 2,
+              p.z - origin.z,
+            );
             entrances.add(marker);
           }
         }
@@ -286,7 +322,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         scene.fog.color.copy(scene.background);
       s.plots.forEach((p, i) => {
         const view = plotViews[i];
-        view.tile.position.set(p.x - origin.x, 0, p.z - origin.z);
+        view.tile.position.set(
+          p.x - origin.x,
+          p.elevation ?? ground(p.x, p.z),
+          p.z - origin.z,
+        );
         const signature = `${p.kind}/${p.moisture >= c.moistureHealthy}`;
         if (view.signature !== signature) {
           plotProps(view.props, p);
@@ -313,7 +353,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       if (targetPlot) {
         border.position.set(
           targetPlot.x - origin.x,
-          0.15,
+          ground(targetPlot.x, targetPlot.z) + 0.15,
           targetPlot.z - origin.z,
         );
         (border.material as THREE.MeshBasicMaterial).color.copy(
@@ -345,7 +385,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           const t = waterAction === "absorb" ? 1 - phase : phase;
           drop.position.set(
             THREE.MathUtils.lerp(player.position.x, targetPlot.x, t) - origin.x,
-            THREE.MathUtils.lerp(player.position.y + 1.3, 0.4, t) +
+            THREE.MathUtils.lerp(
+              player.position.y + 1.3,
+              ground(targetPlot.x, targetPlot.z) + 0.4,
+              t,
+            ) +
               Math.sin(t * Math.PI) * (bubbles ? 2 : 0.6),
             THREE.MathUtils.lerp(player.position.z, targetPlot.z, t) - origin.z,
           );
@@ -359,7 +403,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       birds.position.x = Math.sin(s.elapsed * 0.4) * 2;
       rain.visible = rainy;
       // Rain covers the area around the player, so it also falls further down a street.
-      rain.position.set(player.position.x, 0, player.position.z + 15);
+      rain.position.set(
+        player.position.x - origin.x,
+        playerGround,
+        player.position.z - origin.z + 15,
+      );
       const attribute = rainGeometry.getAttribute("position");
       for (let i = 0; i < 180; i++)
         attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);

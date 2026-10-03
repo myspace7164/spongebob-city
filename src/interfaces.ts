@@ -25,6 +25,14 @@ export interface ModelConfig {
   rotationY: number;
 }
 
+/** swissALTI3D heights on a regular grid in map-local metres; rows run north to south. */
+export interface TerrainGrid {
+  bounds: [number, number, number, number];
+  spacing: number;
+  columns: number;
+  rows: number;
+  heights: Float32Array;
+}
 /** Derived LV95 road centrelines: local X east, Z south, metres; estimated widths. */
 export interface RoadNetwork {
   origin: [number, number, number];
@@ -82,6 +90,8 @@ export interface CityPlot {
   drainsTo?: number;
   /** Real street situation on surveyed levels; limits which upgrades fit here. */
   site?: SiteType;
+  /** Ground height in metres from the terrain; absent means flat (no downhill runoff). */
+  elevation?: number;
 }
 /** Street situations that map to urban unsealing techniques (config/sites.ts). */
 export type SiteType = "parking" | "verge" | "swale" | "facade";
