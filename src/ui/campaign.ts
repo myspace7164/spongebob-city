@@ -3,6 +3,7 @@ import { arrivalStory, cityLevels, endingStory } from "../../config/levels.ts";
 import { currentLevel } from "../game/campaign.ts";
 import type { CityState } from "../interfaces.ts";
 import { StorySpeech } from "./story-speech.ts";
+import { endlessConfig } from "../../config/endless.ts";
 
 const element = (id: string) => document.getElementById(id)!;
 /** English narrative and abstract route map; no geographic placement is implied. */
@@ -41,13 +42,16 @@ export class CampaignUI {
     const arrival =
       s.campaign!.level === 0 && s.campaign!.completed.length === 0;
     element("story-title").textContent =
-      `${s.campaign!.level + 1}. ${level.location} — ${level.title}`;
+      `${s.campaign!.endlessRound ? `ENDLESS ROUND ${s.campaign!.endlessRound}` : s.campaign!.level + 1}. ${level.location} — ${level.title}`;
     const paragraphs = [
       ...(arrival ? arrivalStory.paragraphs : []),
       ...level.story,
     ];
     element("story-fulltext").textContent = paragraphs.join(" ");
     element("story-objective").textContent = level.objective;
+    if (s.campaign!.endlessRound)
+      element("story-objective").textContent +=
+        ` Rain and heat: +${Math.round(s.campaign!.endlessRound * endlessConfig.intensityIncrease * 100)}%. All tools unlocked.`;
     element("story-body").scrollTop = 0;
     this.renderRoute(s, element("story-route"));
     this.panel.hidden = false;
@@ -58,7 +62,9 @@ export class CampaignUI {
     const level = currentLevel(s);
     if (!level) return;
     element("mission-level").textContent =
-      `LEVEL ${s.campaign!.level + 1}/${cityLevels.length} · ${level.location}`;
+      `${s.campaign!.endlessRound ? `ENDLESS ROUND ${s.campaign!.endlessRound}` : `LEVEL ${s.campaign!.level + 1}/${cityLevels.length}`} · ${level.location}`;
+    element("start-endless").hidden =
+      s.outcome !== "won" || !!s.campaign!.endlessRound;
     element("mission-title").textContent = level.title;
     element("mission-layout").textContent = level.mapSite
       ? `Real map: ${level.mapSite.street} · illustrative plots`

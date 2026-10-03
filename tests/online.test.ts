@@ -213,6 +213,43 @@ test("authoritative cooperative movement honors Shift sprint", () => {
   }
 });
 
+test("co-op leader starts endless after victory and retries preserve the round", () => {
+  const store = new AccountStore(":memory:");
+  try {
+    const rooms = new Rooms(store);
+    const a = store.create("EndlessAlpha").account;
+    const b = store.create("EndlessBeta").account;
+    const first = rooms.create(a);
+    rooms.join(b, first.code);
+    const internal = (
+      rooms as unknown as {
+        rooms: Map<string, { city: import("../src/interfaces").CityState }>;
+      }
+    ).rooms.get(first.code)!;
+    assert.throws(() => rooms.command(a.id, { action: "endless" }), /Finish/);
+    internal.city.outcome = "won";
+    assert.throws(() => rooms.command(b.id, { action: "endless" }), /leader/);
+    rooms.command(a.id, { action: "endless" });
+    const started = rooms.current(a.id)!;
+    assert.equal(started.city.campaign!.endlessRound, 1);
+    assert.equal(started.city.outcome, "playing");
+    assert.deepEqual(started.city, rooms.current(b.id)!.city);
+    assert.ok(started.players.every((p) => !p.ready));
+    internal.city.outcome = "lost";
+    rooms.command(a.id, { action: "reset" });
+    const retry = rooms.current(b.id)!;
+    assert.equal(retry.city.campaign!.endlessRound, 1);
+    assert.equal(retry.city.campaign!.level, started.city.campaign!.level);
+    assert.deepEqual(
+      retry.city.campaign!.locations,
+      started.city.campaign!.locations,
+    );
+    assert.equal(retry.city.outcome, "playing");
+  } finally {
+    store.close();
+  }
+});
+
 test("co-op applies one server-chosen modifier and advances every player together", () => {
   const store = new AccountStore(":memory:");
   try {

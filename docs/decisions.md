@@ -89,3 +89,5 @@ Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or area
 
 - CampaignProgress.ownedHats records purchases once; ownership and selection survive losses, retries and level transitions. Co-op purchases use the authoritative room wallet.
 - Solo hat ownership and selection persist in browser storage; co-op collections stay with the authoritative room. Scene transforms update only ancestors needed for anchors, leaving one recursive update to the renderer.
+
+- CampaignProgress.endlessRound and the endless room command add post-campaign play. Random layouts retain their goals, all tools unlock, and final-stage rain/heat intensity grows by 20% per round. Credits precede entry; co-op entry belongs to the room leader.

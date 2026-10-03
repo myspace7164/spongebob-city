@@ -10,7 +10,12 @@ import {
 } from "./powerups.ts";
 import { powerupConfig } from "../../config/powerups.ts";
 import { updateWater } from "./city-water.ts";
-import { advanceCampaign, currentLevel, levelPosition } from "./campaign.ts";
+import {
+  advanceCampaign,
+  currentLevel,
+  levelPosition,
+  endlessIntensity,
+} from "./campaign.ts";
 import { cityConfig as c, cityTools } from "../../config/city.ts";
 import { siteTechniques } from "../../config/sites.ts";
 import { fundingConfig as funding } from "../../config/funding.ts";
@@ -335,8 +340,9 @@ function act(
 function updateTemperature(s: CityState, dt: number, raining: boolean): void {
   const heat = c.heatSystem;
   const levelIndex = s.campaign?.level;
-  const levelProgress =
-    levelIndex === undefined || cityLevels.length < 2
+  const levelProgress = s.campaign?.endlessRound
+    ? 1
+    : levelIndex === undefined || cityLevels.length < 2
       ? 0
       : Math.min(1, Math.max(0, levelIndex) / (cityLevels.length - 1));
   const levelWarmingMultiplier = s.campaign
@@ -344,7 +350,8 @@ function updateTemperature(s: CityState, dt: number, raining: boolean): void {
       (heat.levelWarmingMultiplier.last - heat.levelWarmingMultiplier.first) *
         levelProgress
     : 1;
-  const modifierHeatMultiplier = modifierMultiplier(s, "heatWarming");
+  const modifierHeatMultiplier =
+    modifierMultiplier(s, "heatWarming") * endlessIntensity(s);
   const sealedPlots = s.plots.filter((p) => p.kind === "asphalt").length;
   const trees = s.plots
     .filter((p) => p.kind === "tree")
@@ -375,7 +382,7 @@ function updateTemperature(s: CityState, dt: number, raining: boolean): void {
   const changePerSecond = Math.max(
     -heat.maximumChangePerSecond,
     Math.min(
-      heat.maximumChangePerSecond,
+      heat.maximumChangePerSecond * endlessIntensity(s),
       warming * levelWarmingMultiplier - cooling,
     ),
   );

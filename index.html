@@ -358,6 +358,26 @@
       <div id="powerup-guide"></div>
       <button id="close-inventory">Back to mission</button>
     </section>
+    <section
+      id="credits"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="credits-title"
+    >
+      <h1 id="credits-title">Basel goes sponge city!</h1>
+      <p class="eyebrow">CREDITS</p>
+      <div class="credits-window">
+        <div class="credits-roll">
+          <div id="credits-authors"></div>
+          <h2 id="credits-thanks"></h2>
+          <p>The adventure continues in endless mode.</p>
+        </div>
+      </div>
+      <button id="credits-skip" class="cta">
+        SKIP CREDITS · START ENDLESS ➜
+      </button>
+    </section>
     <section id="result" hidden aria-label="Mission result">
       <p class="eyebrow">MISSION REPORT</p>
       <h1 id="result-title"></h1>
@@ -366,6 +386,7 @@
       <div id="result-metrics"></div>
       <p class="small">Illustrative gameplay values · not a climate forecast</p>
       <button id="restart">Try the mission again ↻</button>
+      <button id="start-endless" hidden>Start endless mode ➜</button>
     </section>
     <aside id="powerup-panel" aria-label="Collected power-ups">
       <h3>
