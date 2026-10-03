@@ -55,10 +55,12 @@ test("construction requires reach, soil, available budget and an unused plot", (
   act(s, "tree", at(s, 0), 0);
   const spent = s.budget;
   act(s, "tree", at(s, 0), 0);
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "pond", at(s, 0), 0);
   assert.equal(s.budget, spent);
   assert.equal(s.plots[0].kind, "tree");
   s.budget = 0;
+  if (s.plots[1].kind === "asphalt") act(s, "karate", at(s, 1), 1);
   act(s, "tank", at(s, 1), 1);
   assert.equal(s.plots[1].kind, "asphalt");
   const earnedBeforePatrick = s.funding.earned;
@@ -124,8 +126,10 @@ test("rain, infiltration, evaporation and automatic tank irrigation conserve wat
     [1, "tank"],
     [2, "roof"],
     [3, "pond"],
-  ] as const)
+  ] as const) {
+    act(s, "karate", at(s, id), id);
     act(s, action, at(s, id), id);
+  }
   act(s, "karate", at(s, 5), 5);
   act(s, "tree", at(s, 5), 5);
   const initial = totalWater(s);
@@ -143,6 +147,7 @@ test("rain, infiltration, evaporation and automatic tank irrigation conserve wat
 
 test("sabotage reseals a plot without destroying its water; disabling machine stops it", () => {
   const s = createCity();
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "basin", at(s, 0), 0);
   s.plots[0].moisture = 300;
   const initial = totalWater(s);
@@ -155,6 +160,7 @@ test("sabotage reseals a plot without destroying its water; disabling machine st
   assert.equal(s.plots[0].kind, "asphalt");
   assert.equal(s.plots[0].moisture, 0);
   assert.ok(Math.abs(totalWater(s) - initial) < 0.00001);
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "basin", at(s, 0), 0);
   s.sabotageIn = 0;
   act(s, "machine", { ...s.saboteur, y: 0 }, null);
@@ -196,8 +202,14 @@ test("a complete legal collect/distribute/build strategy wins the mission", () =
     act(s, "karate", at(s, id), id);
     act(s, "tree", at(s, id), id);
   }
-  for (const id of [4, 5]) act(s, "basin", at(s, id), id);
-  for (const id of [6, 7]) act(s, "tank", at(s, id), id);
+  for (const id of [4, 5]) {
+    act(s, "karate", at(s, id), id);
+    act(s, "basin", at(s, id), id);
+  }
+  for (const id of [6, 7]) {
+    act(s, "karate", at(s, id), id);
+    act(s, "tank", at(s, id), id);
+  }
   for (let step = 0; step < 2400 && s.outcome === "playing"; step++) {
     if (s.machineDisabled < 1) act(s, "machine", { ...c.machine, y: 0 }, null);
     const source = [...s.plots].sort((a, b) => b.surface - a.surface)[0];
@@ -261,5 +273,32 @@ test("flooded and full plots reject irrigation without spending water or paying 
     act(s, "spray", at(s, 0), 0, 50);
     assert.equal(s.sponge, 50);
     assert.equal(s.reused, 50);
+  }
+});
+
+test("every construction tool rejects sealed plots without spending coins, awarding funding or changing water", () => {
+  for (const action of [
+    "tree",
+    "basin",
+    "roof",
+    "shade",
+    "pond",
+    "tank",
+  ] as const) {
+    const s = createCity();
+    const before = structuredClone(s);
+    assert.match(act(s, action, at(s, 0), 0), /Unseal/);
+    assert.deepEqual(s.plots, before.plots);
+    assert.equal(s.budget, before.budget);
+    assert.deepEqual(s.funding, before.funding);
+    assert.equal(totalWater(s), totalWater(before));
+    act(s, "karate", at(s, 0), 0);
+    act(s, action, at(s, 0), 0);
+    assert.equal(s.plots[0].kind, action);
+    // Dr. Beton can reseal previously improved ground: the prerequisite applies again.
+    s.plots[0].kind = "asphalt";
+    const budget = s.budget;
+    assert.match(act(s, action, at(s, 0), 0), /Unseal/);
+    assert.equal(s.budget, budget);
   }
 });

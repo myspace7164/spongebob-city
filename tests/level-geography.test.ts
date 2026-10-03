@@ -1,0 +1,97 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+import {
+  baselLocations,
+  levelLocationPools,
+} from "../config/level-locations.ts";
+import { cityLevels } from "../config/levels.ts";
+import { cityConfig } from "../config/city.ts";
+import { levelScenery } from "../src/game/terrain.ts";
+import { worldToMap } from "../src/game/streets.ts";
+import {
+  createCampaign,
+  currentLevel,
+  selectCampaignLocations,
+  startNextCampaignLevel,
+} from "../src/game/campaign.ts";
+import { buildingPlacement } from "../src/game/building-clearance.ts";
+
+test("eight real candidates match recorded area priority and actual scenery transforms", () => {
+  const evidence = JSON.parse(
+    readFileSync("public/maps/risk/ranking.json", "utf8"),
+  );
+  assert.equal(baselLocations.length, 8);
+  for (const [index, location] of baselLocations.entries()) {
+    const level = {
+      ...cityLevels[Math.floor(index / 2)],
+      mapSite: location.site,
+    };
+    const sample = evidence.ranked.find(
+      (s: { id: string }) => s.id === location.id,
+    );
+    assert.equal(sample.priority, location.priority);
+    if (index)
+      assert.ok(location.priority > baselLocations[index - 1].priority);
+    const origin = level.origin ?? { x: 0, z: 0 };
+    const mapped = worldToMap(levelScenery(level, null), origin.x, origin.z);
+    assert.ok(Math.abs(mapped[0] - location.site.origin[0]) < 1e-8);
+    assert.ok(Math.abs(mapped[1] - location.site.origin[1]) < 1e-8);
+  }
+});
+
+test("all sixteen randomized routes have four different sites with increasing urgency", () => {
+  const routes = new Set<string>();
+  for (let bits = 0; bits < 16; bits++) {
+    let tier = 0;
+    const route = selectCampaignLocations(() =>
+      (bits >> tier++) & 1 ? 0.999 : 0,
+    );
+    routes.add(route.join("/"));
+    assert.equal(new Set(route).size, 4);
+    for (const [index, id] of route.entries()) {
+      const candidate = baselLocations.find((c) => c.id === id)!;
+      assert.ok(levelLocationPools[index].includes(candidate));
+      if (index)
+        assert.ok(
+          candidate.priority >
+            baselLocations.find((c) => c.id === route[index - 1])!.priority,
+        );
+    }
+  }
+  assert.equal(routes.size, 16);
+});
+
+test("chosen geography survives serialization, retry snapshots and next-level resets", () => {
+  const s = createCampaign(() => 0.999);
+  const route = [...s.campaign!.locations!];
+  const restored = JSON.parse(JSON.stringify(s));
+  assert.deepEqual(currentLevel(restored), currentLevel(s));
+  assert.deepEqual(structuredClone(s).campaign!.locations, route);
+  s.campaign!.wheelPending = true;
+  s.campaign!.pendingModifier = "speedBoost";
+  assert.equal(startNextCampaignLevel(s), true);
+  assert.deepEqual(s.campaign!.locations, route);
+  assert.equal(currentLevel(s)!.mapSite, levelLocationPools[1][1].site);
+});
+
+test("collision footprints keep every candidate's illustrative mission clearing open", () => {
+  for (const random of [() => 0, () => 0.999]) {
+    const s = createCampaign(random);
+    for (let index = 0; index < cityLevels.length; index++) {
+      s.campaign!.level = index;
+      const level = currentLevel(s)!;
+      const origin = level.origin ?? { x: 0, z: 0 };
+      const bounds = level.site?.bounds ?? cityConfig.bounds;
+      const placement = buildingPlacement(s);
+      assert.ok(placement.obstacles.length > 0);
+      for (const b of placement.obstacles)
+        assert.ok(
+          b.x + b.halfX! < origin.x + bounds.minX - 3 ||
+            b.x - b.halfX! > origin.x + bounds.maxX + 3 ||
+            b.z + b.halfZ! < origin.z + bounds.minZ - 3 ||
+            b.z - b.halfZ! > origin.z + bounds.maxZ + 3,
+        );
+    }
+  }
+});

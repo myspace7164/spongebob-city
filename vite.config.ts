@@ -4,10 +4,21 @@ import { createOnlineServer } from "./server/http.ts";
 function attachOnline(server: ViteDevServer | PreviewServer): void {
   const online = createOnlineServer();
   server.middlewares.use((req, res, next) => {
-    void online.handle(req, res).then((handled) => { if (!handled) next(); }).catch(next);
+    void online
+      .handle(req, res)
+      .then((handled) => {
+        if (!handled) next();
+      })
+      .catch(next);
   });
   server.httpServer?.once("close", () => online.close());
 }
 export default defineConfig({
-  plugins: [{ name: "sponge-online", configureServer: attachOnline, configurePreviewServer: attachOnline }],
+  plugins: [
+    {
+      name: "sponge-online",
+      configureServer: attachOnline,
+      configurePreviewServer: attachOnline,
+    },
+  ],
 });

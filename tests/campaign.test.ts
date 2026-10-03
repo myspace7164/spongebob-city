@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { cityConfig as c } from "../config/city.ts";
+import { cityConfig as c, cityTools } from "../config/city.ts";
 import { cityLevels } from "../config/levels.ts";
 import {
   advanceCampaign,
@@ -81,8 +81,10 @@ test("runoff requires reachable safe destinations, rejects loops and conserves w
     [1, "tank"],
     [2, "basin"],
     [3, "tank"],
-  ] as const)
+  ] as const) {
+    if (s.plots[id].kind === "asphalt") act(s, "karate", at(s, id), id);
     act(s, kind, at(s, id), id);
+  }
   connectRunoff(s, 0, { x: 99, y: 0, z: 99 });
   assert.equal(s.campaign!.connectFrom, null);
   connectRunoff(s, 0, at(s, 0));
@@ -119,26 +121,36 @@ test("recycling restores build choices without new grants or deleting retained w
   const s = createCampaign();
   onPlaceholderLevel(s, 3);
   const budget = s.budget;
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "tank", at(s, 0), 0);
   const grants = s.funding.earned;
   s.plots[0].stored = 1000;
   const before = total(s);
   recyclePlot(s, 0, at(s, 0));
   assert.equal(s.plots[0].kind, "soil");
-  assert.equal(s.budget, budget + grants);
+  assert.equal(
+    s.budget,
+    budget - cityTools.find((t) => t.id === "karate")!.cost + grants,
+  );
   assert.equal(total(s), before);
   recyclePlot(s, 0, at(s, 0));
-  assert.equal(s.budget, budget + grants);
+  assert.equal(
+    s.budget,
+    budget - cityTools.find((t) => t.id === "karate")!.cost + grants,
+  );
 });
 
 test("separated shaded plots do not satisfy a connected shade zone", () => {
   const s = createCampaign();
   onPlaceholderLevel(s, 2);
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "shade", at(s, 0), 0);
+  if (s.plots[14].kind === "asphalt") act(s, "karate", at(s, 14), 14);
   act(s, "shade", at(s, 14), 14);
   const goal = () =>
     levelAchievements(s).find((g) => g.metric === "shadeConnected")!;
   assert.equal(goal().done, false);
+  if (s.plots[1].kind === "asphalt") act(s, "karate", at(s, 1), 1);
   act(s, "shade", at(s, 1), 1);
   assert.equal(goal().done, true);
 });
@@ -198,8 +210,11 @@ test("Level 4 removes both runoff objectives and keeps its other goals", () => {
 });
 
 /** Same legal play on flat ground, or with real terrain heights so water runs downhill. */
-function playLegalStrategy(elevate?: (s: CityState) => void) {
-  const s = createCampaign();
+function playLegalStrategy(
+  elevate?: (s: CityState) => void,
+  random: () => number = () => 0,
+) {
+  const s = createCampaign(random);
   const construction = [
     [
       [0, "basin"],
@@ -256,7 +271,11 @@ function playLegalStrategy(elevate?: (s: CityState) => void) {
     assert.equal(s.outcome, "playing");
     elevate?.(s);
     const initialWater = total(s) - s.rainfall;
-    for (const [id, kind] of construction[level]) act(s, kind, at(s, id), id);
+    for (const [id, kind] of construction[level]) {
+      if (kind !== "karate" && s.plots[id].kind === "asphalt")
+        act(s, "karate", at(s, id), id);
+      act(s, kind, at(s, id), id);
+    }
     let levelWaterBeforeCompletion = 0;
     let rainfallBeforeCompletion = 0;
     for (
@@ -352,15 +371,21 @@ test("the same strategy still wins on real Basel terrain where water runs downhi
     JSON.parse(readFileSync("public/maps/basel-terrain.json", "utf8")),
     readFileSync("public/maps/basel-terrain.bin").buffer.slice(0),
   );
-  playLegalStrategy((s) => {
-    assignElevations(s, levelScenery(currentLevel(s), grid).groundAt);
-    assert.ok(s.plots.every((p) => p.elevation !== undefined));
-    if (currentLevel(s)!.site === undefined)
-      assert.ok(
-        s.plots.some((p) => downhillNeighbours(s, p).length > 0),
-        "sloped stages send water downhill",
-      );
-  });
+  for (let route = 0; route < 16; route++) {
+    let tier = 0;
+    playLegalStrategy(
+      (s) => {
+        assignElevations(s, levelScenery(currentLevel(s), grid).groundAt);
+        assert.ok(s.plots.every((p) => p.elevation !== undefined));
+        if (currentLevel(s)!.site === undefined)
+          assert.ok(
+            s.plots.some((p) => downhillNeighbours(s, p).length > 0),
+            "sloped stages send water downhill",
+          );
+      },
+      () => ((route >> tier++) & 1 ? 0.999 : 0),
+    );
+  }
 });
 
 test("the last missing achievement blocks advancement; next neighbourhood resets water, upgrades and funds", () => {
@@ -370,8 +395,11 @@ test("the last missing achievement blocks advancement; next neighbourhood resets
     [1, "basin"],
     [2, "karate"],
     [3, "karate"],
-  ] as const)
+  ] as const) {
+    if (kind !== "karate" && s.plots[id].kind === "asphalt")
+      act(s, "karate", at(s, id), id);
     act(s, kind, at(s, id), id);
+  }
   act(s, "upgrade", { ...c.sandy, y: 0 }, null);
   s.plots.forEach((p) => {
     p.surface = 0;
@@ -403,7 +431,9 @@ test("the last missing achievement blocks advancement; next neighbourhood resets
 test("Level 3 shade plots across the wider street gap connect and permit Level 4", () => {
   const s = createCampaign();
   onPlaceholderLevel(s, 2);
+  if (s.plots[4].kind === "asphalt") act(s, "karate", at(s, 4), 4);
   act(s, "shade", at(s, 4), 4);
+  if (s.plots[8].kind === "asphalt") act(s, "karate", at(s, 8), 8);
   act(s, "shade", at(s, 8), 8);
   assert.equal(
     Math.hypot(s.plots[4].x - s.plots[8].x, s.plots[4].z - s.plots[8].z),
@@ -413,7 +443,10 @@ test("Level 3 shade plots across the wider street gap connect and permit Level 4
     levelAchievements(s).find((g) => g.metric === "shadeConnected")!.done,
     true,
   );
-  for (const id of [0, 1]) act(s, "roof", at(s, id), id);
+  for (const id of [0, 1]) {
+    act(s, "karate", at(s, id), id);
+    act(s, "roof", at(s, id), id);
+  }
   for (const id of [2, 3, 5]) {
     act(s, "karate", at(s, id), id);
     act(s, "tree", at(s, id), id);

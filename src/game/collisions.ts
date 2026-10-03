@@ -1,4 +1,4 @@
-import { buildingCollisions } from "../../config/building-collisions.ts";
+import { buildingPlacement } from "./building-clearance.ts";
 import { collisionConfig as c } from "../../config/collisions.ts";
 import { cast, characterConfig } from "../../config/characters.ts";
 import { castPosition } from "./cast.ts";
@@ -19,8 +19,8 @@ export function cityObstacles(s: CityState): CollisionObstacle[] {
     if (p.kind === "tree") obstacles.push({ x: p.x, z: p.z, radius: 0.4 });
     if (p.kind === "tank") obstacles.push({ x: p.x, z: p.z, radius: 1 });
   }
-  if (currentLevel(s)?.site) obstacles.push(...buildingCollisions);
-  if (!currentLevel(s)?.site) {
+  obstacles.push(...buildingPlacement(s).obstacles);
+  if (!currentLevel(s)?.mapSite && !currentLevel(s)?.site) {
     for (const x of [-18, 18])
       for (const z of [-3, -10, -17])
         obstacles.push({ ...levelPosition(s, { x, z }), halfX: 2.5, halfZ: 3 });

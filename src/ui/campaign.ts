@@ -1,3 +1,4 @@
+import { campaignLevel } from "../game/campaign.ts";
 import { arrivalStory, cityLevels, endingStory } from "../../config/levels.ts";
 import { currentLevel } from "../game/campaign.ts";
 import type { CityState } from "../interfaces.ts";
@@ -59,9 +60,11 @@ export class CampaignUI {
     element("mission-level").textContent =
       `LEVEL ${s.campaign!.level + 1}/${cityLevels.length} · ${level.location}`;
     element("mission-title").textContent = level.title;
-    element("mission-layout").textContent = level.site
-      ? `Real street: ${level.site.street}`
-      : "Placeholder layout · geography pending";
+    element("mission-layout").textContent = level.mapSite
+      ? `Real map: ${level.mapSite.street} · illustrative plots`
+      : level.site
+        ? `Real street: ${level.site.street}`
+        : "Placeholder layout · geography pending";
     this.renderRoute(s, element("campaign-route"));
     if (s.outcome === "won") {
       element("result-title").textContent = endingStory.title;
@@ -84,7 +87,8 @@ export class CampaignUI {
   }
   private renderRoute(s: CityState, container: HTMLElement): void {
     container.replaceChildren(
-      ...cityLevels.map((level, i) => {
+      ...cityLevels.map((_, i) => {
+        const level = campaignLevel(s, i)!;
         const step = document.createElement("li");
         const completed = s.campaign!.completed.includes(level.id);
         step.textContent = `${completed ? "✓" : i + 1} ${level.location.split(" · ")[0]}`;

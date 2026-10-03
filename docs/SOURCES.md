@@ -54,3 +54,7 @@ Every dataset, API, notable library and AI tool used, with licence. Feeds the so
 ## Online service
 
 Node.js 24 [SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html) supplies the embedded host database. MDN documents [cookie attributes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie) and [EventSource](https://developer.mozilla.org/en-US/docs/Web/API/EventSource/EventSource). No external identity provider, account dataset or remote leaderboard service is used. Real usernames and session records stay in the ignored host database.
+
+## Climate-based level selection
+
+Official GeoBS human-bioclimate WMS, Basel city-climate policy and FOEN surface-runoff WMS inform the four real map anchors. Original samples, legends and request metadata are retained in public/maps/risk/. Method, source links, selection evidence and scale limits have their single home in [level geography](level-geography.md). Preserve provider attribution when reusing the images; these official source maps are not original game artwork.

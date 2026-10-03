@@ -714,8 +714,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         sign.material.map?.dispose();
         sign.material.dispose();
         sign = label(
-          level?.site
-            ? level.site.street.toUpperCase()
+          (level?.mapSite ?? level?.site)
+            ? (level!.mapSite ?? level!.site)!.street.toUpperCase()
             : `${level?.location ?? "BARFÜSSERPLATZ"} · PLACEHOLDER`,
         );
         // The stand-in square would block a real street when the Basel model is missing.

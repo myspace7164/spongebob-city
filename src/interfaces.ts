@@ -158,6 +158,8 @@ export interface CityFire {
   size: 0 | 1 | 2;
 }
 export interface CampaignProgress {
+  /** Server/solo-selected route, retained for retries; omitted only in legacy fixtures. */
+  locations?: string[];
   level: number;
   completed: string[];
   stormCompleted: boolean;
@@ -219,6 +221,8 @@ export interface LevelGoal {
 }
 /** Fictional layouts are replaceable without altering campaign progression. */
 export interface CityLevel {
+  /** Real map anchoring; mission plot geometry remains illustrative. */
+  mapSite?: LevelSite;
   id: string;
   location: string;
   title: string;

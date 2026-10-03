@@ -293,6 +293,11 @@ function act(
   }
   if (action === "karate" && p.kind !== "asphalt")
     return "Already unsealed. Choose a tree, rain garden or other upgrade.";
+  if (
+    ["tree", "basin", "roof", "shade", "pond", "tank"].includes(action) &&
+    p.kind === "asphalt"
+  )
+    return "Unseal this plot first with karate (3), then build on the open soil.";
   if (action === "tree" && p.kind !== "soil")
     return "Trees need unsealed soil. Use karate (3) or a Patrick boost first.";
   if (

@@ -86,8 +86,11 @@ test("changed targets cancel attacks and fresh levels reposition the villain", (
     [1, "basin"],
     [2, "karate"],
     [3, "karate"],
-  ] as const)
+  ] as const) {
+    if (kind !== "karate" && campaign.plots[id].kind === "asphalt")
+      act(campaign, "karate", { ...campaign.plots[id], y: 0 }, id);
     act(campaign, kind, { ...campaign.plots[id], y: 0 }, id);
+  }
   campaign.plots.forEach((p) => (p.surface = 0));
   Object.assign(campaign, { heat: 50, flood: 0, reused: 400 });
   campaign.campaign!.stormCompleted = true;

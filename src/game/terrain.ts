@@ -118,7 +118,7 @@ export function levelScenery(
   level: CityLevel | undefined,
   grid: TerrainGrid | null,
 ) {
-  const base = sceneryPose(level?.site);
+  const base = sceneryPose(level?.mapSite ?? level?.site);
   const origin = level?.origin ?? { x: 0, z: 0 };
   const pose = {
     rotationY: base.rotationY,

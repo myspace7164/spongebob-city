@@ -50,7 +50,9 @@ test("useful transfers and builds award spendable grants; failed and repeated ac
 test("recycling, sabotage repair and reconnecting cannot farm government grants", () => {
   const s = createCampaign();
   s.plots.forEach((p) => delete p.site);
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "roof", at(s, 0), 0);
+  if (s.plots[1].kind === "asphalt") act(s, "karate", at(s, 1), 1);
   act(s, "basin", at(s, 1), 1);
   const connect = () => {
     connectRunoff(s, 0, at(s, 0));
@@ -62,11 +64,13 @@ test("recycling, sabotage repair and reconnecting cannot farm government grants"
   assert.equal(s.funding.earned, earned);
   const budget = s.budget;
   recyclePlot(s, 0, at(s, 0));
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "roof", at(s, 0), 0);
   connect();
   assert.equal(s.budget, budget);
   assert.equal(s.funding.earned, earned);
   s.plots[1].kind = "asphalt";
+  if (s.plots[1].kind === "asphalt") act(s, "karate", at(s, 1), 1);
   act(s, "basin", at(s, 1), 1);
   assert.equal(s.funding.earned, earned);
 });
@@ -87,6 +91,7 @@ test("Patrick, maximum collection and support actions earn grants once; new leve
   updateCity(s, 1 / 60, at(s, 0));
   assert.ok(s.funding.claimed.some((key) => key.startsWith("collect:")));
   const campaign = createCampaign();
+  act(campaign, "karate", at(campaign, 0), 0);
   act(campaign, "basin", at(campaign, 0), 0);
   for (const id of [1, 2, 3]) act(campaign, "karate", at(campaign, id), id);
   act(campaign, "basin", at(campaign, 1), 1);

@@ -1,3 +1,4 @@
+import { createBuildingClearance } from "./game/building-clearance.ts";
 import { cityObstacles, resolvePlayerCollisions } from "./game/collisions.ts";
 import { EmoteUI } from "./ui/emotes.ts";
 import { emoteConfig } from "../config/emotes.ts";
@@ -109,13 +110,15 @@ function startGame(): void {
   // Basel buildings, roads and photo move together so each level's street meets the play area.
   const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
   let sceneryLoaded = false;
+  let clearBuildings: ((s: typeof city) => void) | undefined;
   let terrain: TerrainGrid | null = null;
   let ground = levelScenery(currentLevel(city), terrain).groundAt;
   /** World height of the Basel terrain under a point; flat (0) until it loads. */
   const groundAt = (x: number, z: number) => ground(x, z);
   let trees: ReturnType<typeof createTrees> | undefined;
   const placeScenery = () => {
-    const site = currentLevel(city)?.site;
+    const site = currentLevel(city)?.mapSite ?? currentLevel(city)?.site;
+    clearBuildings?.(city);
     const placed = levelScenery(currentLevel(city), terrain);
     scenery.rotation.y = placed.rotationY;
     scenery.position.set(placed.x, placed.y, placed.z);
@@ -423,6 +426,7 @@ function startGame(): void {
           canvas.dataset.character = "loaded";
         } else {
           styleBuildings(model);
+          clearBuildings = createBuildingClearance(model);
           scenery.add(model);
           cityView.useImportedLevel();
           void loadMapLayers(

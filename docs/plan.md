@@ -204,3 +204,7 @@ Done when: emotes visibly animate the real character, the chord presents its cho
 Owner: Codex. Needs: T20.
 Scope: use the supplied Basel city-climate sources and Swiss surface-runoff hazard map to rank distinct real mission locations, prioritizing flooding then heat. Move the actual scenery/terrain and gameplay to each site; record source observations and limits instead of inventing local risk measurements.
 Done when: four geographic locations differ, their source-based urgency increases, the actual rendered map follows each location, and gameplay remains achievable at every site. Sources and reproducible selection evidence are documented.
+
+T20 follow-up: all construction requires unsealed soil, including rain gardens, roofs, shade, ponds and tanks. Enforce in shared action rules so keyboard/mouse/co-op cannot bypass it; rejected builds preserve plot, coins and water. Verify legal campaign strategies explicitly unseal before building.
+
+T21 revision: expand to eight source-sampled candidates, split into four increasing flood/heat priority tiers with two eligible sites each. Choose one candidate per tier randomly per new campaign; store the shared route in campaign state, preserve it on retries and progression, and use authoritative room choices in co-op. Scenery, terrain, labels and collisions follow the chosen candidate; tutorials and tool unlocks follow the level number.

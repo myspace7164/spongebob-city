@@ -103,6 +103,7 @@ test("each street site only takes the techniques that fit it", () => {
   act(s, "tree", at(s, 0), 0);
   assert.equal(kind(0), "soil");
   assert.match(s.feedback, /Fits here: .*Rain garden/i);
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "basin", at(s, 0), 0);
   assert.equal(kind(0), "basin");
   // Verge (2): tree pit after unsealing.
@@ -110,6 +111,7 @@ test("each street site only takes the techniques that fit it", () => {
   act(s, "tree", at(s, 2), 2);
   assert.equal(kind(2), "tree");
   // Building edge (7): green roof.
+  if (s.plots[7].kind === "asphalt") act(s, "karate", at(s, 7), 7);
   act(s, "roof", at(s, 7), 7);
   assert.equal(kind(7), "roof");
 });
@@ -121,8 +123,11 @@ test("street sites stay on Riehenring; later placeholder levels have no site lim
     [1, "basin"],
     [2, "karate"],
     [3, "karate"],
-  ] as const)
+  ] as const) {
+    if (kind !== "karate" && s.plots[id].kind === "asphalt")
+      act(s, "karate", at(s, id), id);
     act(s, kind, at(s, id), id);
+  }
   s.plots.forEach((p) => (p.surface = 0));
   Object.assign(s, { heat: 50, flood: 0, reused: 400 });
   s.campaign!.stormCompleted = true;

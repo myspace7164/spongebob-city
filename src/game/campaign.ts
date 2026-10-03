@@ -1,3 +1,7 @@
+import {
+  baselLocations,
+  levelLocationPools,
+} from "../../config/level-locations.ts";
 import { campaignConfig as c, cityLevels } from "../../config/levels.ts";
 import { cityConfig, cityTools } from "../../config/city.ts";
 import type {
@@ -14,12 +18,40 @@ import { grantFunding } from "./funding.ts";
 import { fundingConfig } from "../../config/funding.ts";
 
 export function currentLevel(s: CityState): CityLevel | undefined {
-  return s.campaign ? cityLevels[s.campaign.level] : undefined;
+  return s.campaign ? campaignLevel(s, s.campaign.level) : undefined;
+}
+/** Resolve the shared randomized map location without changing level goals or tool unlocks. */
+export function campaignLevel(
+  s: CityState,
+  index: number,
+): CityLevel | undefined {
+  const level = cityLevels[index];
+  if (!level) return undefined;
+  const candidate = baselLocations.find(
+    (site) => site.id === s.campaign?.locations?.[index],
+  );
+  return candidate
+    ? { ...level, location: candidate.name, mapSite: candidate.site }
+    : level;
+}
+export function selectCampaignLocations(
+  random: () => number = Math.random,
+): string[] {
+  return levelLocationPools.map(
+    (pool) =>
+      pool[
+        Math.min(
+          pool.length - 1,
+          Math.max(0, Math.floor(random() * pool.length)),
+        )
+      ].id,
+  );
 }
 /** Campaign remains optional so foundation/single-mission rules can be reused. */
-export function createCampaign(): CityState {
+export function createCampaign(random: () => number = Math.random): CityState {
   const s = createCity();
   s.campaign = {
+    locations: selectCampaignLocations(random),
     level: 0,
     completed: [],
     stormCompleted: false,
@@ -28,7 +60,7 @@ export function createCampaign(): CityState {
     pendingModifier: null,
     activeModifier: null,
   };
-  applyLayout(s, cityLevels[0]);
+  applyLayout(s, currentLevel(s)!);
   return s;
 }
 function applyLayout(s: CityState, level: CityLevel): void {
@@ -232,6 +264,7 @@ export function startNextCampaignLevel(s: CityState): boolean {
   )
     return false;
   const next = {
+    locations: progress.locations ? [...progress.locations] : undefined,
     level: progress.level + 1,
     completed: [...progress.completed],
     stormCompleted: false,
