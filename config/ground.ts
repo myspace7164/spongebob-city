@@ -20,7 +20,7 @@ export const groundStyle = {
   colours: {
     other: "#c9c2b1",
     road: "#5c5f63",
-    curb: "#c8c6bf",
+    curb: "#3a3d40",
     sidewalk: "#b9b4aa",
     island: "#a9b48f",
     paved: "#cdc6b6",
@@ -32,10 +32,10 @@ export const groundStyle = {
     rail: "#8f857a",
     building: "#bdb6a8",
   },
-  /** Metres: sidewalk paving and slab sizes; lookup jitter hides 0.4 m texel steps. */
+  /** Metres: sidewalk paving and slab sizes, curb width on the road side. */
   paving: 0.6,
   slabs: 1.2,
-  jitter: 0.15,
+  curb: 0.22,
   /** Lit ground under the scene's strong lights would wash out; scale colours. */
   brightness: 0.5,
 };

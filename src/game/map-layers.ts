@@ -165,6 +165,7 @@ async function loadGround() {
         await loader.loadAsync(base + tile.file),
         tile,
         meta.spacing,
+        meta.maxDistance,
       ),
     ),
   );
