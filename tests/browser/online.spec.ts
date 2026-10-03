@@ -10,12 +10,6 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted rank
   const username = `Hero_${crypto.randomUUID().replaceAll("-", "").slice(0, 10)}`;
   try {
     for (const page of [a, b]) {
-      await page.route("**/models/spongebob.glb", (route) =>
-        route.fulfill({
-          status: 404,
-          body: "Use fallback for network lifecycle check",
-        }),
-      );
       // Networking uses the procedural scenery; imported facade rendering is covered by map tests.
       await page.route("**/models/basel-city.glb", (route) =>
         route.fulfill({
@@ -52,6 +46,22 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted rank
     // Start only A: the authoritative server receives real movement input. Both browsers see its build.
     await a.locator("#story-start").click();
     await expect(a.locator("#crosshair")).toBeVisible();
+    await expect(a.locator("#game")).toHaveAttribute(
+      "data-remote-character-asset",
+      "blender",
+    );
+    await expect(a.locator("#game")).toHaveAttribute(
+      "data-remote-player-count",
+      "1",
+    );
+    await expect(b.locator("#game")).toHaveAttribute(
+      "data-remote-character-asset",
+      "blender",
+    );
+    await expect(b.locator("#game")).toHaveAttribute(
+      "data-remote-player-count",
+      "1",
+    );
     await a.waitForFunction(
       () => document.pointerLockElement === document.querySelector("#game"),
     );

@@ -11,6 +11,14 @@ import {
 } from "../src/game/city.ts";
 import type { CityState } from "../src/interfaces.ts";
 const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
+const build = (
+  s: CityState,
+  action: "tree" | "basin" | "roof" | "tank" | "pond" | "shade",
+  id: number,
+) => {
+  if (s.plots[id].kind === "asphalt") act(s, "karate", at(s, id), id);
+  return act(s, action, at(s, id), id);
+};
 const totalWater = (s: CityState) =>
   s.sponge +
   s.evaporated +
@@ -46,20 +54,25 @@ test("limited sponge transfers water into useful finite capacity; asphalt cannot
 test("construction requires reach, soil, available budget and an unused plot", () => {
   const s = createCity();
   const budget = s.budget;
-  act(s, "tree", at(s, 0), 0);
+  assert.match(act(s, "tree", at(s, 0), 0), /sealed/i);
   assert.equal(s.budget, budget);
   assert.equal(s.plots[0].kind, "asphalt");
+  for (const action of ["basin", "roof", "tank", "pond", "shade"] as const) {
+    assert.match(act(s, action, at(s, 0), 0), /sealed/i);
+    assert.equal(s.budget, budget);
+    assert.equal(s.plots[0].kind, "asphalt");
+  }
   act(s, "karate", { x: 100, y: 0, z: 100 }, 0);
   assert.equal(s.budget, budget);
   act(s, "karate", at(s, 0), 0);
-  act(s, "tree", at(s, 0), 0);
+  build(s, "tree", 0);
   const spent = s.budget;
   act(s, "tree", at(s, 0), 0);
   act(s, "pond", at(s, 0), 0);
   assert.equal(s.budget, spent);
   assert.equal(s.plots[0].kind, "tree");
   s.budget = 0;
-  act(s, "tank", at(s, 1), 1);
+  build(s, "tank", 1);
   assert.equal(s.plots[1].kind, "asphalt");
   const earnedBeforePatrick = s.funding.earned;
   act(s, "patrick", at(s, 1), null);
@@ -125,7 +138,7 @@ test("rain, infiltration, evaporation and automatic tank irrigation conserve wat
     [2, "roof"],
     [3, "pond"],
   ] as const)
-    act(s, action, at(s, id), id);
+    build(s, action, id);
   act(s, "karate", at(s, 5), 5);
   act(s, "tree", at(s, 5), 5);
   const initial = totalWater(s);
@@ -143,7 +156,7 @@ test("rain, infiltration, evaporation and automatic tank irrigation conserve wat
 
 test("sabotage reseals a plot without destroying its water; disabling machine stops it", () => {
   const s = createCity();
-  act(s, "basin", at(s, 0), 0);
+  build(s, "basin", 0);
   s.plots[0].moisture = 300;
   const initial = totalWater(s);
   s.sabotageIn = 0;
@@ -155,7 +168,7 @@ test("sabotage reseals a plot without destroying its water; disabling machine st
   assert.equal(s.plots[0].kind, "asphalt");
   assert.equal(s.plots[0].moisture, 0);
   assert.ok(Math.abs(totalWater(s) - initial) < 0.00001);
-  act(s, "basin", at(s, 0), 0);
+  build(s, "basin", 0);
   s.sabotageIn = 0;
   act(s, "machine", { ...s.saboteur, y: 0 }, null);
   advance(s, 10);
@@ -194,10 +207,10 @@ test("a complete legal collect/distribute/build strategy wins the mission", () =
   const s = createCity();
   for (const id of [0, 1, 2, 3]) {
     act(s, "karate", at(s, id), id);
-    act(s, "tree", at(s, id), id);
+    build(s, "tree", id);
   }
-  for (const id of [4, 5]) act(s, "basin", at(s, id), id);
-  for (const id of [6, 7]) act(s, "tank", at(s, id), id);
+  for (const id of [4, 5]) build(s, "basin", id);
+  for (const id of [6, 7]) build(s, "tank", id);
   for (let step = 0; step < 2400 && s.outcome === "playing"; step++) {
     if (s.machineDisabled < 1) act(s, "machine", { ...c.machine, y: 0 }, null);
     const source = [...s.plots].sort((a, b) => b.surface - a.surface)[0];

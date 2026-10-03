@@ -77,6 +77,33 @@ test("the hat is run-only and refresh does not restore a free hat", async ({
   await expect(page.locator('[data-hat="sailor"] .hat-buy')).toBeEnabled();
 });
 
+test("the hat shop opens from gameplay and returns to the same run", async ({
+  page,
+}) => {
+  await registerTestAccount(page);
+  // This interaction only needs gameplay UI; the surveyed 23 MB map is covered by asset tests.
+  await page.route("**/models/basel-city.glb", (route) => route.abort());
+  await page.goto("/");
+  await page.locator("#play").click({ force: true });
+  await expect(page.locator("#campaign-story")).toBeVisible();
+  await page.locator("#story-start").click({ force: true });
+  await expect(page.locator("#campaign-story")).toBeHidden();
+  await expect(page.locator("footer .controls")).toContainText("T hats");
+  await page.keyboard.press("t");
+  await expect(page.locator("#hat-shop")).toBeVisible();
+  await expect(page.locator("#hat-shop-close")).toHaveText("Return to game");
+  await page.locator('[data-hat="wizard"] .hat-buy').click();
+  await expect(page.locator("#hat-shop-status")).toContainText("equipped");
+  await page.locator("#hat-shop-close").click();
+  await expect(page.locator("#hat-shop")).toBeHidden();
+  await expect(page.locator("#campaign-story")).toBeHidden();
+  await expect(page.locator("footer .controls")).toContainText("T hats");
+  await expect(page.locator("#game")).toHaveAttribute(
+    "data-equipped-hat",
+    "wizard",
+  );
+});
+
 test("insufficient funds disable purchase and rapid activation cannot double-charge", async ({
   page,
 }) => {

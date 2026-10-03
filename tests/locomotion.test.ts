@@ -8,6 +8,7 @@ import { createHeldTools } from "../src/game/held-tools.ts";
 import { makeCharacter } from "../src/game/characters.ts";
 import { updateSpongeWaterState } from "../src/game/assets.ts";
 import { cityTools } from "../config/city.ts";
+import { cloneCharacterVisual } from "../src/game/remote-players.ts";
 
 test("real GLB has relaxed moving limbs, white teeth, preserved water morphs and held props", async () => {
   const doc = Object.getOwnPropertyDescriptor(globalThis, "document"),
@@ -26,6 +27,18 @@ test("real GLB has relaxed moving limbs, white teeth, preserved water morphs and
       bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
       "",
     );
+    const remoteModel = cloneCharacterVisual(model);
+    const sourceMeshes = new Map<string, THREE.Mesh>();
+    model.traverse((object) => {
+      if (object instanceof THREE.Mesh) sourceMeshes.set(object.name, object);
+    });
+    remoteModel.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      const source = sourceMeshes.get(object.name)!;
+      assert.notEqual(object.geometry, source.geometry);
+      assert.equal(object.material, source.material);
+    });
+    const remoteRig = createLocomotion(remoteModel, true);
     const rig = createLocomotion(model, true),
       props = createHeldTools(rig.rightHand);
     model.updateMatrixWorld(true);
@@ -126,6 +139,20 @@ test("real GLB has relaxed moving limbs, white teeth, preserved water morphs and
       ),
     );
     updateSpongeWaterState(model, 400, 400);
+    updateSpongeWaterState(remoteModel, 400, 400);
+    remoteRig.update(0.2, 5, true);
+    for (const name of ["Body_Cube_morph_export", "Cube_morph_export"]) {
+      const localMesh = model.getObjectByName(name) as THREE.Mesh;
+      const remoteMesh = remoteModel.getObjectByName(name) as THREE.Mesh;
+      assert.deepEqual(
+        remoteMesh.morphTargetDictionary,
+        localMesh.morphTargetDictionary,
+      );
+      assert.deepEqual(
+        remoteMesh.morphTargetInfluences,
+        localMesh.morphTargetInfluences,
+      );
+    }
     let morphs = 0;
     model.traverse((o) => {
       if (

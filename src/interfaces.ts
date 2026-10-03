@@ -8,6 +8,10 @@ export interface Vector3State {
 export type EmoteKind = "six-seven" | "macarena" | "teabag" | "dab" | "floss";
 export interface PlayerState {
   emote?: { id: EmoteKind; elapsed: number; remaining: number };
+  /** Fixed-step sprint pacing state, synchronized by the room authority in co-op. */
+  sprintElapsed?: number;
+  sprintCooldown?: number;
+  sprinting?: boolean;
   position: Vector3State;
   velocity: Vector3State;
   grounded: boolean;
@@ -290,6 +294,8 @@ export interface OnlineCommand {
   target?: number | null;
   bubbles?: boolean;
   powerup?: boolean;
+  /** Shared run cosmetic; server snapshots keep every client visually in sync. */
+  equippedHat?: HatId | null;
 }
 
 export type PowerupKind =

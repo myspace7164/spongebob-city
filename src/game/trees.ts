@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { treeStyle as style } from "../../config/ground";
+import { circleCollider, type SolidCollider } from "./collisions";
 
 /** [x, z, conifer (0/1), height] in map-local metres, from convert-basel-trees.py. */
 export type TreeRow = [number, number, number, number];
@@ -27,6 +28,31 @@ export function treesNear(
       near.add(i);
   });
   return near;
+}
+
+/** Trunk-only colliders shared by the solo and co-op world builders. */
+export function treeColliders(
+  trees: readonly TreeRow[],
+  groundAt: (x: number, z: number) => number,
+  hiddenTrees: ReadonlySet<number> = new Set(),
+): SolidCollider[] {
+  return trees.flatMap(([x, z, conifer, height], index) => {
+    if (hiddenTrees.has(index)) return [];
+    const shape = treeShape(height, conifer === 1);
+    const trunkRadius = Math.min(0.42, Math.max(0.13, shape.trunkRadius));
+    const y = groundAt(x, z);
+    return [
+      circleCollider(
+        `inventory-tree-${index}`,
+        x,
+        z,
+        trunkRadius,
+        y,
+        y + shape.trunkHeight,
+        "environment",
+      ),
+    ];
+  });
 }
 
 /**
@@ -59,8 +85,10 @@ export function createTrees(
   group.add(trunks, crowns, cones);
   const matrix = new THREE.Matrix4();
   const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
+  let hiddenTrees = new Set<number>();
   let hiddenKey = "";
   const place = (skip: Set<number>) => {
+    hiddenTrees = skip;
     let leaf = 0,
       needle = 0;
     trees.forEach(([x, z, conifer, height], i) => {
@@ -116,6 +144,10 @@ export function createTrees(
       if (key === hiddenKey) return;
       hiddenKey = key;
       place(treesNear(trees, points, style.plotClearance));
+    },
+    /** Trunk-only solids; crowns remain visual and never create giant hitboxes. */
+    colliders(): SolidCollider[] {
+      return treeColliders(trees, groundAt, hiddenTrees);
     },
   };
 }

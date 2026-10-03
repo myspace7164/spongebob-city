@@ -8,6 +8,7 @@ test("short talking briefing pauses the simulation on short screens", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1024, height: 600 });
+  await page.route("**/models/basel-city.glb", (route) => route.abort());
   await page.goto("/");
   await page.locator("#play").click();
   await expect(page.locator("#campaign-story")).toBeVisible();
@@ -42,6 +43,7 @@ test("short talking briefing pauses the simulation on short screens", async ({
 test("actual game loop automatically enters each next story and shows the ending only after level four", async ({
   page,
 }) => {
+  await page.route("**/models/basel-city.glb", (route) => route.abort());
   // Use zero-threshold fixture achievements to exercise the real loop without
   // making the browser test wait through four full weather cycles. Unit tests
   // complete the campaign with its production goals using only legal actions.
@@ -147,6 +149,7 @@ test("actual game loop automatically enters each next story and shows the ending
 test("wheel reveals controlled positive and negative results and emits sounds", async ({
   page,
 }) => {
+  await page.route("**/models/basel-city.glb", (route) => route.abort());
   await page.route("**/config/levels.ts*", async (route) => {
     const response = await route.fetch();
     const source = await response.text();
