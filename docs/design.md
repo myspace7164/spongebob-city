@@ -34,8 +34,15 @@ All coefficients, litres, area and temperatures are fictional gameplay values, n
 
 Basel street centrelines become batched translucent road/path surfaces over a
 local SWISSIMAGE orthophoto. Both share the building model's LV95 origin and
-bounds. The fictional mission rectangle remains clear. This is visual scenery:
-estimated road widths, flat terrain and no surveyed bridge/tunnel elevations.
+bounds. The fictional mission rectangle remains clear. Roads are estimated widths
+with no surveyed bridge/tunnel elevations.
+
+The ground is real swissALTI3D terrain (4 m grid): the photo is draped over it,
+roads follow it, and buildings keep their surveyed heights on top. Each level's
+play area is lifted to y = 0. The player, characters and plots stand on the
+terrain, and rainwater on a plot runs to lower neighbours within 7.5 m, so low
+spots flood first. Riehenring is nearly flat; the stages near St. Alban drop
+about 2 m towards the Rhine. Without terrain data the game stays flat.
 Conversion details live in `public/maps/README.md`; licences in `docs/SOURCES.md`.
 
 The cartoon/Frutiger Aero interface follows `docs/style-guide.md`: sponge-yellow lettering and welcome card, glossy aqua controls, original vector mascot, flowers, decorative bubbles, speech-bubble feedback and individually readable power badges. The guide can scroll its tools while keeping its close control visible. Decoration pauses with the mission and respects reduced motion.

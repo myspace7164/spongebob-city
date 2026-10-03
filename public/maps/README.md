@@ -24,7 +24,7 @@ Re-download from the official service:
 curl --fail --location 'https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.swisstopo.swissimage&STYLES=default&CRS=EPSG:2056&BBOX=2610424,1266117.676,2612927.604,1268235.856&WIDTH=4096&HEIGHT=3465&FORMAT=image/jpeg' -o public/maps/basel-aerial.jpg
 ```
 
-Both layers are visual scenery on flat ground. The fictional mission rectangle
+Roads and photo are draped over the terrain grid below (flat if it fails to load). The fictional mission rectangle
 is excluded. Two batched road meshes with translucent estimated surfaces allow
 photographic markings to remain visible. Geometry and imagery have independent
 fallbacks; failed imagery preserves roads on the original ground. No imagery
