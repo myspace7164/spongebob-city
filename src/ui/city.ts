@@ -1,5 +1,6 @@
 import { cityConfig as c, cityTools, plotNames } from "../../config/city";
 import { cityMetrics, spongeCapacity, weather } from "../game/city";
+import { levelAchievements } from "../game/campaign";
 import type { CityState, CityTool } from "../interfaces";
 
 const element = (id: string) => document.getElementById(id)!;
@@ -52,25 +53,30 @@ export class CityUI {
     }
     element("budget").textContent =
       `🦀 ${number(s.budget)} coins · Mr. Krabs' city fund`;
-    const goals = [
-      [
-        m.permeable >= c.goals.permeable,
-        `Unseal ${m.permeable}/${c.goals.permeable} plots`,
-      ],
-      [
-        m.healthyTrees >= c.goals.trees,
-        `${m.healthyTrees}/${c.goals.trees} healthy, watered trees`,
-      ],
-      [
-        s.reused >= c.goals.reused,
-        `${number(s.reused)}/${number(c.goals.reused)} L usefully delivered`,
-      ],
-      [
-        s.heat <= c.goals.heat && s.flood <= c.goals.flood,
-        `Heat ≤ ${c.goals.heat}% · flood ≤ ${c.goals.flood}%`,
-      ],
-      [s.stormSeen, "Weather a thunderstorm"],
-    ];
+    const goals = s.campaign
+      ? levelAchievements(s).map((goal) => [
+          goal.done,
+          `${goal.label}: ${number(goal.value)} / ${number(goal.target)}${goal.metric === "heat" || goal.metric === "flood" ? "%" : ""}`,
+        ])
+      : [
+          [
+            m.permeable >= c.goals.permeable,
+            `Unseal ${m.permeable}/${c.goals.permeable} plots`,
+          ],
+          [
+            m.healthyTrees >= c.goals.trees,
+            `${m.healthyTrees}/${c.goals.trees} healthy, watered trees`,
+          ],
+          [
+            s.reused >= c.goals.reused,
+            `${number(s.reused)}/${number(c.goals.reused)} L usefully delivered`,
+          ],
+          [
+            s.heat <= c.goals.heat && s.flood <= c.goals.flood,
+            `Heat ≤ ${c.goals.heat}% · flood ≤ ${c.goals.flood}%`,
+          ],
+          [s.stormSeen, "Weather a thunderstorm"],
+        ];
     element("goals").innerHTML = goals
       .map(
         ([done, text]) =>
@@ -86,7 +92,7 @@ export class CityUI {
     element("item-status").classList.toggle("emergency", s.dangerTime > 0);
     const plot = s.plots.find((p) => p.id === target);
     element("target-info").textContent = plot
-      ? `${plotNames[plot.kind]} · ${number(plot.surface)} L surface · ${number(plot.moisture + plot.stored)} L retained${inReach ? "" : " · MOVE CLOSER"}`
+      ? `#${plot.id + 1} ${plotNames[plot.kind]} · ${number(plot.surface)} L surface · ${number(plot.moisture + plot.stored)} L retained${plot.drainsTo === undefined ? "" : ` · runoff → #${plot.drainsTo + 1}`}${inReach ? "" : " · MOVE CLOSER"}`
       : "Aim at a plot on the square";
     const timer = (remaining: number) =>
       remaining > 0 ? `${Math.ceil(remaining)}s` : "READY";

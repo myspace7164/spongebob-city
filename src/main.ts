@@ -6,7 +6,10 @@ import { GameInput, keyCode } from "./game/input";
 import { createPlayer, updatePlayer } from "./game/player";
 import { createWorld } from "./game/world";
 import { loadModel, updateSpongeWaterState } from "./game/assets";
-import { createCity, spongeCapacity, updateCity, weather } from "./game/city";
+import { spongeCapacity, updateCity, weather } from "./game/city";
+import { loadMapLayers } from "./game/map-layers";
+import { connectRunoff, createCampaign, recyclePlot } from "./game/campaign";
+import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
 import { CityUI } from "./ui/city";
@@ -41,7 +44,10 @@ function startGame(): void {
     if (document.hidden) audio.update(false, false);
   });
   let player = createPlayer();
-  let city = createCity();
+  let city = createCampaign();
+  let checkpoint = structuredClone(city);
+  let storyPending = true;
+  const campaignUI = new CampaignUI();
   let characterModel: THREE.Group | null = null;
   const cityView = createCityView(scene, city);
   const ui = new CityUI((tool) => {
@@ -67,7 +73,11 @@ function startGame(): void {
   const reset = () => {
     audio.update(false, false);
     player = createPlayer();
-    city = createCity();
+    city =
+      city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
+    checkpoint = structuredClone(city);
+    storyPending = true;
+    campaignUI.hide();
     input.clear();
     input.yaw = 0;
     input.pitch = 0.28;
@@ -76,11 +86,14 @@ function startGame(): void {
     hudTime = 0;
     ui.setOpen(false);
     ui.render(city, targetId, false);
-    menu.hidden = input.active;
+    campaignUI.render(city);
+    document.exitPointerLock();
+    menu.hidden = false;
   };
   const act = (action: CityAction) =>
     audio.performAction(city, action, player.position, targetId);
   ui.render(city, targetId, false);
+  campaignUI.render(city);
   const resize = () => {
     renderer.setSize(innerWidth, innerHeight);
     camera.aspect = innerWidth / innerHeight;
@@ -88,15 +101,34 @@ function startGame(): void {
   };
   window.addEventListener("resize", resize);
   resize();
-  play.addEventListener("click", async () => {
+  const showStory = () => {
+    audio.update(false, false);
+    input.clear();
+    ui.setOpen(false);
+    document.exitPointerLock();
+    menu.hidden = true;
+    campaignUI.show(city);
+  };
+  const enterGame = async () => {
     try {
       canvas.focus({ preventScroll: true });
       await canvas.requestPointerLock();
+      storyPending = false;
+      campaignUI.hide();
     } catch {
       message.textContent =
         "Mouse capture was blocked. Open the game in its own browser tab and click I’M READY again.";
+      document.querySelector("#story-status")!.textContent =
+        message.textContent;
     }
-  });
+  };
+  play.addEventListener("click", () =>
+    storyPending ? showStory() : void enterGame(),
+  );
+  document
+    .querySelector("#story-start")!
+    .addEventListener("click", () => void enterGame());
+  document.querySelector("#read-story")!.addEventListener("click", showStory);
   document.addEventListener(
     "pointerlockerror",
     () =>
@@ -105,7 +137,9 @@ function startGame(): void {
   );
   document.addEventListener("pointerlockchange", () => {
     if (!input.active) audio.update(false, false);
-    menu.hidden = input.active || ui.open || city.outcome !== "playing";
+    if (!input.active && city.campaign) city.campaign.connectFrom = null;
+    menu.hidden =
+      input.active || ui.open || campaignUI.open || city.outcome !== "playing";
     crosshair.hidden = !input.active;
     accumulator = 0;
     lastTime = performance.now();
@@ -114,7 +148,12 @@ function startGame(): void {
     if (!event.repeat && keyCode(event) === "KeyM") soundToggle.click();
     if (event.repeat || !input.active || city.outcome !== "playing") return;
     const code = keyCode(event);
-    if (code === "KeyR") reset();
+    if (code === "KeyR") {
+      reset();
+      return;
+    }
+    if (code === "KeyC") connectRunoff(city, targetId, player.position);
+    if (code === "KeyV") recyclePlot(city, targetId, player.position);
     if (code === "KeyQ") act("power");
     if (code === "KeyX") act("maximum");
     if (code === "KeyP") act("patrick");
@@ -172,6 +211,7 @@ function startGame(): void {
         } else {
           scene.add(model);
           cityView.useImportedLevel();
+          void loadMapLayers(scene, canvas);
           canvas.dataset.level = "loaded";
           levelStatus.textContent =
             "Basel buildings loaded · fictional mission square";
@@ -195,7 +235,8 @@ function startGame(): void {
     );
     lastTime = time;
     if (document.hidden) return;
-    const active = input.active && city.outcome === "playing";
+    const active =
+      input.active && !campaignUI.open && city.outcome === "playing";
     if (active) {
       input.updateLook(dt);
       const actions = input.consumeActions();
@@ -255,7 +296,20 @@ function startGame(): void {
             true,
           );
         const spongeBeforeUpdate = city.sponge;
+        const previousLevel = city.campaign!.level;
         updateCity(city, gameConfig.fixedStep, player.position);
+        if (city.campaign!.level !== previousLevel) {
+          player = createPlayer();
+          input.yaw = 0;
+          input.pitch = 0.28;
+          targetId = null;
+          accumulator = 0;
+          hudTime = 0;
+          checkpoint = structuredClone(city);
+          storyPending = true;
+          showStory();
+          break;
+        }
         if (city.sponge > spongeBeforeUpdate) audio.requestAbsorption();
         audio.update(city.outcome === "playing", weather(city).raining);
         accumulator -= gameConfig.fixedStep;
@@ -302,6 +356,7 @@ function startGame(): void {
     hudTime -= dt;
     if (hudTime <= 0) {
       ui.render(city, targetId, inReach());
+      campaignUI.render(city);
       hudTime = 0.1;
     }
     if (city.outcome !== "playing" && input.active) {

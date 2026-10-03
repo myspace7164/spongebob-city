@@ -2,16 +2,20 @@ import * as THREE from "three";
 import { cityConfig as c } from "../../config/city";
 import type { CityPlot, CityState, CityTool, PlayerState } from "../interfaces";
 import { cityMetrics, spongeCapacity, weather } from "./city";
+import { currentLevel, validDrain } from "./campaign";
 import { ball, box, label, makeCharacter, themeColor } from "./characters";
 
 function dispose(group: THREE.Group): void {
   group.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
+    if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
       object.geometry.dispose();
       const materials = Array.isArray(object.material)
         ? object.material
         : [object.material];
       materials.forEach((m) => m.dispose());
+    } else if (object instanceof THREE.Sprite) {
+      object.material.map?.dispose();
+      object.material.dispose();
     }
   });
   group.clear();
@@ -86,7 +90,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     const material = water.material as THREE.MeshLambertMaterial;
     material.transparent = true;
     material.opacity = 0.5;
-    return { ground, props, water, signature: "" };
+    return { tile, ground, props, water, signature: "" };
   });
   const border = new THREE.Mesh(
     new THREE.BoxGeometry(4.9, 0.2, 4.9),
@@ -126,9 +130,13 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     spire.position.set(x, 10.6, -32);
     architecture.add(spire);
   }
-  const sign = label("BARFÜSSERPLATZ · BASEL");
+  let sign = label("BASEL · PLACEHOLDER LEVEL");
   sign.position.set(0, 6, -27);
   root.add(sign);
+  const routes = new THREE.Group();
+  const entrances = new THREE.Group();
+  root.add(routes, entrances);
+  let campaignSignature = "";
   for (const [kind, text, x, z] of [
     ["patrick", "Patrick · P: unseal", -11, -3],
     ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
@@ -215,12 +223,51 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       waterAction: CityTool | null = null,
       bubbles = false,
     ) {
+      const level = currentLevel(s);
+      const nextSignature = `${level?.id}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
+      if (campaignSignature !== nextSignature) {
+        campaignSignature = nextSignature;
+        dispose(routes);
+        dispose(entrances);
+        root.remove(sign);
+        sign.material.map?.dispose();
+        sign.material.dispose();
+        sign = label(`${level?.location ?? "BARFÜSSERPLATZ"} · PLACEHOLDER`);
+        sign.position.set(0, 6, -27);
+        root.add(sign);
+        for (const p of s.plots) {
+          const destination = validDrain(s, p);
+          if (destination && (p.kind === "roof" || p.kind === "tank")) {
+            const geometry = new THREE.BufferGeometry().setFromPoints([
+              new THREE.Vector3(p.x, 0.3, p.z),
+              new THREE.Vector3(destination.x, 0.3, destination.z),
+            ]);
+            routes.add(
+              new THREE.Line(
+                geometry,
+                new THREE.LineBasicMaterial({ color: themeColor("water") }),
+              ),
+            );
+          }
+          if (level?.entranceIds.includes(p.id)) {
+            box(entrances, [4, 0.2, 0.3], [p.x, 0.2, p.z - 2], "accent");
+            const marker = label(
+              level.id === "voltanord"
+                ? "SCHULE · KEEP DRY"
+                : "EINGANG · KEEP DRY",
+            );
+            marker.position.set(p.x, 2, p.z);
+            entrances.add(marker);
+          }
+        }
+      }
       const rainy = weather(s).raining;
       scene.background = themeColor(rainy ? "rain-sky" : "sky");
       if (scene.fog instanceof THREE.Fog)
         scene.fog.color.copy(scene.background);
       s.plots.forEach((p, i) => {
         const view = plotViews[i];
+        view.tile.position.set(p.x, 0, p.z);
         const signature = `${p.kind}/${p.moisture >= c.moistureHealthy}`;
         if (view.signature !== signature) {
           plotProps(view.props, p);

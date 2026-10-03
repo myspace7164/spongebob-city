@@ -1,11 +1,13 @@
+import { enterCampaign } from "./campaign-entry";
 import { expect, test } from "@playwright/test";
 
 test("all sound assets decode and contextual audio respects success, pause and mute", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.locator("#play").click();
+  await enterCampaign(page);
   await page.keyboard.press("Escape");
+  await expect(page.locator("#menu")).toBeVisible();
   const result = await page.evaluate(async () => {
     // Load the same controller and rules used by the mission, with real browser media.
     const audioPath = "/src/game/audio.ts";

@@ -1,6 +1,6 @@
 # Sponge City · Basel
 
-A playable 3D sponge-city mission at a stylised Barfüsserplatz. Collect storm water with SpongeBob, distribute it to plants and storage, and transform asphalt into a cooler, greener square. Manage heat and flooding together while Dr. Beton tries to reseal your work.
+A playable four-level 3D sponge-city campaign through Riehenring, Erlenmatt, St. Johann and VoltaNord, using placeholder layouts until the real topology and geography are supplied. Collect storm water with SpongeBob, distribute it to plants and storage, and transform asphalt into a cooler, greener square. Manage heat and flooding together while Dr. Beton tries to reseal your work.
 
 Built on Three.js, TypeScript and Vite. See [the design](docs/design.md) for gameplay, scope and limits.
 
@@ -13,27 +13,31 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **I’M READY!** to capture the mouse. Escape pauses; click the same button to resume. Leaving the tab pauses and clears input. The field guide explains every tool.
+Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **I’M READY!** to read the arrival and current level story, then **Level starten** to capture the mouse. Escape pauses; click **I’M READY!** to resume. Leaving the tab pauses and clears input. The field guide explains every tool.
 
-| Control | Action |
-|---|---|
-| WASD / arrows | Move relative to the camera |
-| Mouse / IJKL | Look / turn camera |
-| Space / Shift | Jump / run |
-| 1 + hold left click | Absorb nearby surface water |
-| 2 + hold left click | Water green plots or fill storage |
-| 3 + click | Break asphalt; near the machine, disable it |
-| 4–9 + click | Tree, rain garden, green roof/facade, pond, shade, tank |
-| Q | Poren-Power: temporary extra capacity |
-| P | Patrick clears nearby asphalt for free |
-| X | MAXIMUM SCHWAMM, unlocked after useful water reuse |
-| E near Sandy / Dr. Beton | Buy capacity and bubbles / disable sabotage |
-| Hold B after upgrade | Bubble irrigation at extended range |
-| H | Pause and open the field guide |
-| M / Sound button | Mute or unmute game audio |
-| R | Restart the mission |
+| Control                            | Action                                                       |
+| ---------------------------------- | ------------------------------------------------------------ |
+| WASD / arrows                      | Move relative to the camera                                  |
+| Mouse / IJKL                       | Look / turn camera                                           |
+| Space / Shift                      | Jump / run                                                   |
+| 1 + hold left click                | Absorb nearby surface water                                  |
+| 2 + hold left click                | Water green plots or fill storage                            |
+| 3 + click                          | Break asphalt; near the machine, disable it                  |
+| 4–9 + click                        | Tree, rain garden, green roof/facade, pond, shade, tank      |
+| Q                                  | Poren-Power: temporary extra capacity                        |
+| P                                  | Patrick clears nearby asphalt for free                       |
+| X                                  | MAXIMUM SCHWAMM, unlocked after useful water reuse           |
+| E near Sandy / Dr. Beton           | Buy capacity and bubbles / disable sabotage                  |
+| Hold B after upgrade               | Bubble irrigation at extended range                          |
+| H                                  | Pause and open the field guide                               |
+| M / Sound button                   | Mute or unmute game audio                                    |
+| C at source, then C at destination | Connect a roof/tank to permeable receiving ground or storage |
+| V                                  | Recycle the aimed upgrade and reclaim its cost               |
+| R                                  | Retry the current level from its entry checkpoint            |
 
-Aim at a plot: a green border means it is in reach, orange means move closer. Trees require unsealed soil. Other structures can be built directly on asphalt and include unsealing in their price. Sponge water above normal capacity after a power expires stays available for distribution.
+All current-level achievements must be satisfied together to advance automatically. The next story pauses gameplay until you start the level. Improvements, water and purchased upgrades carry forward; each level grants a new budget allowance and resets its reuse target and weather clock. Failure retries the current entry checkpoint; the final ending offers a full campaign restart. H includes a button to reread the current story.
+
+Aim at a plot: a green border means it is in reach, orange means move closer. Trees require unsealed soil. Other structures can be built directly on asphalt and include unsealing in their price. Sponge water above normal capacity after a power expires stays available for distribution. Yellow entrance markers must stay clear of construction. Blue connection lines show runoff routes: roofs release stored water slowly; tanks send surface overflow to the chosen receiver. Receivers can saturate, so use planted basins and keep monitoring flood danger.
 
 ## Check and build
 
@@ -45,7 +49,7 @@ npm run build
 npm run preview
 ```
 
-`dist/` contains the production site, suitable for static hosting. Unit tests cover water conservation, capacity, construction prerequisites, budget, abilities, sabotage, loss and a complete winning strategy, alongside foundation controls and sandbox rules.
+`dist/` contains the production site, suitable for static hosting. Unit tests cover water conservation, capacity, construction prerequisites, budget, abilities, sabotage, loss and a complete winning strategy, alongside foundation controls and sandbox rules. Campaign tests complete all four production levels through legal actions, verify automatic progression and water conservation, and reject unsafe/cyclic runoff.
 
 Browser checks require Chromium and its OS libraries:
 
@@ -66,7 +70,10 @@ npm run test:browser
 
 ## Extend
 
-- `config/city.ts`: fictional mission tuning, tools, prices and goals.
+- `config/levels.ts`: German story chapters, per-level achievements/weather and placeholder plot coordinates (stable IDs preserve improvements); replace coordinates when the actual level layouts arrive.
+- `src/game/campaign.ts`: shared achievement evaluation, automatic progression and runoff/recycling rules.
+- `src/ui/campaign.ts`: paused story screens, campaign route and ending.
+- `config/city.ts`: fictional simulation tuning, tools, prices and standalone mission goals.
 - `src/game/city.ts`: mission actions, weather, heat, sabotage and outcome.
 - `src/game/city-water.ts`: rain, infiltration and tank irrigation.
 - `src/game/city-view.ts`: plot transformations, rain and revived city life.
@@ -83,8 +90,10 @@ Static assets live under `public/`: team sound clips in `public/audio/`, optiona
 
 The supplied Basel model loads by default. While it loads, the original scenery remains playable; if loading fails, the original buildings remain. To use only procedural scenery, clear `level.url` in `config/game.ts`.
 
+When the Basel model loads, local street geometry and SWISSIMAGE aerial ground imagery load beneath it. Widths are approximate, terrain remains flat, and the fictional mission area stays clear. Settings are in `config/map.ts`; rebuilding assets and source limits are documented in [ground layer notes](public/maps/README.md).
+
 Optional Blender exports go into `public/models/`. Set `character.url` or `level.url` in `config/game.ts`, with scale and rotation. Use a feet-centred origin, Y up and front facing +Z. An empty URL retains procedural visuals; failed loads report an error and keep the fallback. Imported models and buildings are visual only; movement uses the flat ground with mission bounds.
 
 ## Limits and sources
 
-One playable mission, procedural characters, imported Basel building scenery, cyclic weather and a sabotage machine. No campaign, persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. The mission square remains fictional; imported Basel buildings surround it. The map is centred on the supplied dataset rather than geographically aligned to Barfüsserplatz. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
+Four story levels with a shared sixteen-plot placeholder grid, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. No persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology, entrances and runoff links remain fictional; imported Basel buildings are background scenery. The map is centred on the supplied dataset rather than geographically aligned to the four story locations. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
