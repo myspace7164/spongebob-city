@@ -1,0 +1,59 @@
+{
+ "origin": [
+  2611675.802,
+  1267176.7659999998,
+  268.911
+ ],
+ "bounds": [
+  -1251.8020000001416,
+  -1059.0900000000838,
+  1251.801999999676,
+  1059.089999999851
+ ],
+ "spacing": 0.4,
+ "categories": [
+  "other",
+  "road",
+  "sidewalk",
+  "island",
+  "paved",
+  "green",
+  "forest",
+  "water",
+  "rail",
+  "building"
+ ],
+ "tiles": [
+  {
+   "file": "basel-ground-0.png",
+   "x": -1251.8020000001416,
+   "z": -1059.0900000000838,
+   "columns": 3250,
+   "rows": 2750
+  },
+  {
+   "file": "basel-ground-1.png",
+   "x": 48.19799999985844,
+   "z": -1059.0900000000838,
+   "columns": 3010,
+   "rows": 2750
+  },
+  {
+   "file": "basel-ground-2.png",
+   "x": -1251.8020000001416,
+   "z": 40.90999999991618,
+   "columns": 3250,
+   "rows": 2546
+  },
+  {
+   "file": "basel-ground-3.png",
+   "x": 48.19799999985844,
+   "z": 40.90999999991618,
+   "columns": 3010,
+   "rows": 2546
+  }
+ ],
+ "source": "Bodenbedeckung, data.bs.ch dataset 100477",
+ "license": "https://creativecommons.org/licenses/by/4.0/",
+ "copyright": "Quelle: Geodaten Kanton Basel-Stadt"
+}
