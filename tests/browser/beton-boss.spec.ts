@@ -55,6 +55,25 @@ test("Dr. Beton and the Asphaltinator render as linked independent 3D boss asset
     const output = scene.getObjectByName("FX_ConcreteOutput");
     const driver = scene.getObjectByName("DrBeton_DriverPoint");
     render();
+    const eyeMeshes = actor.userData.eyeMeshes as THREE.Mesh[];
+    const baselineEyeIntensity = (
+      eyeMeshes[0].material as THREE.MeshStandardMaterial
+    ).emissiveIntensity;
+    state.campaign!.activeModifier = "angryBeton";
+    render();
+    const angryEyeIntensity = (
+      eyeMeshes[0].material as THREE.MeshStandardMaterial
+    ).emissiveIntensity;
+    const angryCracksVisible = (
+      actor.userData.glowCracks as THREE.Mesh[]
+    ).every((crack) => crack.visible);
+    state.campaign!.activeModifier = null;
+    render();
+    const restoredEyeIntensity = (
+      eyeMeshes[0].material as THREE.MeshStandardMaterial
+    ).emissiveIntensity;
+    const angerRestored =
+      Math.abs(restoredEyeIntensity - baselineEyeIntensity) < 0.001;
     const anchored =
       actor
         .getWorldPosition(new THREE.Vector3())
@@ -121,6 +140,9 @@ test("Dr. Beton and the Asphaltinator render as linked independent 3D boss asset
       anchored,
       meshes,
       independentRoots,
+      angerEnhances:
+        angryEyeIntensity > baselineEyeIntensity && angryCracksVisible,
+      angerRestored,
       charging,
       firing,
       originsCorrect,
@@ -133,6 +155,8 @@ test("Dr. Beton and the Asphaltinator render as linked independent 3D boss asset
   expect(result.anchored).toBe(true);
   expect(result.meshes).toBeGreaterThan(35);
   expect(result.independentRoots).toBe(true);
+  expect(result.angerEnhances).toBe(true);
+  expect(result.angerRestored).toBe(true);
   expect(result.charging).toBe(true);
   expect(result.firing).toBe(true);
   expect(result.originsCorrect).toBe(true);
