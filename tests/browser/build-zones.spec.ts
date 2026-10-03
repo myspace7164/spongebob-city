@@ -46,6 +46,7 @@ test("build zones blend with terrain, preview placements and disappear under fin
       conformingHeightRange: number;
       unsealedSandVisible: boolean;
       selectedZoneVisible: boolean;
+      sealedZoneVisible: boolean;
       validPreview: boolean;
       invalidPreview: boolean;
       builtZoneHidden: boolean;
@@ -109,6 +110,8 @@ test("build zones blend with terrain, preview placements and disappear under fin
           ).getHexString();
       state.plots[0].kind = "asphalt";
       view.update(state, player, 0, 7);
+      const cornerMarks = scene.getObjectByName("build-zone-corner-marks");
+      const sealedZoneVisible = surface.visible && cornerMarks.visible;
       const invalidMesh = findPreviewMesh();
       const invalidPreview =
         preview.visible &&
@@ -146,6 +149,7 @@ test("build zones blend with terrain, preview placements and disappear under fin
         conformingHeightRange: Math.max(...ys) - Math.min(...ys),
         unsealedSandVisible,
         selectedZoneVisible,
+        sealedZoneVisible,
         validPreview,
         invalidPreview,
         builtZoneHidden: !surface.visible,
@@ -158,6 +162,7 @@ test("build zones blend with terrain, preview placements and disappear under fin
   expect(result.every((level) => level.invalidPreview)).toBe(true);
   expect(result.every((level) => level.unsealedSandVisible)).toBe(true);
   expect(result.every((level) => level.selectedZoneVisible)).toBe(true);
+  expect(result.every((level) => level.sealedZoneVisible)).toBe(true);
   expect(result.every((level) => level.builtZoneHidden)).toBe(true);
   expect(result.every((level) => level.conformingHeightRange < 0.1)).toBe(true);
   expect(

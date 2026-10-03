@@ -614,15 +614,15 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     );
     markings.add(parkingLines);
     const openEdge = new THREE.Group();
-    openEdge.name = "unsealed-corner-marks";
+    openEdge.name = "build-zone-corner-marks";
     tile.add(openEdge);
     openEdge.add(
       new THREE.LineSegments(
-        cornerMarkGeometry(4.35),
+        cornerMarkGeometry(4.35, 0.72),
         new THREE.LineBasicMaterial({
           color: themeColor("open-edge"),
           transparent: true,
-          opacity: 0.2,
+          opacity: 0.68,
         }),
       ),
     );
@@ -978,17 +978,25 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         }
         const selectedBuild = buildKind !== undefined;
         const buildHover = targetId === p.id && selectedBuild;
-        view.ground.visible =
-          p.kind === "soil" || (buildHover && p.kind === "asphalt");
-        view.groundMaterial.opacity = p.kind === "soil" ? 1 : 0.045;
+        const isUnsealed = p.kind === "soil";
+        const isSealed = p.kind === "asphalt";
+        view.ground.visible = p.kind === "soil" || p.kind === "asphalt";
+        view.groundMaterial.opacity =
+          p.kind === "soil" ? 1 : buildHover ? 0.2 : 0.08;
         view.groundMaterial.color.copy(view.baseGroundColor);
         if (buildHover)
           view.groundMaterial.color.lerp(
             themeColor(validBuild ? "open-edge" : "coral"),
-            0.1,
+            0.18,
           );
         view.markings.visible = p.kind === "asphalt" && p.site === "parking";
-        view.openEdge.visible = p.kind === "soil";
+        view.openEdge.visible = isUnsealed || isSealed;
+        const cornerMarks = view.openEdge.children[0] as THREE.LineSegments;
+        const cornerMaterial = cornerMarks.material as THREE.LineBasicMaterial;
+        cornerMaterial.color.copy(
+          themeColor(isUnsealed ? "open-edge" : "accent"),
+        );
+        cornerMaterial.opacity = isUnsealed ? 0.68 : 0.82;
         view.water.visible = p.surface > 10;
         view.water.scale.y = Math.max(1, Math.min(8, p.surface / 120));
         (view.water.material as THREE.MeshLambertMaterial).opacity = Math.min(
