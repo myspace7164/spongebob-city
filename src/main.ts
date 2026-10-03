@@ -78,6 +78,7 @@ const play = document.querySelector<HTMLButtonElement>("#play")!;
 const crosshair = document.querySelector<HTMLElement>("#crosshair")!;
 
 function startGame(): void {
+  const reducedMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -276,6 +277,9 @@ function startGame(): void {
     lastTime = performance.now(),
     hudTime = 0;
   let networkTime = 0;
+  let remotePlayerCount = "";
+  let remoteCharacterAsset = "";
+  let currentEmote = "";
   const target = new THREE.Vector3();
   const inReach = () => {
     const plot = city.plots.find((p) => p.id === targetId);
@@ -648,6 +652,7 @@ function startGame(): void {
     );
     lastTime = time;
     if (document.hidden) return;
+    const reducedMotion = reducedMotionQuery.matches;
     const active =
       input.active &&
       !campaignUI.open &&
@@ -814,7 +819,7 @@ function startGame(): void {
         network.room.players,
         network.account!.id,
         time / 1000,
-        matchMedia("(prefers-reduced-motion: reduce)").matches,
+        reducedMotion,
         {
           sponge: city.sponge,
           capacity: spongeCapacity(city),
@@ -823,8 +828,15 @@ function startGame(): void {
           visualScale: effectivePlayerVisualScale(city, powerVisualScale),
         },
       );
-      canvas.dataset.remotePlayerCount = String(remoteCount);
-      canvas.dataset.remoteCharacterAsset = remotePlayers.assetKind;
+      const nextRemotePlayerCount = String(remoteCount);
+      if (remotePlayerCount !== nextRemotePlayerCount) {
+        remotePlayerCount = nextRemotePlayerCount;
+        canvas.dataset.remotePlayerCount = remotePlayerCount;
+      }
+      if (remoteCharacterAsset !== remotePlayers.assetKind) {
+        remoteCharacterAsset = remotePlayers.assetKind;
+        canvas.dataset.remoteCharacterAsset = remoteCharacterAsset;
+      }
       networkTime -= dt;
       if (networkTime <= 0) {
         networkTime = 0.1;
@@ -854,13 +866,7 @@ function startGame(): void {
       if (!network.connected && input.active) document.exitPointerLock();
     }
     if (!active) audio.update(false, false);
-    placeScenery();
-    powerupView.update(
-      city,
-      groundAt,
-      city.elapsed,
-      matchMedia("(prefers-reduced-motion: reduce)").matches,
-    );
+    powerupView.update(city, groundAt, city.elapsed, reducedMotion);
     if (characterModel)
       updateSpongeWaterState(
         characterModel,
@@ -873,9 +879,13 @@ function startGame(): void {
       groundAt(player.position.x, player.position.z),
       city.elapsed,
       city.selected,
-      matchMedia("(prefers-reduced-motion: reduce)").matches,
+      reducedMotion,
     );
-    canvas.dataset.emote = player.emote?.id ?? "";
+    const nextEmote = player.emote?.id ?? "";
+    if (currentEmote !== nextEmote) {
+      currentEmote = nextEmote;
+      canvas.dataset.emote = currentEmote;
+    }
     const powerVisualScale =
       city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1;
     world.character.scale.setScalar(

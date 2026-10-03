@@ -810,6 +810,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   );
   root.add(rain);
   const ray = new THREE.Raycaster();
+  const screenCenter = new THREE.Vector2();
   const droplets = new THREE.Group();
   for (let i = 0; i < 8; i++) ball(droplets, 0.12, [0, 0, 0], "water");
   root.add(droplets);
@@ -834,18 +835,22 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       return gameplayColliders(s, groundAt, architecture.visible);
     },
     target(s: CityState, camera: THREE.Camera): number | null {
-      ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+      ray.setFromCamera(screenCenter, camera);
       // Aim at the ground level around the player; nearby slopes are gentle.
       floor.constant = -playerGround;
       if (!ray.ray.intersectPlane(floor, point)) return null;
-      const nearest = [...s.plots].sort(
-        (a, b) =>
-          Math.hypot(a.x - point.x, a.z - point.z) -
-          Math.hypot(b.x - point.x, b.z - point.z),
-      )[0];
-      return Math.hypot(nearest.x - point.x, nearest.z - point.z) < 4.5
-        ? nearest.id
-        : null;
+      let nearestId: number | null = null;
+      let nearestDistanceSquared = Infinity;
+      for (const plot of s.plots) {
+        const dx = plot.x - point.x;
+        const dz = plot.z - point.z;
+        const distanceSquared = dx * dx + dz * dz;
+        if (distanceSquared < nearestDistanceSquared) {
+          nearestDistanceSquared = distanceSquared;
+          nearestId = plot.id;
+        }
+      }
+      return nearestDistanceSquared < 4.5 * 4.5 ? nearestId : null;
     },
     update(
       s: CityState,
