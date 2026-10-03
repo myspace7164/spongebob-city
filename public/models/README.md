@@ -26,9 +26,10 @@ represented by the existing shirt face assignments for glTF compatibility.
 The Blender source contains `Character Rig`, a bound 19-bone armature
 with torso, arm, leg, eye and jaw bones. Anatomical left is +X. The body and arms
 are skinned; eyes have rigid unit weights, and other accessories are bone-parented.
-The GLB contains evaluated static geometry plus Dry and WaterFull morph targets.
-It has no armature or animation clips yet; movement animation can be added later
-from the Blender source.
+The game GLB contains evaluated neutral-pose geometry plus Dry and WaterFull
+morph targets, with no armature or Blender animation clips. The game adds Idle
+and Walk motion through runtime pivots in `src/game/locomotion.ts`. Export ignores
+the Blender `Idle` and `Walk` Actions and restores them in the editable source.
 `scripts/create-character-armature.py` records the initial bone placement;
 it refuses to add a second armature.
 

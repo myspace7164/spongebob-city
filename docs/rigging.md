@@ -67,10 +67,12 @@ The Blender source includes looping `Idle` (frames 1-60) and in-place `Walk`
 body motion. Walk alternates the legs with opposite arm swing and small in-place
 foot travel. Both Actions were checked at Normal, Dry and WaterFull values; no
 severe deformation was observed. The project is saved at frame 1 with Idle
-active and both water keys at zero. The current GLB remains a static morph-target
-asset without a rig or animation clips. `scripts/create-locomotion-actions.py`
-creates and checks these Actions in Blender; local pose screenshots/reports and
-the pre-animation backup stay under `.hack/`.
+active and both water keys at zero. The game GLB is static morph-target geometry
+without an armature or Blender clips; the game adds motion through runtime pivots
+in `src/game/locomotion.ts`. Export bakes neutral-pose geometry and leaves the
+Blender Actions intact. `scripts/create-locomotion-actions.py` creates and checks
+those Actions in Blender; local pose screenshots/reports and the pre-animation
+backup stay under `.hack/`.
 
 ## Runtime locomotion
 
