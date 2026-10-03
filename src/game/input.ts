@@ -1,3 +1,4 @@
+import { emoteConfig } from "../../config/emotes";
 import { gameConfig } from "../../config/game";
 import type { MovementInput } from "../interfaces";
 
@@ -51,7 +52,13 @@ export class GameInput {
       if (event.repeat) return;
       if (code === "Space") this.jump = true;
       if (code === "KeyF") this.reload = true;
-      if (/^Digit[1-9]$/.test(code))
+      if (
+        /^Digit[1-9]$/.test(code) &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !this.emoteChord
+      )
         this.selection = Number(code.slice(-1)) - 1;
     });
     window.addEventListener("keyup", (event) => {
@@ -116,6 +123,9 @@ export class GameInput {
     };
     this.jump = false;
     return input;
+  }
+  get emoteChord(): boolean {
+    return this.held(`Key${emoteConfig.chord}`);
   }
   get sprinting(): boolean {
     return (

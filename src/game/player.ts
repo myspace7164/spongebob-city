@@ -1,3 +1,4 @@
+import { updateEmote } from "./emotes";
 import { gameConfig as config } from "../../config/game";
 import type { MovementInput, PlayerState } from "../interfaces";
 
@@ -19,6 +20,7 @@ export function updatePlayer(
   groundAt: (x: number, z: number) => number = () => 0,
   sprintMultiplier = 1,
 ): void {
+  updateEmote(player, input, dt);
   const length = Math.max(1, Math.hypot(input.forward, input.right));
   const speed = input.run
     ? config.runSpeed * sprintMultiplier

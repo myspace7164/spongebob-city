@@ -134,3 +134,15 @@ test("Shift held before capture and missing physical codes still sprint, then re
     assert.equal(input.consume().run, false);
   });
 });
+
+test("holding the emote chord prevents number keys from selecting inventory", () => {
+  withInput((input, target) => {
+    key(target, "keydown", "g", "KeyG");
+    key(target, "keydown", "4", "Digit4");
+    assert.equal(input.emoteChord, true);
+    assert.equal(input.consumeActions().selection, null);
+    key(target, "keyup", "g", "KeyG");
+    key(target, "keydown", "3", "Digit3");
+    assert.equal(input.consumeActions().selection, 2);
+  });
+});

@@ -1,3 +1,5 @@
+import { emoteConfig } from "../config/emotes";
+import { startEmote } from "./game/emotes";
 import { isToolAvailable } from "./game/progression";
 import * as THREE from "three";
 import "./ui/style.css";
@@ -156,6 +158,9 @@ function startGame(): void {
     }
     const me = room.players.find((p) => p.id === network.account?.id);
     if (me) {
+      player.emote = me.player.emote
+        ? structuredClone(me.player.emote)
+        : undefined;
       if (changedLevel || freshRoom) selected = me.selected;
       city.selected = selected;
       if (
@@ -289,6 +294,19 @@ function startGame(): void {
     if (!event.repeat && keyCode(event) === "KeyM") soundToggle.click();
     if (event.repeat || !input.active || city.outcome !== "playing") return;
     const code = keyCode(event);
+    if (
+      input.emoteChord &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      /^Digit[1-5]$/.test(code)
+    ) {
+      event.preventDefault();
+      const emote = emoteConfig.items[Number(code.slice(-1)) - 1];
+      startEmote(player, emote.id);
+      if (network.room) void network.action({ emote: emote.id, ready: true });
+      return;
+    }
     if (code === "KeyR") {
       reset();
       return;
@@ -513,6 +531,7 @@ function startGame(): void {
         network.room.players,
         network.account!.id,
         time / 1000,
+        matchMedia("(prefers-reduced-motion: reduce)").matches,
       );
       networkTime -= dt;
       if (networkTime <= 0) {
@@ -562,7 +581,9 @@ function startGame(): void {
       groundAt(player.position.x, player.position.z),
       city.elapsed,
       city.selected,
+      matchMedia("(prefers-reduced-motion: reduce)").matches,
     );
+    canvas.dataset.emote = player.emote?.id ?? "";
     world.character.scale.setScalar(
       city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1,
     );

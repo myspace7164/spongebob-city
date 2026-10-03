@@ -63,11 +63,14 @@ export function createWorld(scene: THREE.Scene) {
       groundY = 0,
       elapsed = 0,
       selected: CityTool = "absorb",
+      reducedMotion = false,
     ) {
       rig.update(
         elapsed,
         Math.hypot(player.velocity.x, player.velocity.z),
         player.grounded,
+        player.emote,
+        reducedMotion,
       );
       equipment.select(selected);
       const { x, y, z } = player.position;

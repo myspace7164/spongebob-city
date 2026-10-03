@@ -68,6 +68,19 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted rank
     await expect(b.locator("#city-change")).toContainText(
       /[1-9]\d* m² unsealed/,
     );
+    await a.keyboard.down("g");
+    await a.keyboard.press("4");
+    await a.keyboard.up("g");
+    await expect(a.locator("#game")).toHaveAttribute("data-emote", "dab");
+    await expect
+      .poll(async () => {
+        const response = await b.request.get("/api/room");
+        const { room } = await response.json();
+        return room.players.find(
+          (p: { username: string }) => p.username === username,
+        ).player.emote?.id;
+      })
+      .toBe("dab");
     await a.keyboard.press("Escape");
     await a.locator("#online-toggle").click();
     await expect(a.locator("#leaderboard-rows")).toContainText(username);

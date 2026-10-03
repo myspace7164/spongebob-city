@@ -30,7 +30,12 @@ export function createRemotePlayers(scene: THREE.Scene) {
     scene.remove(root);
   };
   return {
-    update(players: OnlinePlayer[], self: string, elapsed: number) {
+    update(
+      players: OnlinePlayer[],
+      self: string,
+      elapsed: number,
+      reducedMotion = false,
+    ) {
       const wanted = new Set(
         players.filter((p) => p.id !== self).map((p) => p.id),
       );
@@ -92,6 +97,8 @@ export function createRemotePlayers(scene: THREE.Scene) {
           elapsed,
           Math.hypot(p.player.velocity.x, p.player.velocity.z),
           p.player.grounded,
+          p.player.emote,
+          reducedMotion,
         );
         a.equipment.select(p.selected);
       }

@@ -5,7 +5,9 @@ export interface Vector3State {
   z: number;
 }
 /** Position is the character's feet; grounded means standing on the Y=0 plane. */
+export type EmoteKind = "six-seven" | "macarena" | "teabag" | "dab" | "floss";
 export interface PlayerState {
+  emote?: { id: EmoteKind; elapsed: number; remaining: number };
   position: Vector3State;
   velocity: Vector3State;
   grounded: boolean;
@@ -242,6 +244,7 @@ export interface RoomSnapshot {
 }
 /** Clients send input/actions, never city state, positions, funding or scores. */
 export interface OnlineCommand {
+  emote?: EmoteKind;
   movement?: MovementInput;
   yaw?: number;
   selected?: CityTool;

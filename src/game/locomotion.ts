@@ -1,3 +1,5 @@
+import { emotePose } from "./emotes";
+import type { PlayerState } from "../interfaces";
 import * as THREE from "three";
 import { equipmentConfig as c } from "../../config/equipment";
 import { themeColor } from "./characters";
@@ -219,7 +221,19 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
   const hand = imported ? c.importedHand : c.fallbackHand;
   rightHand.position.set(hand[0], hand[1], hand[2]);
   rightArm.add(rightHand);
-  const update = (time: number, speed: number, grounded: boolean) => {
+  const restPositionY = model.position.y,
+    restScale = model.scale.clone(),
+    restRotation = model.rotation.clone();
+  const update = (
+    time: number,
+    speed: number,
+    grounded: boolean,
+    emote?: PlayerState["emote"],
+    reducedMotion = false,
+  ) => {
+    model.position.y = restPositionY;
+    model.scale.copy(restScale);
+    model.rotation.copy(restRotation);
     const moving = speed > c.idleSpeed;
     const sprint = speed > 6;
     const swing =
@@ -247,9 +261,28 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
       leftArm.position.x =
         leftShoulderRestX + c.importedLeftShoulderOutset + morphClearance;
     }
-    rightLeg.rotation.x = -swing;
-    leftLeg.rotation.x = swing;
+    rightLeg.rotation.set(-swing, 0, 0);
+    leftLeg.rotation.set(swing, 0, 0);
     model.userData.gait = moving ? (sprint ? "sprint" : "walk") : "idle";
+    if (emote) {
+      const pose = emotePose(emote.id, reducedMotion ? 0.7 : emote.elapsed);
+      for (const [joint, angles] of [
+        [leftArm, pose.left],
+        [rightArm, pose.right],
+      ] as const) {
+        joint.rotation.x += angles[0];
+        joint.rotation.y += angles[1];
+        joint.rotation.z += angles[2];
+      }
+      leftLeg.rotation.x += pose.leftLeg;
+      rightLeg.rotation.x += pose.rightLeg;
+      model.position.y += pose.bob;
+      model.scale.y *= pose.squash;
+      model.rotation.x += pose.lean;
+      model.rotation.y += pose.yaw;
+      model.rotation.z += pose.roll;
+      model.userData.gait = `emote:${emote.id}`;
+    }
   };
   update(0, 0, true);
   return { rightHand, update };

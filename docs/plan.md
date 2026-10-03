@@ -188,4 +188,4 @@ Done when: either Shift key increases movement speed in solo and server-authorit
 Owner: @myspace7164
 Needs: T17
 Files: config/emotes.ts, src/interfaces.ts, src/game/emotes.ts, src/game/player.ts, src/game/locomotion.ts, src/game/world.ts, src/game/remote-players.ts, server/rooms.ts, src/main.ts, index.html, tests/emotes.test.ts, tests/browser/emotes.spec.ts
-Done when: Alt+1–5 triggers 67, Macarena, teabag, dab and floss on both character versions; poses animate briefly and cancel on movement/jump; the guide explains chords without extra HUD panels; co-op teammates see server-validated emotes.
+Done when: G+1–5 triggers 67, Macarena, teabag, dab and floss on both character versions; poses animate briefly and cancel on movement/jump; the guide explains chords without extra HUD panels; co-op teammates see server-validated emotes.

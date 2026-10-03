@@ -27,6 +27,7 @@ Open the local URL printed by Vite in a desktop WebGL 2 browser. Claim a unique 
 | E near Sandy / Dr. Beton           | Buy capacity and bubbles / disable sabotage                  |
 | Hold B after upgrade               | Bubble irrigation at extended range                          |
 | Q                                  | Activate the collected boost once                            |
+| G + 1–5                           | 67, Macarena, teabag, dab, floss; move/jump to cancel          |
 | H                                  | Pause and open the field guide                               |
 | M / Sound button                   | Mute or unmute game audio                                    |
 | C at source, then C at destination | Connect a roof/tank to permeable receiving ground or storage |
@@ -131,3 +132,5 @@ Walk over a ground collectible, then press **Q** to use it once. There is one sh
 The ten-drop pool includes six Basel boosts: Läckerli Rush (50% faster sprint, 14s), Confetti Funding (double grants, 18s), Rhine Flow (double water transfer, 16s), Basilisk Guard (block sabotage, 18s), Fasnacht Lantern (extra gradual cooling, 18s), and Münster Bell (double reach, 16s). Existing powers are also collectibles: Pore Power (1,400 L, 12s), Patrick Smash (automatic nearby unsealing, 12s), Maximum Sponge (4,000 L and area absorption, 8s), and Sandy Bubbles (hold B for distant watering, 18s).
 
 Capacity expiry preserves collected water. Sandy's permanent upgrade remains available. Pickups reset with each level/retry; co-op collection and activation are server-authoritative. Original miniature props and durations live in config/powerups.ts and src/game/powerup-view.ts.
+
+Emotes use the existing imported/fallback limb rig and replicate to co-op teammates. Hold G and press 1–5; they expire automatically without affecting city resources or player collision. Movement or jumping cancels them; reduced motion shows a still pose.

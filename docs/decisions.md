@@ -61,3 +61,5 @@ Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or area
 - 2026-10-03: Reconcile latest shared task cleanup and ground/tree rendering with English progressive inventory: entrance drying is removed, and roof routes are required only in the final level; retain all unlock rules and safety readings.
 
 - 2026-10-03: Preserve the shared gradual heat/fire system and English loss text. Lantern adds 0.02 °C/s cooling for its existing 18-second window within the shared temperature-change limit; boost expiry and co-op snapshots retain their existing rules.
+
+- 2026-10-03: Add optional timed emote state to PlayerState and validated emote commands to co-op. G+1–5 activates 67/Macarena/teabag/dab/floss; motion is visual only, cancels on movement/jump, and uses the existing imported/fallback rig. Reduced motion shows a still pose.

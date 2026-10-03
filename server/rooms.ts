@@ -1,3 +1,4 @@
+import { isEmoteId, startEmote } from "../src/game/emotes";
 import { isToolAvailable } from "../src/game/progression";
 import {
   collectPowerups,
@@ -200,6 +201,13 @@ export class Rooms {
         jump: input.jump === true,
       };
       m.input.yaw = command.yaw;
+    }
+    if (command.emote !== undefined) {
+      if (!isEmoteId(command.emote)) throw new Error("Unknown emote.");
+      if (room.city.outcome === "playing" && m.public.ready) {
+        startEmote(m.public.player, command.emote);
+        room.revision++;
+      }
     }
     if (command.powerup === true) {
       activatePowerup(room.city);
