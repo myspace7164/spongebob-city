@@ -65,6 +65,7 @@ interface Member {
   seen: number;
   lastAction: number;
   source: number | null;
+  playtimeBuffer: number;
 }
 interface Room {
   code: string;
@@ -192,6 +193,7 @@ export class Rooms {
         seen: Date.now(),
         lastAction: 0,
         source: null,
+        playtimeBuffer: 0,
       });
       this.membership.set(account.id, room.code);
     }
@@ -216,12 +218,20 @@ export class Rooms {
   leave(id: string): void {
     const room = this.room(id);
     if (!room) return;
+    const member = room.members.get(id);
+    if (member) this.flushPlaytime(id, member, true);
     room.members.delete(id);
     this.membership.delete(id);
     if (room.hostId === id)
       room.hostId = room.members.keys().next().value ?? "";
     if (!room.members.size) this.rooms.delete(room.code);
     else room.revision++;
+  }
+  private flushPlaytime(id: string, member: Member, final = false): void {
+    const seconds = Math.floor(member.playtimeBuffer + (final ? 0.5 : 0));
+    if (seconds <= 0) return;
+    member.playtimeBuffer -= seconds;
+    this.store.recordPlaytime(id, seconds);
   }
   command(id: string, command: OnlineCommand): void {
     const room = this.room(id),
@@ -238,6 +248,7 @@ export class Rooms {
       if (!command.ready) {
         m.input.movement = idle();
         m.source = null;
+        this.flushPlaytime(id, m, true);
       }
     }
     if (command.movement) {
@@ -389,6 +400,10 @@ export class Rooms {
           m.public.ready = false;
         }
         if (!m.public.ready) continue;
+        if (room.city.outcome === "playing") {
+          m.playtimeBuffer += dt;
+          this.flushPlaytime(id, m);
+        }
         active = true;
         collisionWorld.setDynamic([
           ...gameplayColliders(room.city, ground, this.buildings.length === 0),
@@ -467,6 +482,9 @@ export class Rooms {
           for (const id of room.members.keys())
             this.store.reward(id, `${room.run}:win:${id}`, 0, 1);
       }
+      if (room.city.outcome !== "playing")
+        for (const [id, member] of room.members)
+          this.flushPlaytime(id, member, true);
       room.revision++;
     }
   }

@@ -9,6 +9,8 @@ import {
   buildingColliders,
 } from "../src/game/collisions.ts";
 import { createPlayer } from "../src/game/player.ts";
+import { createCampaign, currentLevel } from "../src/game/campaign.ts";
+import { gameplayColliders } from "../src/game/world-colliders.ts";
 
 const playerRadius = gameConfig.playerCollisionRadius;
 const playerHeight = gameConfig.playerCollisionHeight;
@@ -110,6 +112,62 @@ test("building footprints are extracted as separate real 3D solids", () => {
   }
 });
 
+test("the in-world leaderboard sign is a solid obstacle that can be walked around", () => {
+  const city = createCampaign(() => 0);
+  const level = currentLevel(city)!;
+  const origin = level.origin ?? { x: 0, z: 0 };
+  const start = level.site?.start ?? [0, 0];
+  const signX = origin.x + start[0] - 4;
+  const signZ = origin.z + start[1] + 1;
+  const normalX = Math.sin(Math.atan2(4, -1));
+  const normalZ = Math.cos(Math.atan2(4, -1));
+  const sign = gameplayColliders(city, () => 0).find(
+    (collider) => collider.id === "leaderboard-sign",
+  );
+  assert.ok(sign);
+  assert.equal(sign.kind, "environment");
+  assert.equal(sign.minY, 0);
+  assert.equal(sign.maxY, 3.96);
+
+  const world = new CollisionWorld();
+  world.setStatic([sign]);
+  const player = createPlayer();
+  player.position.x = signX + normalX * 3;
+  player.position.z = signZ + normalZ * 3;
+  const result = world.move(
+    player,
+    -normalX * 6,
+    -normalZ * 6,
+    playerRadius,
+    playerHeight,
+  );
+  assert.ok(result.blockedX || result.blockedZ);
+  assert.ok(
+    Math.hypot(
+      player.position.x - (signX + normalX * 3),
+      player.position.z - (signZ + normalZ * 3),
+    ) < 5.5,
+  );
+
+  const around = createPlayer();
+  around.position.x = signX + normalX * 3;
+  around.position.z = signZ + normalZ * 3;
+  const tangentX = Math.cos(Math.atan2(4, -1));
+  const tangentZ = -Math.sin(Math.atan2(4, -1));
+  const slide = world.move(
+    around,
+    tangentX * 3,
+    tangentZ * 3,
+    playerRadius,
+    playerHeight,
+  );
+  assert.equal(slide.blockedX, false);
+  assert.equal(slide.blockedZ, false);
+  assert.ok(
+    Math.hypot(around.position.x - signX, around.position.z - signZ) > 2.9,
+  );
+});
+
 test("cosmetic hat and water state cannot change the fixed player collider", () => {
   const original = {
     radius: gameConfig.playerCollisionRadius,
@@ -124,6 +182,7 @@ test("cosmetic hat and water state cannot change the fixed player collider", () 
       "sailor",
       "wizard",
       "footballCap",
+      "diamondKingCrown",
     ]) {
       void state;
       void hat;

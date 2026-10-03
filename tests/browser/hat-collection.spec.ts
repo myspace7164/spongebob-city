@@ -1,16 +1,16 @@
 import { test, expect } from "@playwright/test";
 
-test("owned hats switch for free and persist on reload", async ({ page }) => {
+test("owned hats switch for free within the run and do not persist after reload", async ({
+  page,
+}) => {
   await page.route("**/models/basel-city.glb", (route) => route.abort());
   await page.goto("/");
   await page.evaluate(async () => {
     const campaignPath = "/src/game/campaign.ts";
     const hatsPath = "/src/game/hats.ts";
-    const storagePath = "/src/game/hat-collection.ts";
     const uiPath = "/src/ui/hat-shop.ts";
     const { createCampaign } = await import(campaignPath);
     const { purchaseHat } = await import(hatsPath);
-    const { saveHatCollection } = await import(storagePath);
     const { HatShopUI } = await import(uiPath);
     const state = createCampaign();
     state.budget = 2000;
@@ -19,9 +19,7 @@ test("owned hats switch for free and persist on reload", async ({ page }) => {
       () => state.campaign.equippedHat,
       () => state.campaign.ownedHats,
       (id: any) => {
-        const result = purchaseHat(state, id);
-        saveHatCollection(state, localStorage);
-        return result;
+        return purchaseHat(state, id);
       },
       () => {},
     );
@@ -39,12 +37,16 @@ test("owned hats switch for free and persist on reload", async ({ page }) => {
   );
   await expect(page.locator("#hat-shop-balance")).toHaveText("0");
   await page.reload();
+  await expect(page.locator("#game")).toHaveAttribute(
+    "data-equipped-hat",
+    "none",
+  );
   await page.locator("#open-hat-shop").click();
   await expect(page.locator('[data-hat="cowboy"] .hat-buy')).toHaveText(
-    "✓ EQUIPPED",
+    "BUY · 1,000",
   );
   await expect(page.locator('[data-hat="wizard"] .hat-buy')).toHaveText(
-    "EQUIP · OWNED",
+    "BUY · 1,000",
   );
 });
 

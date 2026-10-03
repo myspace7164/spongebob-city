@@ -5,7 +5,7 @@ export const hatPrice = 1000;
 export interface HatDefinition {
   id: HatId;
   name: string;
-  price: typeof hatPrice;
+  price: number;
   scale: number;
   offset: [number, number, number];
   rotation: [number, number, number];
@@ -59,6 +59,14 @@ export const hats: readonly HatDefinition[] = [
     price: hatPrice,
     scale: 0.92,
     offset: [0, 1.85, 0],
+    rotation: [0, 0, 0],
+  },
+  {
+    id: "diamondKingCrown",
+    name: "Diamond King Crown",
+    price: 4200,
+    scale: 0.96,
+    offset: [0, 1.84, 0],
     rotation: [0, 0, 0],
   },
 ];

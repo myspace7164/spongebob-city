@@ -17,6 +17,8 @@ const previews: Record<HatId, string> = {
     '<path d="M25 70q35-16 70 0" fill="none" stroke="#315fa5" stroke-width="11" stroke-linecap="round"/><path d="m37 66 17-49q7-18 16 1l16 49q-25-10-49-1Z" fill="#315fa5" stroke="#263443" stroke-width="4"/><path d="m51 48 5-8 5 8 9 1-7 6 2 8-9-4-8 4 2-9-7-5Z" fill="#e0e9f5"/><path d="m72 29 4-6 4 6 7 1-5 5 1 6-7-3-6 3 1-6-5-5Z" fill="#e0e9f5"/>',
   footballCap:
     '<path d="M27 57q4-38 34-38 31 0 34 38H27Z" fill="#1e5ca8" stroke="#263443" stroke-width="4"/><path d="M61 20q-19 2-25 28l25 8Z" fill="#d8333d"/><path d="M33 58q33-16 61 1 13 8-2 12-30 8-59-1-15-6 0-12Z" fill="#d8333d" stroke="#263443" stroke-width="4"/><path d="m61 31 8 11-8 13-8-13Z" fill="#faf3e5" stroke="#263443" stroke-width="2"/><path d="m61 36 3 6-4 7-4-7Z" fill="#d8333d"/>',
+  diamondKingCrown:
+    '<path d="M25 68 31 22l20 26 11-38 12 38 20-26 6 46Z" fill="#252a31" stroke="#b8c7d6" stroke-width="5" stroke-linejoin="round"/><path d="M25 68h75v13H25z" fill="#11151a" stroke="#d9e2ea" stroke-width="4"/><path d="M34 36q26 34 57 0M29 52q31 25 68 0" fill="none" stroke="#c7d0da" stroke-width="3"/><path d="m61 42 10 12-10 14-10-14Z" fill="#dff7ff" stroke="#fff" stroke-width="3"/><path d="m36 55 6 7-6 8-6-8Zm50 0 6 7-6 8-6-8Z" fill="#dff7ff" stroke="#fff" stroke-width="2"/><path d="m41 67 40 0" stroke="#aeb8c3" stroke-width="3"/>',
 };
 
 function previewSvg(id: HatId): string {
@@ -41,8 +43,17 @@ export class HatShopUI {
     this.cards.replaceChildren(
       ...hats.map((hat) => {
         const card = document.createElement("article");
-        card.className = "hat-card";
+        card.className =
+          hat.id === "diamondKingCrown"
+            ? "hat-card hat-card-premium"
+            : "hat-card";
         card.dataset.hat = hat.id;
+        if (hat.id === "diamondKingCrown") {
+          const badge = document.createElement("span");
+          badge.className = "hat-premium-badge";
+          badge.textContent = "💎 PREMIUM";
+          card.append(badge);
+        }
         const preview = document.createElement("div");
         preview.className = "hat-preview";
         preview.innerHTML = previewSvg(hat.id);
@@ -123,7 +134,7 @@ export class HatShopUI {
 
   private buy(id: HatId): void {
     if (this.purchase(id)) {
-      this.status.textContent = `${hats.find((hat) => hat.id === id)!.name} equipped! You keep every hat you buy.`;
+      this.status.textContent = `${hats.find((hat) => hat.id === id)!.name} equipped for this run. A loss clears it; coins are not refunded.`;
     } else {
       this.status.textContent = "Not enough coins for that hat.";
     }

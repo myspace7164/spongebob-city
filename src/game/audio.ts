@@ -138,6 +138,42 @@ export class CityAudio {
     );
   }
 
+  /** Short brass-like fanfare for finishing the full campaign. */
+  playCampaignVictory(): void {
+    if (this.muted) return;
+    try {
+      this.context ??= new AudioContext();
+      const context = this.context;
+      void context.resume().catch(() => {});
+      const notes = [523, 659, 784, 1047, 784, 1047];
+      for (const [index, frequency] of notes.entries()) {
+        const start = context.currentTime + index * 0.16;
+        const oscillator = context.createOscillator();
+        const filter = context.createBiquadFilter();
+        const gain = context.createGain();
+        oscillator.type = "sawtooth";
+        oscillator.frequency.setValueAtTime(frequency, start);
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(1700, start);
+        filter.Q.setValueAtTime(1.2, start);
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.1, start + 0.025);
+        gain.gain.setValueAtTime(0.1, start + 0.105);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.23);
+        oscillator.connect(filter).connect(gain).connect(context.destination);
+        oscillator.onended = () => {
+          oscillator.disconnect();
+          filter.disconnect();
+          gain.disconnect();
+        };
+        oscillator.start(start);
+        oscillator.stop(start + 0.24);
+      }
+    } catch {
+      // The campaign report remains available without Web Audio.
+    }
+  }
+
   private stopWheelSound(): void {
     for (const voice of this.wheelVoices) {
       try {

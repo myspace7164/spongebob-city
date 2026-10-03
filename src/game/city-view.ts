@@ -9,8 +9,10 @@ import type {
   CityPlot,
   CityState,
   CityTool,
+  LeaderboardEntry,
   PlayerState,
 } from "../interfaces.ts";
+import { formatPlaytime } from "./time-format.ts";
 import { cityMetrics, spongeCapacity, weather } from "./city.ts";
 import { activeModifier } from "./level-modifiers.ts";
 import { currentLevel, validDrain } from "./campaign.ts";
@@ -577,10 +579,113 @@ function makeLaserBeam(parent: THREE.Object3D, side: "L" | "R"): THREE.Group {
   return beam;
 }
 
+function createLeaderboardSign(parent: THREE.Group) {
+  const root = new THREE.Group();
+  root.name = "TopFiveLeaderboardSign";
+  parent.add(root);
+  const wood = new THREE.MeshStandardMaterial({
+    color: themeColor("wood"),
+    roughness: 0.86,
+  });
+  const frame = new THREE.MeshStandardMaterial({
+    color: themeColor("aqua-deep"),
+    roughness: 0.7,
+  });
+  const screen = document.createElement("canvas");
+  screen.width = 1024;
+  screen.height = 768;
+  const context = screen.getContext("2d")!;
+  const texture = new THREE.CanvasTexture(screen);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+
+  for (const x of [-1.28, 1.28]) {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.7, 0.24), wood);
+    post.position.set(x, 0.85, 0);
+    post.castShadow = true;
+    post.name = "LeaderboardSign_Post";
+    root.add(post);
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.12, 0.56), wood);
+    foot.position.set(x, 0.06, 0);
+    foot.name = "LeaderboardSign_Foot";
+    root.add(foot);
+  }
+  const board = new THREE.Mesh(new THREE.BoxGeometry(3.25, 2.75, 0.2), frame);
+  board.position.set(0, 2.58, 0);
+  board.castShadow = true;
+  board.name = "LeaderboardSign_Board";
+  root.add(board);
+  const display = new THREE.Mesh(
+    new THREE.PlaneGeometry(3.02, 2.52),
+    new THREE.MeshBasicMaterial({ map: texture, toneMapped: false }),
+  );
+  display.position.set(0, 2.58, 0.106);
+  display.name = "LeaderboardSign_Screen";
+  root.add(display);
+
+  const update = (entries: readonly LeaderboardEntry[] | null) => {
+    context.clearRect(0, 0, screen.width, screen.height);
+    const gradient = context.createLinearGradient(
+      0,
+      0,
+      screen.width,
+      screen.height,
+    );
+    gradient.addColorStop(0, "#effcff");
+    gradient.addColorStop(1, "#b8e8ee");
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, screen.width, screen.height);
+    context.fillStyle = "#075677";
+    context.fillRect(0, 0, screen.width, 128);
+    context.fillStyle = "#ffe542";
+    context.font = "900 58px Trebuchet MS, Verdana, sans-serif";
+    context.textAlign = "center";
+    context.fillText("TOP 5 CITY HEROES", 512, 76);
+    context.fillStyle = "#eaffff";
+    context.font = "700 25px Trebuchet MS, Verdana, sans-serif";
+    context.fillText("LONGEST ACTIVE PLAYTIME", 512, 112);
+
+    if (entries === null) {
+      context.fillStyle = "#183e55";
+      context.font = "700 32px Trebuchet MS, Verdana, sans-serif";
+      context.fillText("Leaderboard unavailable", 512, 440);
+    } else if (entries.length === 0) {
+      context.fillStyle = "#183e55";
+      context.font = "700 31px Trebuchet MS, Verdana, sans-serif";
+      context.fillText("No scores yet — be the first hero!", 512, 440);
+    } else {
+      entries.slice(0, 5).forEach((entry, index) => {
+        const y = 148 + index * 120;
+        if (index % 2 === 0) {
+          context.fillStyle = "#ffffffa8";
+          context.fillRect(24, y, 976, 112);
+        }
+        context.textAlign = "left";
+        context.fillStyle = index === 0 ? "#ad7617" : "#075677";
+        context.font = "900 38px Trebuchet MS, Verdana, sans-serif";
+        context.fillText(`#${index + 1}`, 54, y + 48);
+        context.fillStyle = "#183e55";
+        context.font = "900 34px Trebuchet MS, Verdana, sans-serif";
+        context.fillText(entry.username, 170, y + 46, 500);
+        context.fillStyle = "#284b5e";
+        context.font = "700 25px Trebuchet MS, Verdana, sans-serif";
+        context.textAlign = "right";
+        context.fillStyle = "#875314";
+        context.font = "900 29px Trebuchet MS, Verdana, sans-serif";
+        context.fillText(formatPlaytime(entry.playSeconds), 970, y + 66);
+      });
+    }
+    texture.needsUpdate = true;
+  };
+  update(null);
+  return { root, update };
+}
+
 /** Bounded procedural city; only rebuild props when plot kind or tree health changes. */
 export function createCityView(scene: THREE.Scene, state: CityState) {
   const root = new THREE.Group();
   scene.add(root);
+  const leaderboard = createLeaderboardSign(root);
   const updateFireView = createCityFireView(root);
   const plotViews = state.plots.map((p) => {
     const tile = new THREE.Group();
@@ -829,6 +934,9 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       importedLevel = true;
       architecture.visible = false;
     },
+    setLeaderboard(entries: readonly LeaderboardEntry[] | null) {
+      leaderboard.update(entries);
+    },
     /** Only intended footprints block movement; labels, rain, fire and effects stay non-solid. */
     colliders(s: CityState): SolidCollider[] {
       return gameplayColliders(s, groundAt, architecture.visible);
@@ -864,6 +972,15 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       root.position.set(origin.x, 0, origin.z);
       root.updateWorldMatrix(true, false);
       const ground = (x: number, z: number) => groundAt(x, z);
+      const start = level?.site?.start ?? [0, 0];
+      const boardX = start[0] - 4;
+      const boardZ = start[1] + 1;
+      leaderboard.root.position.set(
+        boardX,
+        ground(origin.x + boardX, origin.z + boardZ),
+        boardZ,
+      );
+      leaderboard.root.rotation.y = Math.atan2(4, -1);
       playerGround = ground(player.position.x, player.position.z);
       const targetPlot = s.plots.find((p) => p.id === targetId);
       const buildKind = BUILD_KIND[s.selected];

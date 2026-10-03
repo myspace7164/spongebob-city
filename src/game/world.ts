@@ -4,7 +4,7 @@ import type { PlayerState, CityTool } from "../interfaces.ts";
 import { makeCharacter } from "./characters.ts";
 import { createLocomotion } from "./locomotion.ts";
 import { createHeldTools } from "./held-tools.ts";
-import { createHatModel, disposeHatModel } from "./hats.ts";
+import { createHatModel, disposeHatModel, updateHatSparkles } from "./hats.ts";
 import type { HatId } from "../interfaces.ts";
 
 /** Fixed-size visuals that follow the player; world geometry never accumulates. */
@@ -91,6 +91,7 @@ export function createWorld(scene: THREE.Scene) {
         player.emote,
         reducedMotion,
       );
+      updateHatSparkles(wearableHat, elapsed);
       equipment.select(selected);
       const { x, y, z } = player.position;
       const height = y - groundY;

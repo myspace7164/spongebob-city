@@ -17,7 +17,8 @@ export function gameplayColliders(
   groundAt: (x: number, z: number) => number,
   includeFallbackArchitecture = false,
 ): SolidCollider[] {
-  const origin = currentLevel(state)?.origin ?? { x: 0, z: 0 };
+  const level = currentLevel(state);
+  const origin = level?.origin ?? { x: 0, z: 0 };
   const solids: SolidCollider[] = [];
   for (const plot of state.plots) {
     const y = plot.elevation ?? groundAt(plot.x, plot.z);
@@ -91,6 +92,26 @@ export function gameplayColliders(
       );
     }
   }
+  // Match the in-world TopFiveLeaderboardSign transform in city-view.ts.
+  // The board, posts and feet form one narrow physical footprint so players
+  // can read it from the front and walk around either side.
+  const start = level?.site?.start ?? [0, 0];
+  const signX = origin.x + start[0] - 4;
+  const signZ = origin.z + start[1] + 1;
+  const signGround = groundAt(signX, signZ);
+  solids.push(
+    boxCollider(
+      "leaderboard-sign",
+      signX,
+      signZ,
+      1.65,
+      0.3,
+      signGround,
+      signGround + 3.96,
+      Math.atan2(4, -1),
+      "environment",
+    ),
+  );
   for (const [index, actor] of cast.entries()) {
     const kind = actor.id;
     const { x: worldX, z: worldZ } = castPosition(state, index);

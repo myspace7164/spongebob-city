@@ -61,10 +61,7 @@ import {
   effectivePlayerVisualScale,
   modifierMultiplier,
 } from "./game/level-modifiers.ts";
-import {
-  restoreHatCollection,
-  saveHatCollection,
-} from "./game/hat-collection.ts";
+import { clearSavedHatCollection } from "./game/hat-collection.ts";
 import { purchaseHat } from "./game/hats.ts";
 import { HatShopUI } from "./ui/hat-shop.ts";
 import { CollisionDebugView } from "./game/collision-debug.ts";
@@ -115,7 +112,6 @@ function startGame(): void {
     if (document.hidden) audio.update(false, false);
   });
   let city = createCampaign();
-  restoreHatCollection(city, localStorage);
   world.equipHat(city.campaign?.equippedHat ?? null);
   canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";
   const spawnPlayer = () => {
@@ -130,7 +126,7 @@ function startGame(): void {
   let player = spawnPlayer();
   let checkpoint = structuredClone(city);
   let storyPending = true;
-  const campaignUI = new CampaignUI();
+  const campaignUI = new CampaignUI(() => audio.playCampaignVictory());
   const modifierWheel = new ModifierWheelUI(
     () => city,
     () => audio.playWheelStart(),
@@ -216,19 +212,23 @@ function startGame(): void {
   const network = new OnlineConnection(receiveRoom, (text) =>
     onlineUI.status(text),
   );
-  const onlineUI = new OnlineUI(network, receiveRoom, () => {
-    remotePlayers.clear();
-    receivedCode = null;
-    city = createCampaign();
-    restoreHatCollection(city, localStorage);
-    world.equipHat(city.campaign?.equippedHat ?? null);
-    canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";
-    checkpoint = structuredClone(city);
-    player = spawnPlayer();
-    storyPending = true;
-    placeScenery();
-    menu.hidden = false;
-  });
+  const onlineUI = new OnlineUI(
+    network,
+    receiveRoom,
+    () => {
+      remotePlayers.clear();
+      receivedCode = null;
+      city = createCampaign();
+      world.equipHat(city.campaign?.equippedHat ?? null);
+      canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";
+      checkpoint = structuredClone(city);
+      player = spawnPlayer();
+      storyPending = true;
+      placeScenery();
+      menu.hidden = false;
+    },
+    (entries) => cityView.setLeaderboard(entries),
+  );
   function receiveRoom(room: RoomSnapshot | null): void {
     onlineUI?.renderRoom(room);
     if (!room) {
@@ -243,12 +243,15 @@ function startGame(): void {
     receivedCode = room.code;
     const ledger = city.funding;
     const previousHat = city.campaign?.equippedHat ?? null;
+    const previousOwnedHats = [...(city.campaign?.ownedHats ?? [])];
     city = room.city;
     const nextHat = city.campaign?.equippedHat ?? null;
     if (previousHat !== nextHat) {
       world.equipHat(nextHat);
       canvas.dataset.equippedHat = nextHat ?? "none";
     }
+    if (city.outcome === "lost" && previousOwnedHats.length > 0)
+      clearSavedHatCollection(localStorage);
     if (hatShop.open) hatShop.render();
     city.selected = selected;
     if (!changedLevel && !freshRoom) {
@@ -314,7 +317,6 @@ function startGame(): void {
         return true;
       }
       if (!purchaseHat(city, id)) return false;
-      saveHatCollection(city, localStorage);
       world.equipHat(id);
       canvas.dataset.equippedHat = id;
       checkpoint.budget = city.budget;
@@ -683,31 +685,18 @@ function startGame(): void {
       !campaignUI.open &&
       !modifierWheel.open &&
       city.outcome === "playing";
+    let clickRequested = false;
+    let networkMovement: ReturnType<GameInput["consume"]> | null = null;
     if (active) {
       input.updateLook(dt);
       const actions = input.consumeActions();
+      clickRequested = actions.use;
       if (actions.selection !== null) {
         const tool = cityTools[actions.selection];
         if (isToolAvailable(city, tool.id)) selected = city.selected = tool.id;
         else
           city.feedback = `${tool.name} is locked. Complete this level to unlock more tools.`;
       }
-      const machine = city.saboteur;
-      if (
-        actions.use &&
-        city.selected === "karate" &&
-        Math.hypot(
-          player.position.x - machine.x,
-          player.position.z - machine.z,
-        ) <= cityConfig.reach
-      )
-        act("machine");
-      else if (
-        actions.use &&
-        city.selected !== "absorb" &&
-        city.selected !== "spray"
-      )
-        act(city.selected);
       accumulator += dt;
       while (accumulator >= gameConfig.fixedStep) {
         const movement = input.consume();
@@ -785,6 +774,7 @@ function startGame(): void {
         const wasWheelPending = city.campaign!.wheelPending;
         if (!network.room) {
           const hatBeforeUpdate = city.campaign!.equippedHat;
+          const ownedHatsBeforeUpdate = [...(city.campaign!.ownedHats ?? [])];
           collisions.setDynamic([
             ...cityView.colliders(city),
             circleCollider(
@@ -804,11 +794,18 @@ function startGame(): void {
             collisions,
             groundAt,
           );
-          if (hatBeforeUpdate && city.campaign!.equippedHat === null) {
+          if (
+            city.outcome === "lost" &&
+            (hatBeforeUpdate !== null || ownedHatsBeforeUpdate.length > 0)
+          ) {
             world.equipHat(null);
             canvas.dataset.equippedHat = "none";
+            clearSavedHatCollection(localStorage);
             checkpoint.budget = city.budget;
-            if (checkpoint.campaign) checkpoint.campaign.equippedHat = null;
+            if (checkpoint.campaign) {
+              checkpoint.campaign.equippedHat = null;
+              checkpoint.campaign.ownedHats = [];
+            }
           }
         }
         if (city.campaign!.level !== previousLevel) {
@@ -870,23 +867,7 @@ function startGame(): void {
           : { forward: 0, right: 0, run: false, jump: false };
         movement.jump = pendingJump;
         pendingJump = false;
-        void network.command({
-          movement,
-          yaw: input.yaw,
-          selected: city.selected,
-          ready: active,
-          ...(active &&
-          (input.using || input.held("KeyB")) &&
-          (city.selected === "absorb" ||
-            city.selected === "spray" ||
-            input.held("KeyB"))
-            ? {
-                action: input.held("KeyB") ? "spray" : city.selected,
-                target: targetId,
-                bubbles: input.held("KeyB"),
-              }
-            : {}),
-        });
+        networkMovement = movement;
       }
       if (!network.connected && input.active) document.exitPointerLock();
     }
@@ -948,6 +929,37 @@ function startGame(): void {
     }
     camera.updateMatrixWorld();
     targetId = cityView.target(city, camera);
+    if (active && clickRequested && city.outcome === "playing") {
+      const machine = city.saboteur;
+      if (
+        city.selected === "karate" &&
+        Math.hypot(
+          player.position.x - machine.x,
+          player.position.z - machine.z,
+        ) <= cityConfig.reach
+      )
+        act("machine");
+      else if (city.selected !== "absorb" && city.selected !== "spray")
+        act(city.selected);
+    }
+    if (network.room && networkMovement)
+      void network.command({
+        movement: networkMovement,
+        yaw: input.yaw,
+        selected: city.selected,
+        ready: active,
+        ...(active &&
+        (input.using || input.held("KeyB")) &&
+        (city.selected === "absorb" ||
+          city.selected === "spray" ||
+          input.held("KeyB"))
+          ? {
+              action: input.held("KeyB") ? "spray" : city.selected,
+              target: targetId,
+              bubbles: input.held("KeyB"),
+            }
+          : {}),
+      });
     cityView.update(
       city,
       player,

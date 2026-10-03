@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import type { HatId } from "../../src/interfaces";
-import { hatPrice, hats } from "../../config/hats.ts";
+import { hats } from "../../config/hats.ts";
 import { registerTestAccount } from "./account-fixture";
 import { enterCampaign } from "./campaign-entry";
 
-test("the main menu sells six hats, equips one immediately, and charges each purchase", async ({
+test("the main menu sells seven hats, equips one immediately, and charges each purchase", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -14,12 +14,12 @@ test("the main menu sells six hats, equips one immediately, and charges each pur
   await expect(page.locator("#open-hat-shop")).toBeVisible();
   await page.locator("#open-hat-shop").click();
   await expect(page.locator("#hat-shop")).toBeVisible();
-  await expect(page.locator(".hat-card")).toHaveCount(6);
-  await expect(page.locator(".hat-preview svg")).toHaveCount(6);
+  await expect(page.locator(".hat-card")).toHaveCount(7);
+  await expect(page.locator(".hat-preview svg")).toHaveCount(7);
   await expect(page.locator("#hat-shop-balance")).toHaveText("2,200");
   for (const hat of hats) {
     await expect(page.locator(`[data-hat="${hat.id}"] .hat-price`)).toHaveText(
-      `🪙 ${hatPrice.toLocaleString("en-US")} coins`,
+      `🪙 ${hat.price.toLocaleString("en-US")} coins`,
     );
   }
 
@@ -129,6 +129,7 @@ test("insufficient funds disable purchase and rapid activation cannot double-cha
     const shop = new HatShopUI(
       () => state.budget,
       () => state.campaign!.equippedHat,
+      () => state.campaign!.ownedHats ?? [],
       (id: HatId) => purchaseHat(state, id),
       () => {},
     );

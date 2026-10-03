@@ -176,12 +176,18 @@ export interface CampaignProgress {
   wheelPending: boolean;
   pendingModifier: LevelModifierId | null;
   activeModifier: LevelModifierId | null;
-  /** Purchased hats remain available across levels and retries. */
+  /** Run-purchased hats persist through levels and clear after a loss. */
   ownedHats?: HatId[];
   equippedHat: HatId | null;
 }
 export type HatId =
-  "trafficCone" | "cowboy" | "newspaper" | "sailor" | "wizard" | "footballCap";
+  | "trafficCone"
+  | "cowboy"
+  | "newspaper"
+  | "sailor"
+  | "wizard"
+  | "footballCap"
+  | "diamondKingCrown";
 export type LevelModifierId =
   | "speedBoost"
   | "waterBoost"
@@ -277,8 +283,7 @@ export interface Account {
 }
 export interface LeaderboardEntry {
   username: string;
-  funding: number;
-  campaigns: number;
+  playSeconds: number;
 }
 export interface OnlinePlayer extends Account {
   player: PlayerState;

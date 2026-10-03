@@ -1,5 +1,6 @@
 import { onlineRequest, OnlineConnection } from "../game/network.ts";
 import type { Account, RoomSnapshot, LeaderboardEntry } from "../interfaces.ts";
+import { formatPlaytime } from "../game/time-format.ts";
 const el = (id: string) => document.getElementById(id)!;
 export class OnlineUI {
   available = false;
@@ -7,10 +8,14 @@ export class OnlineUI {
     private connection: OnlineConnection,
     private joined: (room: RoomSnapshot) => void,
     private left: () => void,
+    private leaderboardUpdated: (
+      entries: readonly LeaderboardEntry[] | null,
+    ) => void = () => {},
   ) {
     el("online-toggle").addEventListener("click", () => {
       document.exitPointerLock();
-      this.show();
+      if (this.connection.account) this.show();
+      else this.promptForName();
     });
     el("online-close").addEventListener("click", () => this.hide());
     el("account-form").addEventListener("submit", (event) => {
@@ -74,15 +79,16 @@ export class OnlineUI {
       el("online-toggle").textContent = account
         ? `🧽 ${account.username} · PLAY ONLINE`
         : "🧽 CLAIM YOUR NAME · PLAY ONLINE";
+      void this.loadLeaderboard();
     } catch {
+      this.leaderboardUpdated(null);
       this.status("Online server unavailable. Solo practice is available.");
       el("online-toggle").textContent = "ONLINE UNAVAILABLE · SOLO PRACTICE";
     }
   }
   requireAccount(): boolean {
     if (this.available && !this.connection.account) {
-      this.show();
-      this.status("Claim your unique username to start.");
+      this.promptForName();
       return false;
     }
     return true;
@@ -90,6 +96,15 @@ export class OnlineUI {
   status(message: string): void {
     el("online-status").textContent = message;
     el("connection-status").textContent = message;
+    el("name-status").textContent = message;
+  }
+  private promptForName(): void {
+    el("menu").hidden = false;
+    (el("player-name-details") as HTMLDetailsElement).open = true;
+    el("username").focus({ preventScroll: true });
+    this.status(
+      "Choose a character name to play online and appear on the leaderboard.",
+    );
   }
   show(): void {
     el("online-panel").hidden = false;
@@ -112,6 +127,10 @@ export class OnlineUI {
     el("account-form").hidden = !!account;
     el("online-controls").hidden = !account;
     el("account-name").textContent = account
+      ? `CHARACTER NAME: ${account.username}`
+      : "NAME YOUR CHARACTER";
+    (el("player-name-details") as HTMLDetailsElement).open = false;
+    el("online-account-name").textContent = account
       ? `YOU ARE ${account.username}`
       : "PICK YOUR SPONGE NAME";
     el("online-close").textContent = account ? "Back to game" : "Back";
@@ -142,14 +161,14 @@ export class OnlineUI {
       const { entries } = await onlineRequest<{ entries: LeaderboardEntry[] }>(
         "leaderboard",
       );
+      const topFive = entries.slice(0, 5);
       el("leaderboard-rows").replaceChildren(
-        ...entries.map((entry, i) => {
+        ...topFive.map((entry, i) => {
           const row = document.createElement("tr");
           for (const value of [
             `${i + 1}`,
             entry.username,
-            entry.campaigns.toLocaleString("en"),
-            entry.funding.toLocaleString("en"),
+            formatPlaytime(entry.playSeconds),
           ]) {
             const cell = document.createElement("td");
             cell.textContent = value;
@@ -158,8 +177,10 @@ export class OnlineUI {
           return row;
         }),
       );
-      el("leaderboard-empty").hidden = entries.length > 0;
+      el("leaderboard-empty").hidden = topFive.length > 0;
+      this.leaderboardUpdated(topFive);
     } catch {
+      this.leaderboardUpdated(null);
       el("leaderboard-empty").textContent =
         "Leaderboard unavailable. Reconnect to try again.";
     }

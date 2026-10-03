@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
 import { hatPrice, hats } from "../config/hats.ts";
-import { createHatModel, purchaseHat } from "../src/game/hats.ts";
+import {
+  createHatModel,
+  purchaseHat,
+  updateHatSparkles,
+} from "../src/game/hats.ts";
 import {
   createCampaign,
   startNextCampaignLevel,
@@ -10,9 +14,14 @@ import {
 import { createPlayer } from "../src/game/player.ts";
 import { updateCity } from "../src/game/city.ts";
 
-test("the six hat catalogue entries all cost exactly 1,000 coins", () => {
-  assert.equal(hats.length, 6);
-  assert.ok(hats.every((hat) => hat.price === 1000));
+test("six standard hats cost 1,000 and the premium crown costs 4,200", () => {
+  assert.equal(hats.length, 7);
+  assert.ok(
+    hats
+      .filter((hat) => hat.id !== "diamondKingCrown")
+      .every((hat) => hat.price === 1000),
+  );
+  assert.equal(hats.find((hat) => hat.id === "diamondKingCrown")?.price, 4200);
   assert.equal(hatPrice, 1000);
 });
 
@@ -40,7 +49,7 @@ test("2,500 coins become 1,500 and buying a second hat charges again", () => {
   assert.equal(state.campaign!.equippedHat, "wizard");
 });
 
-test("loss preserves owned hats, selection and the remaining coin balance", () => {
+test("loss clears hats without refunding their cost or changing remaining coins", () => {
   const state = createCampaign();
   state.budget = 1735;
   purchaseHat(state, "sailor");
@@ -48,9 +57,28 @@ test("loss preserves owned hats, selection and the remaining coin balance", () =
   state.temperature = 61;
   updateCity(state, 1 / 60, { x: 0, y: 0, z: 0 });
   assert.equal(state.outcome, "lost");
-  assert.equal(state.campaign!.equippedHat, "sailor");
-  assert.deepEqual(state.campaign!.ownedHats, ["sailor"]);
+  assert.equal(state.campaign!.equippedHat, null);
+  assert.deepEqual(state.campaign!.ownedHats, []);
   assert.equal(state.budget, 735);
+});
+
+test("Diamond King Crown requires and charges exactly 4,200 coins", () => {
+  const short = createCampaign();
+  short.budget = 4199;
+  assert.equal(purchaseHat(short, "diamondKingCrown"), false);
+  assert.equal(short.budget, 4199);
+  assert.equal(short.campaign!.equippedHat, null);
+
+  const exact = createCampaign();
+  exact.budget = 4200;
+  assert.equal(purchaseHat(exact, "diamondKingCrown"), true);
+  assert.equal(exact.budget, 0);
+  assert.equal(exact.campaign!.equippedHat, "diamondKingCrown");
+
+  const remainder = createCampaign();
+  remainder.budget = 5000;
+  assert.equal(purchaseHat(remainder, "diamondKingCrown"), true);
+  assert.equal(remainder.budget, 800);
 });
 
 test("every hat is real 3D geometry and does not alter player collision state", () => {
@@ -67,6 +95,16 @@ test("every hat is real 3D geometry and does not alter player collision state", 
   assert.deepEqual(player, before);
 });
 
+test("Diamond King Crown has occasional sparkle meshes", () => {
+  const crown = createHatModel("diamondKingCrown");
+  const sparkles = crown.userData.sparkles as THREE.Mesh[];
+  assert.equal(sparkles.length, 2);
+  updateHatSparkles(crown, 0);
+  assert.equal(sparkles.filter((sparkle) => sparkle.visible).length, 1);
+  updateHatSparkles(crown, 3.31);
+  assert.ok(sparkles.some((sparkle) => sparkle.visible));
+});
+
 test("owned hats can be selected with zero coins and never charge twice", () => {
   const state = createCampaign();
   state.budget = 2000;
@@ -80,34 +118,17 @@ test("owned hats can be selected with zero coins and never charge twice", () => 
   assert.equal(state.campaign!.equippedHat, "cowboy");
 });
 
-test("solo collection round-trips and ignores invalid saved hats", async () => {
-  const { saveHatCollection, restoreHatCollection } =
+test("loss removes any legacy persisted hat collection", async () => {
+  const { clearSavedHatCollection } =
     await import("../src/game/hat-collection.ts");
-  let value = "";
+  let value = '{"owned":["cowboy"],"equipped":"cowboy"}';
   const storage = {
-    getItem: () => value,
-    setItem: (_key: string, next: string) => {
-      value = next;
+    removeItem: () => {
+      value = "";
     },
   };
-  const state = createCampaign();
-  state.budget = 2000;
-  purchaseHat(state, "cowboy");
-  purchaseHat(state, "wizard");
-  saveHatCollection(state, storage);
-  const reloaded = createCampaign();
-  restoreHatCollection(reloaded, storage);
-  assert.deepEqual(reloaded.campaign!.ownedHats, ["cowboy", "wizard"]);
-  assert.equal(reloaded.campaign!.equippedHat, "wizard");
-  value = JSON.stringify({
-    owned: ["invalid", "cowboy", "cowboy"],
-    equipped: "invalid",
-  });
-  restoreHatCollection(reloaded, storage);
-  assert.deepEqual(reloaded.campaign!.ownedHats, ["cowboy"]);
-  assert.equal(reloaded.campaign!.equippedHat, null);
-  value = "broken";
-  assert.doesNotThrow(() => restoreHatCollection(reloaded, storage));
+  clearSavedHatCollection(storage);
+  assert.equal(value, "");
 });
 
 test("level transitions preserve the owned collection and selection", () => {

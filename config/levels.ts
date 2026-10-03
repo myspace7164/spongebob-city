@@ -67,6 +67,7 @@ const riehenringLayout = [
   spot(9, -40, "facade"),
 ];
 export const campaignConfig = {
+  laterLevelCoinGrant: 1000,
   roofReleaseRate: 8,
   overflowRate: 60,
   basinInfiltrationRate: 90,

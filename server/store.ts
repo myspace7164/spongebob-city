@@ -8,10 +8,17 @@ export class AccountStore {
   constructor(path: string) {
     this.db = new DatabaseSync(path);
     this.db.exec(`PRAGMA journal_mode=WAL;
-      CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, username TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE, funding INTEGER NOT NULL DEFAULT 0, campaigns INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, username TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE, funding INTEGER NOT NULL DEFAULT 0, campaigns INTEGER NOT NULL DEFAULT 0, play_seconds INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id), expires INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS rewards (claim TEXT PRIMARY KEY, account_id TEXT NOT NULL);
     `);
+    const columns = this.db.prepare("PRAGMA table_info(accounts)").all() as {
+      name: string;
+    }[];
+    if (!columns.some((column) => column.name === "play_seconds"))
+      this.db.exec(
+        "ALTER TABLE accounts ADD COLUMN play_seconds INTEGER NOT NULL DEFAULT 0",
+      );
   }
   create(username: unknown): { account: Account; token: string } {
     if (
@@ -67,10 +74,17 @@ export class AccountStore {
       throw error;
     }
   }
+  recordPlaytime(id: string, seconds: number): void {
+    const elapsed = Math.floor(seconds);
+    if (elapsed <= 0) return;
+    this.db
+      .prepare("UPDATE accounts SET play_seconds=play_seconds+? WHERE id=?")
+      .run(elapsed, id);
+  }
   leaderboard(): LeaderboardEntry[] {
     const rows = this.db
       .prepare(
-        "SELECT username,funding,campaigns FROM accounts WHERE funding>0 OR campaigns>0 ORDER BY campaigns DESC,funding DESC,name_key ASC LIMIT 50",
+        "SELECT username,play_seconds AS playSeconds FROM accounts WHERE play_seconds>0 ORDER BY play_seconds DESC,name_key ASC LIMIT 50",
       )
       .all() as unknown as LeaderboardEntry[];
     return rows.map((row) => ({ ...row }));

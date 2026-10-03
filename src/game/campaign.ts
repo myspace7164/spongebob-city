@@ -2,7 +2,10 @@ import {
   baselLocations,
   levelLocationPools,
 } from "../../config/level-locations.ts";
-import { campaignConfig as c, cityLevels } from "../../config/levels.ts";
+import {
+  campaignConfig as campaignTuning,
+  cityLevels,
+} from "../../config/levels.ts";
 import { cityConfig, cityTools } from "../../config/city.ts";
 import type {
   NpcId,
@@ -201,7 +204,7 @@ function shadeCluster(s: CityState): number {
       for (const p of remaining) {
         if (
           Math.hypot(queue[i].x - p.x, queue[i].z - p.z) <=
-          c.shadeNeighbourDistance
+          campaignTuning.shadeNeighbourDistance
         ) {
           remaining.delete(p);
           queue.push(p);
@@ -282,6 +285,7 @@ export function startNextCampaignLevel(s: CityState): boolean {
     progress.level >= cityLevels.length - 1
   )
     return false;
+  const nextLevel = progress.level + 1;
   const next = {
     locations: progress.locations ? [...progress.locations] : undefined,
     level: progress.level + 1,
@@ -296,5 +300,9 @@ export function startNextCampaignLevel(s: CityState): boolean {
   };
   Object.assign(s, createCity(), { campaign: next });
   applyLayout(s, currentLevel(s)!);
+  if (nextLevel >= 1) {
+    s.budget += campaignTuning.laterLevelCoinGrant;
+    s.feedback = `Level ${nextLevel + 1} supply grant: +${campaignTuning.laterLevelCoinGrant} coins.`;
+  }
   return true;
 }

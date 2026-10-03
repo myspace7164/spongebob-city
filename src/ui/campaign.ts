@@ -9,7 +9,10 @@ const element = (id: string) => document.getElementById(id)!;
 export class CampaignUI {
   private panel = element("campaign-story");
   private speech = new StorySpeech(element("story-mascot"));
-  constructor() {
+  private celebration = element("campaign-celebration");
+  private previousOutcome: CityState["outcome"] = "playing";
+  private celebrationShown = false;
+  constructor(private playVictory: () => void = () => {}) {
     const mascot = document
       .querySelector(".hero-sponge")!
       .cloneNode(true) as SVGElement;
@@ -24,6 +27,10 @@ export class CampaignUI {
       event.preventDefault();
       (document.activeElement === body ? start : body).focus();
     });
+    element("celebration-dismiss").addEventListener("click", () => {
+      this.celebration.hidden = true;
+      element("restart").focus({ preventScroll: true });
+    });
   }
   get open(): boolean {
     return !this.panel.hidden;
@@ -31,6 +38,7 @@ export class CampaignUI {
   hide(): void {
     this.speech.stop();
     this.panel.hidden = true;
+    this.celebration.hidden = true;
   }
   setMuted(muted: boolean): void {
     this.speech.setMuted(muted);
@@ -66,6 +74,15 @@ export class CampaignUI {
         ? `Real street: ${level.site.street}`
         : "Placeholder layout · geography pending";
     this.renderRoute(s, element("campaign-route"));
+    if (s.outcome === "won" && !this.celebrationShown) {
+      this.celebrationShown = true;
+      this.celebration.hidden = false;
+      this.playVictory();
+      this.createConfetti();
+    } else if (s.outcome !== "won") {
+      this.celebrationShown = false;
+      this.celebration.hidden = true;
+    }
     if (s.outcome === "won") {
       element("result-title").textContent = endingStory.title;
       element("result-reason").textContent = "Plot by plot. Level by level.";
@@ -84,6 +101,22 @@ export class CampaignUI {
     }
     element("restart").textContent =
       s.outcome === "lost" ? "Retry this level ↻" : "Play the campaign again ↻";
+  }
+  private createConfetti(): void {
+    const layer = this.celebration.querySelector<HTMLElement>(
+      ".celebration-confetti",
+    )!;
+    layer.replaceChildren();
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const colors = ["#ffcf33", "#f45b50", "#24b8c5", "#60bd69", "#9f76e8"];
+    for (let i = 0; i < 72; i++) {
+      const piece = document.createElement("i");
+      piece.style.setProperty("--confetti-x", `${(i * 47) % 100}vw`);
+      piece.style.setProperty("--confetti-color", colors[i % colors.length]!);
+      piece.style.setProperty("--confetti-delay", `${(i % 12) * -0.13}s`);
+      piece.style.setProperty("--confetti-rotate", `${(i * 67) % 360}deg`);
+      layer.append(piece);
+    }
   }
   private renderRoute(s: CityState, container: HTMLElement): void {
     container.replaceChildren(

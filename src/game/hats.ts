@@ -331,7 +331,191 @@ function footballCap(hat: THREE.Group): void {
   );
 }
 
-/** Buy once, then equip owned hats without spending more coins. */
+function diamondKingCrown(hat: THREE.Group): void {
+  const leather = new THREE.MeshStandardMaterial({
+    color: 0x11151b,
+    roughness: 0.48,
+    metalness: 0.16,
+  });
+  const silver = new THREE.MeshStandardMaterial({
+    color: 0xc7d0da,
+    roughness: 0.22,
+    metalness: 0.88,
+  });
+  const darkSilver = new THREE.MeshStandardMaterial({
+    color: 0x56616c,
+    roughness: 0.32,
+    metalness: 0.82,
+  });
+  const diamond = new THREE.MeshPhysicalMaterial({
+    color: 0xdff7ff,
+    roughness: 0.08,
+    metalness: 0.16,
+    clearcoat: 1,
+    clearcoatRoughness: 0.04,
+    emissive: 0x4a9db1,
+    emissiveIntensity: 0.08,
+  });
+
+  add(
+    hat,
+    "DiamondKing_LeatherBand",
+    new THREE.CylinderGeometry(0.37, 0.41, 0.24, 32),
+    leather,
+    [0, 0.14, 0],
+  );
+  for (const [name, y, radius, thickness, surface] of [
+    ["DiamondKing_BottomRim", 0.025, 0.405, 0.028, silver],
+    ["DiamondKing_TopRim", 0.26, 0.37, 0.022, silver],
+  ] as const) {
+    const rim = add(
+      hat,
+      name,
+      new THREE.TorusGeometry(radius, thickness, 8, 36),
+      surface,
+      [0, y, 0],
+    );
+    rim.rotation.x = Math.PI / 2;
+  }
+
+  const points: THREE.Vector3[] = [];
+  const pointHeights = [0.87, 0.67, 0.77, 0.66, 0.8, 0.66, 0.75];
+  for (let i = 0; i < pointHeights.length; i++) {
+    const angle = (i / pointHeights.length) * Math.PI * 2;
+    const x = Math.sin(angle) * 0.34;
+    const z = Math.cos(angle) * 0.34;
+    const height = pointHeights[i];
+    const stem = add(
+      hat,
+      `DiamondKing_PeakFrame_${i + 1}`,
+      new THREE.CylinderGeometry(0.018, 0.037, height - 0.28, 8),
+      silver,
+      [x, (height + 0.28) / 2, z],
+    );
+    stem.rotation.x = Math.cos(angle) * 0.12;
+    stem.rotation.z = -Math.sin(angle) * 0.12;
+    add(
+      hat,
+      `DiamondKing_Point_${i + 1}`,
+      new THREE.ConeGeometry(0.075, 0.19, 6),
+      silver,
+      [x, height, z],
+    );
+    points.push(new THREE.Vector3(x, height - 0.06, z));
+    const gem = add(
+      hat,
+      `DiamondKing_Setting_${i + 1}`,
+      new THREE.OctahedronGeometry(i === 0 ? 0.13 : 0.072, 0),
+      diamond,
+      [x, height - 0.22, z + 0.025],
+      [0.8, 1.18, 0.72],
+    );
+    gem.rotation.set(0.12, angle, 0.18);
+  }
+
+  for (let i = 0; i < points.length; i++) {
+    const start = points[i];
+    const end = points[(i + 1) % points.length];
+    const midpoint = start.clone().add(end).multiplyScalar(0.5);
+    midpoint.y = 0.38 + (i % 2) * 0.035;
+    const chain = new THREE.Mesh(
+      new THREE.TubeGeometry(
+        new THREE.CatmullRomCurve3([start, midpoint, end]),
+        12,
+        0.014,
+        5,
+        false,
+      ),
+      darkSilver,
+    );
+    chain.name = `DiamondKing_PointedChain_${i + 1}`;
+    hat.add(chain);
+  }
+
+  for (let i = 0; i < 14; i++) {
+    const angle = (i / 14) * Math.PI * 2;
+    const link = add(
+      hat,
+      `DiamondKing_BandRing_${i + 1}`,
+      new THREE.TorusGeometry(0.035, 0.009, 5, 8),
+      i % 2 ? darkSilver : silver,
+      [Math.sin(angle) * 0.401, 0.14, Math.cos(angle) * 0.401],
+      [1, 1, 0.75],
+      [Math.cos(angle) * 0.4, 0, -Math.sin(angle) * 0.4],
+    );
+    link.rotation.z += Math.PI / 2;
+  }
+
+  const buckle = add(
+    hat,
+    "DiamondKing_FrontBuckle",
+    new THREE.BoxGeometry(0.25, 0.19, 0.055),
+    silver,
+    [0, 0.14, 0.397],
+  );
+  add(
+    hat,
+    "DiamondKing_BuckleInset",
+    new THREE.BoxGeometry(0.17, 0.12, 0.025),
+    leather,
+    [0, 0.14, 0.431],
+  );
+  buckle.castShadow = true;
+  for (const [name, x] of [
+    ["DiamondKing_SideClasp_L", -0.28],
+    ["DiamondKing_SideClasp_R", 0.28],
+  ] as const) {
+    const clasp = add(
+      hat,
+      name,
+      new THREE.TorusGeometry(0.06, 0.014, 6, 14),
+      silver,
+      [x, 0.14, 0.285],
+    );
+    clasp.rotation.x = Math.PI / 2;
+  }
+
+  const sparkleMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.92,
+    toneMapped: false,
+    depthWrite: false,
+  });
+  const sparkles = [
+    add(
+      hat,
+      "DiamondKing_Sparkle_1",
+      starGeometry(4),
+      sparkleMaterial,
+      [0.1, 0.57, 0.435],
+      [0.8, 0.8, 1],
+    ),
+    add(
+      hat,
+      "DiamondKing_Sparkle_2",
+      starGeometry(4),
+      sparkleMaterial,
+      [-0.25, 0.48, 0.37],
+      [0.56, 0.56, 1],
+    ),
+  ];
+  sparkles.forEach((sparkle) => (sparkle.visible = false));
+  hat.userData.sparkles = sparkles;
+}
+
+/** Occasional deterministic glints keep premium diamonds lively without particles. */
+export function updateHatSparkles(
+  hat: THREE.Group | null,
+  elapsed: number,
+): void {
+  const sparkles = (hat?.userData.sparkles as THREE.Mesh[] | undefined) ?? [];
+  sparkles.forEach((sparkle, index) => {
+    sparkle.visible = (elapsed + index * 2.7) % 6 < 0.16;
+  });
+}
+
+/** Purchase a hat once per run; owned hats can be switched without another charge. */
 export function purchaseHat(state: CityState, id: HatId): boolean {
   if (!state.campaign || state.outcome !== "playing") return false;
   const owned = (state.campaign.ownedHats ??= state.campaign.equippedHat
@@ -369,6 +553,9 @@ export function createHatModel(id: HatId): THREE.Group {
       break;
     case "footballCap":
       footballCap(group);
+      break;
+    case "diamondKingCrown":
+      diamondKingCrown(group);
       break;
   }
   const definition = hatDefinition(id);

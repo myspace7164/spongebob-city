@@ -21,11 +21,13 @@ test("unique account names, opaque sessions and leaderboard rewards survive reop
     store.reward(account.id, "server-event-1", 40);
     store.reward(account.id, "server-event-1", 40);
     store.reward(account.id, "server-win", 0, 1);
+    store.recordPlaytime(account.id, 93);
+    store.recordPlaytime(account.id, 0.8);
     store.close();
     store = new AccountStore(path);
     assert.equal(store.account(token)?.id, account.id);
     assert.deepEqual(store.leaderboard(), [
-      { username: "TestSponge", funding: 40, campaigns: 1 },
+      { username: "TestSponge", playSeconds: 93 },
     ]);
   } finally {
     store.close();
@@ -57,6 +59,9 @@ test("co-op shares legal construction, refuses client scores/positions and limit
       yaw: 0,
     });
     for (let i = 0; i < 14; i++) rooms.tick(0.1);
+    assert.deepEqual(store.leaderboard(), [
+      { username: "AlphaSponge", playSeconds: 1 },
+    ]);
     rooms.command(a.id, {
       movement: { forward: 0, right: 0, run: false, jump: false },
       yaw: 0,
@@ -70,7 +75,7 @@ test("co-op shares legal construction, refuses client scores/positions and limit
     rooms.command(a.id, { equippedHat: "wizard" });
     assert.equal(rooms.current(a.id)!.city.budget, hatBalance);
     assert.deepEqual(rooms.current(a.id)!.city.campaign!.ownedHats, ["wizard"]);
-    assert.equal(store.leaderboard()[0].funding, 40);
+    assert.equal(store.leaderboard()[0].playSeconds, 1);
     assert.equal(
       rooms.current(a.id)!.city.funding.earned,
       rooms.current(b.id)!.city.funding.earned,
@@ -82,7 +87,7 @@ test("co-op shares legal construction, refuses client scores/positions and limit
       budget: 999999,
     } as never);
     assert.deepEqual(rooms.current(a.id)!.players[0].player.position, before);
-    assert.equal(store.leaderboard()[0].funding, 40);
+    assert.equal(store.leaderboard()[0].playSeconds, 1);
     assert.throws(
       () =>
         rooms.command(a.id, {
@@ -99,6 +104,41 @@ test("co-op shares legal construction, refuses client scores/positions and limit
     );
     rooms.leave(a.id);
     assert.equal(rooms.current(b.id)!.hostId, b.id);
+  } finally {
+    store.close();
+  }
+});
+test("opening an old account database adds the playtime column", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "sponge-old-accounts-")),
+    path = join(dir, "accounts.sqlite");
+  const { DatabaseSync } = await import("node:sqlite");
+  const oldDb = new DatabaseSync(path);
+  oldDb.exec(
+    "CREATE TABLE accounts (id TEXT PRIMARY KEY, username TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE, funding INTEGER NOT NULL DEFAULT 0, campaigns INTEGER NOT NULL DEFAULT 0)",
+  );
+  oldDb.close();
+  const store = new AccountStore(path);
+  try {
+    const player = store.create("ReturnPlayer").account;
+    store.recordPlaytime(player.id, 9);
+    assert.equal(store.leaderboard()[0].playSeconds, 9);
+  } finally {
+    store.close();
+    rmSync(dir, { recursive: true });
+  }
+});
+test("leaderboard ranks cumulative active playtime rather than funding or wins", () => {
+  const store = new AccountStore(":memory:");
+  try {
+    const longer = store.create("LongerPlayer").account;
+    const winner = store.create("WinningPlayer").account;
+    store.reward(winner.id, "campaign-one", 100000, 20);
+    store.recordPlaytime(longer.id, 3601);
+    store.recordPlaytime(winner.id, 3600);
+    assert.deepEqual(store.leaderboard(), [
+      { username: "LongerPlayer", playSeconds: 3601 },
+      { username: "WinningPlayer", playSeconds: 3600 },
+    ]);
   } finally {
     store.close();
   }
@@ -208,6 +248,26 @@ test("authoritative cooperative movement honors Shift sprint", () => {
       sprint = players.find((p) => p.id === b.id)!.player;
     assert.ok(Math.hypot(sprint.velocity.x, sprint.velocity.z) > 8.5);
     assert.ok(Math.hypot(walk.velocity.x, walk.velocity.z) < 5.1);
+  } finally {
+    store.close();
+  }
+});
+
+test("the leaderboard records a player's partial active session when they pause", () => {
+  const store = new AccountStore(":memory:"),
+    rooms = new Rooms(store);
+  try {
+    const account = store.create("BriefSession").account;
+    rooms.create(account);
+    rooms.command(account.id, {
+      ready: true,
+      movement: { forward: 0, right: 0, jump: false, run: false },
+      yaw: 0,
+    });
+    for (let i = 0; i < 6; i++) rooms.tick(0.1);
+    rooms.command(account.id, { ready: false });
+    assert.equal(store.leaderboard()[0].username, "BriefSession");
+    assert.equal(store.leaderboard()[0].playSeconds, 1);
   } finally {
     store.close();
   }
