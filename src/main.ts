@@ -8,7 +8,13 @@ import { createWorld } from "./game/world";
 import { loadModel, updateSpongeWaterState } from "./game/assets";
 import { spongeCapacity, updateCity, weather } from "./game/city";
 import { loadMapLayers } from "./game/map-layers";
-import { connectRunoff, createCampaign, recyclePlot } from "./game/campaign";
+import {
+  connectRunoff,
+  createCampaign,
+  currentLevel,
+  recyclePlot,
+} from "./game/campaign";
+import { clampToLevel, sceneryPose } from "./game/streets";
 import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
@@ -50,6 +56,20 @@ function startGame(): void {
   const campaignUI = new CampaignUI();
   let characterModel: THREE.Group | null = null;
   const cityView = createCityView(scene, city);
+  // Basel buildings, roads and photo move together so each level's street meets the play area.
+  const scenery = new THREE.Group();
+  scene.add(scenery);
+  const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
+  let sceneryLoaded = false;
+  const placeScenery = () => {
+    const site = currentLevel(city)?.site;
+    const pose = sceneryPose(site);
+    scenery.rotation.y = pose.rotationY;
+    scenery.position.set(pose.x, 0, pose.z);
+    if (sceneryLoaded)
+      levelStatus.textContent = `Basel buildings loaded · ${site ? site.street : "fictional mission square"}`;
+  };
+  placeScenery();
   const ui = new CityUI((tool) => {
     city.selected = tool;
     ui.render(city, targetId, inReach());
@@ -76,6 +96,7 @@ function startGame(): void {
     city =
       city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
     checkpoint = structuredClone(city);
+    placeScenery();
     storyPending = true;
     campaignUI.hide();
     input.clear();
@@ -191,7 +212,6 @@ function startGame(): void {
       "Graphics connection lost. Reload this page to restart.";
   });
   async function addAssets(): Promise<void> {
-    const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
     for (const [name, config] of Object.entries({
       character: gameConfig.character,
       level: gameConfig.level,
@@ -209,12 +229,12 @@ function startGame(): void {
           world.character.remove(world.placeholder);
           world.character.add(model);
         } else {
-          scene.add(model);
+          scenery.add(model);
           cityView.useImportedLevel();
-          void loadMapLayers(scene, canvas);
+          void loadMapLayers(scenery, canvas);
           canvas.dataset.level = "loaded";
-          levelStatus.textContent =
-            "Basel buildings loaded · fictional mission square";
+          sceneryLoaded = true;
+          placeScenery();
         }
       } catch (error) {
         if (name === "level") {
@@ -261,17 +281,8 @@ function startGame(): void {
       accumulator += dt;
       while (accumulator >= gameConfig.fixedStep) {
         updatePlayer(player, input.consume(), input.yaw, gameConfig.fixedStep);
-        // The playable square has flat-ground bounds, so the mission stays in reach.
-        player.position.x = THREE.MathUtils.clamp(
-          player.position.x,
-          cityConfig.bounds.minX,
-          cityConfig.bounds.maxX,
-        );
-        player.position.z = THREE.MathUtils.clamp(
-          player.position.z,
-          cityConfig.bounds.minZ,
-          cityConfig.bounds.maxZ,
-        );
+        // Flat ground has no building collisions, so walking stays on the level's street.
+        clampToLevel(player.position, currentLevel(city)?.site);
         if (
           input.using &&
           !input.held("KeyB") &&
@@ -306,6 +317,7 @@ function startGame(): void {
           accumulator = 0;
           hudTime = 0;
           checkpoint = structuredClone(city);
+          placeScenery();
           storyPending = true;
           showStory();
           break;

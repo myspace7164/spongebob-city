@@ -137,6 +137,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   const entrances = new THREE.Group();
   root.add(routes, entrances);
   let campaignSignature = "";
+  let importedLevel = false;
   for (const [kind, text, x, z] of [
     ["patrick", "Patrick · P: unseal", -11, -3],
     ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
@@ -201,6 +202,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   return {
     useImportedLevel() {
+      importedLevel = true;
       architecture.visible = false;
     },
     target(s: CityState, camera: THREE.Camera): number | null {
@@ -232,7 +234,13 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         root.remove(sign);
         sign.material.map?.dispose();
         sign.material.dispose();
-        sign = label(`${level?.location ?? "BARFÜSSERPLATZ"} · PLACEHOLDER`);
+        sign = label(
+          level?.site
+            ? level.site.street.toUpperCase()
+            : `${level?.location ?? "BARFÜSSERPLATZ"} · PLACEHOLDER`,
+        );
+        // The stand-in square would block a real street when the Basel model is missing.
+        architecture.visible = !importedLevel && !level?.site;
         sign.position.set(0, 6, -27);
         root.add(sign);
         for (const p of s.plots) {
@@ -335,6 +343,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       birds.visible = healthy >= 2;
       birds.position.x = Math.sin(s.elapsed * 0.4) * 2;
       rain.visible = rainy;
+      // Rain covers the area around the player, so it also falls further down a street.
+      rain.position.set(player.position.x, 0, player.position.z + 15);
       const attribute = rainGeometry.getAttribute("position");
       for (let i = 0; i < 180; i++)
         attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);

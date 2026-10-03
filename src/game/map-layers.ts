@@ -84,7 +84,7 @@ export function imageryGeometry(bounds: RoadNetwork["bounds"]) {
 
 /** Road and imagery failures are independent; roads remain available without photos. */
 export async function loadMapLayers(
-  scene: THREE.Scene,
+  scene: THREE.Object3D,
   canvas: HTMLCanvasElement,
 ) {
   canvas.dataset.roads = "loading";

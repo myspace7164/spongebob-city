@@ -1,6 +1,7 @@
 import { updateWater } from "./city-water";
 import { advanceCampaign, currentLevel } from "./campaign";
 import { cityConfig as c, cityTools, plotCooling } from "../../config/city";
+import { siteTechniques } from "../../config/sites";
 import type {
   CityAction,
   CityMetrics,
@@ -198,6 +199,13 @@ function act(
   }
   if (currentLevel(s)?.entranceIds.includes(p.id))
     return "Keep this marked entrance clear. Absorb its puddle and deliver the water elsewhere.";
+  const site = p.site && siteTechniques[p.site];
+  if (site && action !== "karate" && !site.builds.includes(action)) {
+    const fits = site.builds.map(
+      (id) => cityTools.find((t) => t.id === id)!.name,
+    );
+    return `${site.hint}${fits.length ? ` Fits here: ${fits.join(", ")}.` : ""}`;
+  }
   if (action === "karate" && p.kind !== "asphalt")
     return "Already unsealed. Choose a tree, rain garden or other upgrade.";
   if (action === "tree" && p.kind !== "soil")

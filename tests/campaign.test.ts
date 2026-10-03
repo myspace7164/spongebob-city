@@ -23,6 +23,14 @@ const total = (s: CityState) =>
   s.evaporated +
   s.infiltrated +
   s.plots.reduce((n, p) => n + p.surface + p.moisture + p.stored, 0);
+/** Generic rule tests use a placeholder grid without street-site limits. */
+const onPlaceholderLevel = (s: CityState, level: number) => {
+  s.campaign!.level = level;
+  for (const p of s.plots) {
+    Object.assign(p, cityLevels[level].layout[p.id]);
+    delete p.site;
+  }
+};
 const connect = (s: CityState, from: number, to: number) => {
   connectRunoff(s, from, at(s, from));
   connectRunoff(s, to, at(s, to));
@@ -66,6 +74,7 @@ test("entrances cannot be built on, including Patrick's multi-plot action", () =
 
 test("runoff requires reachable safe destinations, rejects loops and conserves water with saturated ground", () => {
   const s = createCampaign();
+  onPlaceholderLevel(s, 1);
   for (const [id, kind] of [
     [0, "roof"],
     [1, "tank"],
@@ -121,7 +130,7 @@ test("recycling restores build choices without creating money or deleting retain
 
 test("separated shaded plots do not satisfy a connected shade zone", () => {
   const s = createCampaign();
-  s.campaign!.level = 2;
+  onPlaceholderLevel(s, 2);
   act(s, "shade", at(s, 0), 0);
   act(s, "shade", at(s, 14), 14);
   const goal = () =>
