@@ -2,7 +2,7 @@
 
 ## Status
 
-Implementation is on branch `feat/solid-world-collision`. Production build and all 101 Node tests pass. Two-browser Playwright verification confirms both clients load the Blender SpongeBob GLB for remote players. Full browser verification, privacy guard, commit, merge to `main`, and push remain.
+Implementation is on `main` at commit `096f83b`. Production build and all 101 Node tests pass. The focused two-browser Playwright check confirms both clients load the Blender SpongeBob GLB for remote players. Privacy guard, commit, fast-forward merge and push all completed.
 
 ## Changes
 
@@ -24,11 +24,9 @@ Implementation is on branch `feat/solid-world-collision`. Production build and a
 - `npm test` passed: 101 tests.
 - Two-browser Playwright co-op test passed with both clients reporting one remote Blender-based SpongeBob.
 - Playwright `hat shop opens from gameplay` passed in Chromium after aborting the unrelated 23 MB Basel map request for this UI-only test.
-- The full browser run remains red: 10 passed, 3 failed, and 1 was interrupted after 3.9 minutes (18 did not run). Failures include campaign wheel/briefing timing and an audio expectation for `spray.wav`; the focused multiplayer test passes.
+- The full browser run is incomplete: 10 passed, 3 failed, 1 was interrupted after 3.9 minutes, and 18 did not run. Failures include campaign wheel/briefing timing and a missing `spray.wav` expectation; the focused multiplayer test passes.
 
 ## Remaining
 
-- Review the unrelated full-browser failures before a later broad browser-suite claim.
-- Doc check and `git diff --check` passed.
-- Run staged privacy guard; never stage `.blend`/`.glb` untracked files.
-- Commit verified changes on this branch, update from remote `main` without rebasing, merge fast-forward, then push `main` as authorized.
+- The full browser-suite failures remain outside the focused co-op and collision checks; do not describe the full browser suite as passing.
+- `assets/blender/spongebob1.blend` and `spongebob1.glb` remain local and unstaged.
