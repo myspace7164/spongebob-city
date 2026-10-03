@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { groundCategories, groundStyle as style } from "../../config/ground";
+import { groundCategories, groundStyle as style } from "../../config/ground.ts";
 
 /** One land-cover texture tile and where it lies in map-local metres. */
 export interface GroundTile {

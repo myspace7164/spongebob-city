@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { makeCharacter } from "./characters";
-import { createLocomotion } from "./locomotion";
-import { createHeldTools } from "./held-tools";
-import type { OnlinePlayer } from "../interfaces";
+import { makeCharacter } from "./characters.ts";
+import { createLocomotion } from "./locomotion.ts";
+import { createHeldTools } from "./held-tools.ts";
+import type { OnlinePlayer } from "../interfaces.ts";
 export function createRemotePlayers(scene: THREE.Scene) {
   const avatars = new Map<
     string,

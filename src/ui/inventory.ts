@@ -1,5 +1,5 @@
-import type { InventoryState } from "../interfaces";
-import { itemConfig } from "../../config/items";
+import type { InventoryState } from "../interfaces.ts";
+import { itemConfig } from "../../config/items.ts";
 
 /** Render inventory only when selection, quantities or feedback change. */
 export class InventoryUI {

@@ -1,4 +1,4 @@
-import type { CityTool } from "../src/interfaces";
+import type { CityTool } from "../src/interfaces.ts";
 /** Unlocks introduce only techniques that the current campaign needs. Levels are one-based. */
 export const toolUnlockLevel: Record<CityTool, number> = {
   absorb: 1,

@@ -1,8 +1,8 @@
-import { emotePose } from "./emotes";
-import type { PlayerState } from "../interfaces";
+import { emotePose } from "./emotes.ts";
+import type { PlayerState } from "../interfaces.ts";
 import * as THREE from "three";
-import { equipmentConfig as c } from "../../config/equipment";
-import { themeColor } from "./characters";
+import { equipmentConfig as c } from "../../config/equipment.ts";
+import { themeColor } from "./characters.ts";
 
 /** Split triangles into a pivot while preserving every morph/vertex attribute. */
 function limb(

@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { box, ball, themeColor } from "./characters";
-import { powerupConfig } from "../../config/powerups";
-import type { CityState, PowerupKind } from "../interfaces";
+import { box, ball, themeColor } from "./characters.ts";
+import { powerupConfig } from "../../config/powerups.ts";
+import type { CityState, PowerupKind } from "../interfaces.ts";
 /** Six original miniature props: biscuit, confetti, river, guardian, lantern and bell. */
 export function createPowerupView(scene: THREE.Scene) {
   const root = new THREE.Group();

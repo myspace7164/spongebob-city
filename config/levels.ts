@@ -1,5 +1,5 @@
-import type { CityLevel, LevelSite, SiteType } from "../src/interfaces";
-import { cityConfig } from "./city";
+import type { CityLevel, LevelSite, SiteType } from "../src/interfaces.ts";
+import { cityConfig } from "./city.ts";
 
 /** User-supplied story; all layouts and thresholds are fictional until maps arrive. */
 /** Separate fictional stages; these offsets are not geographic coordinates. */

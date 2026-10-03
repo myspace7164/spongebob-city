@@ -1,4 +1,4 @@
-import type { CityTool, PlotKind } from "../src/interfaces";
+import type { CityTool, PlotKind } from "../src/interfaces.ts";
 
 /** Fictional demo coefficients supplied for gameplay, not a climate forecast. */
 export const cityConfig = {
@@ -103,19 +103,19 @@ export const cityTools: readonly {
     cost: 30,
   },
   {
-    id: "tree",
-    name: "Plant tree",
-    icon: "🌳",
-    description: "Plant on unsealed soil, then water it for cooling.",
-    cost: 110,
-  },
-  {
     id: "basin",
     name: "Rain garden",
     icon: "🌱",
     description:
       "A planted infiltration basin absorbs runoff and cools the square.",
     cost: 90,
+  },
+  {
+    id: "tree",
+    name: "Plant tree",
+    icon: "🌳",
+    description: "Plant on unsealed soil, then water it for cooling.",
+    cost: 110,
   },
   {
     id: "roof",
@@ -125,19 +125,19 @@ export const cityTools: readonly {
     cost: 140,
   },
   {
-    id: "pond",
-    name: "Small pond",
-    icon: "🦆",
-    description: "Retain rain and attract wildlife. Fill with sponge water.",
-    cost: 130,
-  },
-  {
     id: "shade",
     name: "Shade plaza",
     icon: "⛱️",
     description:
       "Shaded permeable seating cools the square even during drought.",
     cost: 100,
+  },
+  {
+    id: "pond",
+    name: "Small pond",
+    icon: "🦆",
+    description: "Retain rain and attract wildlife. Fill with sponge water.",
+    cost: 130,
   },
   {
     id: "tank",

@@ -1,5 +1,5 @@
-import { cityConfig } from "../../config/city";
-import type { LevelSite, Vector3State } from "../interfaces";
+import { cityConfig } from "../../config/city.ts";
+import type { LevelSite, Vector3State } from "../interfaces.ts";
 
 /** Real streets confine walking to their corridor; placeholder levels keep the square. */
 export function clampToLevel(

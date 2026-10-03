@@ -1,5 +1,5 @@
-import { powerupConfig } from "../../config/powerups";
-import type { CityState } from "../interfaces";
+import { powerupConfig } from "../../config/powerups.ts";
+import type { CityState } from "../interfaces.ts";
 /** One slot: carried charge, active countdown, or empty. */
 export class PowerupUI {
   private buttons: HTMLButtonElement[] = [];

@@ -1,7 +1,7 @@
-import { isPowerupActive } from "./powerups";
-import { cityConfig as c } from "../../config/city";
-import { betonConfig as b } from "../../config/beton";
-import type { CityState } from "../interfaces";
+import { isPowerupActive } from "./powerups.ts";
+import { cityConfig as c } from "../../config/city.ts";
+import { betonConfig as b } from "../../config/beton.ts";
+import type { CityState } from "../interfaces.ts";
 
 function waypoint(s: CityState): void {
   const v = s.saboteur;

@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { betonConfig } from "../../config/beton";
-import { finishSideCharacter } from "./side-character-details";
+import { betonConfig } from "../../config/beton.ts";
+import { finishSideCharacter } from "./side-character-details.ts";
 
 export function themeColor(name: string): THREE.Color {
   return new THREE.Color(
@@ -130,10 +130,12 @@ export function makeCharacter(
     kind === "sandy" ? "wood" : color,
   );
   for (const x of [-0.18, 0.18]) {
-    box(g, [0.17, 0.4, 0.17], [x, 0.3, 0], color);
+    box(g, [0.17, 0.4, 0.17], [x, 0.3, 0], color).name =
+      `${x < 0 ? "right" : "left"}-leg-mesh`;
     ball(g, 0.11, [x, 1.73, 0.34], "white");
     ball(g, 0.045, [x, 1.73, 0.43], "ink");
     const arm = box(g, [0.19, 0.6, 0.2], [x * 3.4, 1.02, 0], color);
+    arm.name = `${x < 0 ? "right" : "left"}-arm-mesh`;
     arm.rotation.z = x > 0 ? 0.6 : -0.6;
   }
   if (kind === "patrick") box(g, [0.78, 0.32, 0.65], [0, 0.62, 0], "grass");
@@ -833,23 +835,39 @@ export function updateBetonLevelAppearance(
   });
 }
 
-export function label(text: string): THREE.Sprite {
+export function label(text: string, speech = false): THREE.Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
-  canvas.height = 96;
+  canvas.height = speech ? 180 : 96;
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = `#${themeColor("ink").getHexString()}`;
-  ctx.fillRect(0, 0, 512, 96);
-  ctx.fillStyle = `#${themeColor("white").getHexString()}`;
+  if (speech) {
+    ctx.fillStyle = "#fffdf0";
+    ctx.strokeStyle = "#153c50";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.roundRect(8, 8, 496, 128, 50);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(220, 135);
+    ctx.lineTo(242, 171);
+    ctx.lineTo(280, 135);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#153c50";
+  } else ctx.fillRect(0, 0, 512, 96);
+  if (!speech) ctx.fillStyle = `#${themeColor("white").getHexString()}`;
   ctx.font = `600 29px ${getComputedStyle(document.documentElement).getPropertyValue("--font")}`;
   ctx.textAlign = "center";
-  ctx.fillText(text, 256, 59);
+  ctx.fillText(text, 256, speech ? 82 : 59, 470);
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: new THREE.CanvasTexture(canvas),
       depthTest: false,
     }),
   );
-  sprite.scale.set(4.5, 0.84, 1);
+  sprite.scale.set(speech ? 3.8 : 4.5, speech ? 1.34 : 0.84, 1);
+  sprite.userData.speechBubble = speech;
   return sprite;
 }

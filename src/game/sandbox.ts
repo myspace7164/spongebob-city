@@ -1,7 +1,11 @@
 import * as THREE from "three";
-import { itemConfig } from "../../config/items";
-import { canPlace, fire } from "./inventory";
-import type { InventoryState, PlayerState, PlacedBlock } from "../interfaces";
+import { itemConfig } from "../../config/items.ts";
+import { canPlace, fire } from "./inventory.ts";
+import type {
+  InventoryState,
+  PlayerState,
+  PlacedBlock,
+} from "../interfaces.ts";
 
 /** Placeholder item visuals, bounded placement and raycast shooting. */
 export function createSandbox(scene: THREE.Scene, character: THREE.Group) {

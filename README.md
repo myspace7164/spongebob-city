@@ -136,3 +136,5 @@ Capacity expiry preserves collected water. Sandy's permanent upgrade remains ava
 Emotes use the existing imported/fallback limb rig and replicate to co-op teammates. Hold G and press 1–5; they expire automatically without affecting city resources or player collision. Movement or jumping cancels them; reduced motion shows a still pose.
 
 Watering rejects flooded plots and full soil/storage without spending sponge water or granting coins. Absorb standing surface water first; spraying a fire remains available. Shade plazas connect across neighboring placeholder street gaps up to 7 m.
+
+Hold G to reveal the emote choices, then press 1–5; the camera faces SpongeBob during the dance. Nearby characters wander and speak original gibberish; voices fade with distance and stop on pause/mute. Solid characters, tree trunks, tanks and building bounds block movement and allow sliding around them. Inventory tiles are ordered by unlock level while their numbered shortcuts stay stable.

@@ -1,6 +1,6 @@
 import { Mesh, type Group } from "three";
-import { cityConfig } from "../../config/city";
-import type { ModelConfig } from "../interfaces";
+import { cityConfig } from "../../config/city.ts";
+import type { ModelConfig } from "../interfaces.ts";
 
 /** Load a Blender glTF/GLB export without changing gameplay or collision rules. */
 export async function loadModel(config: ModelConfig): Promise<Group> {

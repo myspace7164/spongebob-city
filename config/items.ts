@@ -1,4 +1,4 @@
-import type { InventoryItem } from "../src/interfaces";
+import type { InventoryItem } from "../src/interfaces.ts";
 /** Replace these definitions as the real inventory takes shape. */
 export const inventoryItems: readonly InventoryItem[] = [
   {

@@ -1,18 +1,20 @@
-import { emoteConfig } from "../config/emotes";
-import { startEmote } from "./game/emotes";
-import { isToolAvailable } from "./game/progression";
+import { cityObstacles, resolvePlayerCollisions } from "./game/collisions.ts";
+import { EmoteUI } from "./ui/emotes.ts";
+import { emoteConfig } from "../config/emotes.ts";
+import { startEmote } from "./game/emotes.ts";
+import { isToolAvailable } from "./game/progression.ts";
 import * as THREE from "three";
 import "./ui/style.css";
-import { gameConfig } from "../config/game";
-import { cityConfig, cityTools } from "../config/city";
-import { GameInput, keyCode } from "./game/input";
-import { createPlayer, updatePlayer } from "./game/player";
-import { createWorld } from "./game/world";
-import { loadModel, updateSpongeWaterState } from "./game/assets";
-import { spongeCapacity, updateCity, weather } from "./game/city";
-import { loadMapLayers } from "./game/map-layers";
-import type { createTrees } from "./game/trees";
-import { styleBuildings } from "./game/building-style";
+import { gameConfig } from "../config/game.ts";
+import { cityConfig, cityTools } from "../config/city.ts";
+import { GameInput, keyCode } from "./game/input.ts";
+import { createPlayer, updatePlayer } from "./game/player.ts";
+import { createWorld } from "./game/world.ts";
+import { loadModel, updateSpongeWaterState } from "./game/assets.ts";
+import { spongeCapacity, updateCity, weather } from "./game/city.ts";
+import { loadMapLayers } from "./game/map-layers.ts";
+import type { createTrees } from "./game/trees.ts";
+import { styleBuildings } from "./game/building-style.ts";
 import {
   connectRunoff,
   createCampaign,
@@ -20,26 +22,26 @@ import {
   levelPosition,
   recyclePlot,
   startNextCampaignLevel,
-} from "./game/campaign";
-import { clampToLevel, worldToMap } from "./game/streets";
-import { assignElevations, levelScenery } from "./game/terrain";
-import { CampaignUI } from "./ui/campaign";
-import { CityAudio } from "./game/audio";
-import { createCityView } from "./game/city-view";
-import { CityUI } from "./ui/city";
+} from "./game/campaign.ts";
+import { clampToLevel, worldToMap } from "./game/streets.ts";
+import { assignElevations, levelScenery } from "./game/terrain.ts";
+import { CampaignUI } from "./ui/campaign.ts";
+import { CityAudio } from "./game/audio.ts";
+import { createCityView } from "./game/city-view.ts";
+import { CityUI } from "./ui/city.ts";
 import {
   activatePowerup,
   powerupMultiplier,
   isPowerupActive,
-} from "./game/powerups";
-import { createPowerupView } from "./game/powerup-view";
-import { PowerupUI } from "./ui/powerups";
-import { OnlineConnection } from "./game/network";
-import { createRemotePlayers } from "./game/remote-players";
-import { OnlineUI } from "./ui/online";
-import type { RoomSnapshot, CityAction, TerrainGrid } from "./interfaces";
-import { ModifierWheelUI } from "./ui/modifier-wheel";
-import { modifierMultiplier } from "./game/level-modifiers";
+} from "./game/powerups.ts";
+import { createPowerupView } from "./game/powerup-view.ts";
+import { PowerupUI } from "./ui/powerups.ts";
+import { OnlineConnection } from "./game/network.ts";
+import { createRemotePlayers } from "./game/remote-players.ts";
+import { OnlineUI } from "./ui/online.ts";
+import type { RoomSnapshot, CityAction, TerrainGrid } from "./interfaces.ts";
+import { ModifierWheelUI } from "./ui/modifier-wheel.ts";
+import { modifierMultiplier } from "./game/level-modifiers.ts";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game")!;
 const menu = document.querySelector<HTMLElement>("#menu")!;
@@ -61,6 +63,7 @@ function startGame(): void {
   const world = createWorld(scene);
   const input = new GameInput(canvas);
   const audio = new CityAudio();
+  const emoteUI = new EmoteUI();
   const soundToggle =
     document.querySelector<HTMLButtonElement>("#sound-toggle")!;
   soundToggle.addEventListener("click", () => {
@@ -417,6 +420,7 @@ function startGame(): void {
             city.temperature,
           );
           world.useCharacter(model);
+          canvas.dataset.character = "loaded";
         } else {
           styleBuildings(model);
           scenery.add(model);
@@ -492,6 +496,7 @@ function startGame(): void {
       while (accumulator >= gameConfig.fixedStep) {
         const movement = input.consume();
         pendingJump ||= movement.jump;
+        const previousPosition = { ...player.position };
         updatePlayer(
           player,
           movement,
@@ -501,6 +506,7 @@ function startGame(): void {
           modifierMultiplier(city, "playerSpeed") *
             (movement.run ? powerupMultiplier(city, "laeckerli") : 1),
         );
+        resolvePlayerCollisions(player, previousPosition, cityObstacles(city));
         if (currentLevel(city)?.site)
           clampToLevel(player.position, currentLevel(city)?.site);
         else {
@@ -640,12 +646,19 @@ function startGame(): void {
       player.position.y + gameConfig.cameraTargetHeight,
       player.position.z,
     );
+    emoteUI.update(
+      active && input.emoteChord,
+      active
+        ? emoteConfig.items.find((item) => item.id === player.emote?.id)?.name
+        : undefined,
+    );
+    const cameraYaw = player.emote ? player.facing : input.yaw;
     const horizontalDistance =
       Math.cos(input.pitch) * gameConfig.cameraDistance;
     camera.position.set(
-      target.x + Math.sin(input.yaw) * horizontalDistance,
+      target.x + Math.sin(cameraYaw) * horizontalDistance,
       target.y + Math.sin(input.pitch) * gameConfig.cameraDistance,
-      target.z + Math.cos(input.yaw) * horizontalDistance,
+      target.z + Math.cos(cameraYaw) * horizontalDistance,
     );
     // Keep the camera out of hillsides behind the player.
     camera.position.y = Math.max(
@@ -670,6 +683,13 @@ function startGame(): void {
             : null
         : null,
       input.held("KeyB") && city.upgraded,
+    );
+    audio.updateCharacters(
+      active,
+      city,
+      player.position,
+      input.yaw,
+      !!player.emote,
     );
     hudTime -= dt;
     if (hudTime <= 0) {

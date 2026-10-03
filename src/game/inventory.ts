@@ -1,5 +1,9 @@
-import { inventoryItems, itemConfig } from "../../config/items";
-import type { InventoryState, PlacedBlock, Vector3State } from "../interfaces";
+import { inventoryItems, itemConfig } from "../../config/items.ts";
+import type {
+  InventoryState,
+  PlacedBlock,
+  Vector3State,
+} from "../interfaces.ts";
 
 export function createInventory(): InventoryState {
   return {

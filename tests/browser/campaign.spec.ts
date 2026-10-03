@@ -257,7 +257,7 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   await page.mouse.down();
   await page.mouse.up();
   await expect(page.locator("#target-info")).toContainText("Unsealed soil");
-  await page.keyboard.press("Digit4");
+  await page.keyboard.press("Digit5");
   await page.mouse.down();
   await page.mouse.up();
   await expect(page.locator("#city-change")).toContainText("1 trees");

@@ -1,5 +1,5 @@
-import { cityConfig } from "./city";
-import type { PowerupKind } from "../src/interfaces";
+import { cityConfig } from "./city.ts";
+import type { PowerupKind } from "../src/interfaces.ts";
 /** Fictional short gameplay boosts inspired by Basel food, river and traditions. */
 export const powerupConfig = {
   pickupRadius: 1.3,

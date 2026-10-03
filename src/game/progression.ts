@@ -1,5 +1,5 @@
-import { toolUnlockLevel } from "../../config/progression";
-import type { CityState, CityTool } from "../interfaces";
+import { toolUnlockLevel } from "../../config/progression.ts";
+import type { CityState, CityTool } from "../interfaces.ts";
 export function levelsUntilTool(s: CityState, tool: CityTool): number {
   return s.campaign
     ? Math.max(0, toolUnlockLevel[tool] - s.campaign.level - 1)

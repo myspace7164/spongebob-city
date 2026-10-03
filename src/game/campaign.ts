@@ -1,5 +1,5 @@
-import { campaignConfig as c, cityLevels } from "../../config/levels";
-import { cityConfig, cityTools } from "../../config/city";
+import { campaignConfig as c, cityLevels } from "../../config/levels.ts";
+import { cityConfig, cityTools } from "../../config/city.ts";
 import type {
   CityLevel,
   CityPlot,
@@ -7,11 +7,11 @@ import type {
   LevelAchievement,
   LevelMetric,
   Vector3State,
-} from "../interfaces";
-import { createCity, cityMetrics } from "./city";
-import { placePowerups } from "./powerups";
-import { grantFunding } from "./funding";
-import { fundingConfig } from "../../config/funding";
+} from "../interfaces.ts";
+import { createCity, cityMetrics } from "./city.ts";
+import { placePowerups } from "./powerups.ts";
+import { grantFunding } from "./funding.ts";
+import { fundingConfig } from "../../config/funding.ts";
 
 export function currentLevel(s: CityState): CityLevel | undefined {
   return s.campaign ? cityLevels[s.campaign.level] : undefined;

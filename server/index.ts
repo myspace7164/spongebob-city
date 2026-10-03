@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { createReadStream, statSync } from "node:fs";
 import { resolve, extname, sep } from "node:path";
-import { createOnlineServer } from "./http";
+import { createOnlineServer } from "./http.ts";
 const online = createOnlineServer(),
   root = resolve("dist");
 const types: Record<string, string> = {

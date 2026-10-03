@@ -1,15 +1,19 @@
 import {
+  cityObstacles,
+  resolvePlayerCollisions,
+} from "../src/game/collisions.ts";
+import {
   chooseLevelModifier,
   modifierMultiplier,
-} from "../src/game/level-modifiers";
-import { isEmoteId, startEmote } from "../src/game/emotes";
-import { isToolAvailable } from "../src/game/progression";
+} from "../src/game/level-modifiers.ts";
+import { isEmoteId, startEmote } from "../src/game/emotes.ts";
+import { isToolAvailable } from "../src/game/progression.ts";
 import {
   collectPowerups,
   isPowerupActive,
   activatePowerup,
   powerupMultiplier,
-} from "../src/game/powerups";
+} from "../src/game/powerups.ts";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import {
@@ -19,16 +23,16 @@ import {
   levelPosition,
   connectRunoff,
   recyclePlot,
-} from "../src/game/campaign";
-import { performCityAction, updateCity } from "../src/game/city";
-import { createPlayer, updatePlayer } from "../src/game/player";
+} from "../src/game/campaign.ts";
+import { performCityAction, updateCity } from "../src/game/city.ts";
+import { createPlayer, updatePlayer } from "../src/game/player.ts";
 import {
   assignElevations,
   levelScenery,
   terrainFromBuffer,
-} from "../src/game/terrain";
-import { cityConfig, cityTools } from "../config/city";
-import { clampToLevel } from "../src/game/streets";
+} from "../src/game/terrain.ts";
+import { cityConfig, cityTools } from "../config/city.ts";
+import { clampToLevel } from "../src/game/streets.ts";
 import type {
   Account,
   OnlinePlayer,
@@ -36,8 +40,8 @@ import type {
   RoomSnapshot,
   TerrainGrid,
   CityState,
-} from "../src/interfaces";
-import type { AccountStore } from "./store";
+} from "../src/interfaces.ts";
+import type { AccountStore } from "./store.ts";
 const idle = () => ({ forward: 0, right: 0, run: false, jump: false });
 interface Member {
   public: OnlinePlayer;
@@ -312,6 +316,7 @@ export class Rooms {
         }
         if (!m.public.ready) continue;
         active = true;
+        const previousPosition = { ...m.public.player.position };
         updatePlayer(
           m.public.player,
           m.input.movement ?? idle(),
@@ -322,6 +327,11 @@ export class Rooms {
             (m.input.movement?.run
               ? powerupMultiplier(room.city, "laeckerli")
               : 1),
+        );
+        resolvePlayerCollisions(
+          m.public.player,
+          previousPosition,
+          cityObstacles(room.city),
         );
         m.input.movement!.jump = false;
         const origin = levelPosition(room.city, { x: 0, z: 0 });

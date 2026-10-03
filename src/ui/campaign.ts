@@ -1,7 +1,7 @@
-import { arrivalStory, cityLevels, endingStory } from "../../config/levels";
-import { currentLevel } from "../game/campaign";
-import type { CityState } from "../interfaces";
-import { StorySpeech } from "./story-speech";
+import { arrivalStory, cityLevels, endingStory } from "../../config/levels.ts";
+import { currentLevel } from "../game/campaign.ts";
+import type { CityState } from "../interfaces.ts";
+import { StorySpeech } from "./story-speech.ts";
 
 const element = (id: string) => document.getElementById(id)!;
 /** English narrative and abstract route map; no geographic placement is implied. */

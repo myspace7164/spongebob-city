@@ -1,28 +1,29 @@
-import { isToolAvailable } from "./progression";
+import { castPosition } from "./cast.ts";
+import { isToolAvailable } from "./progression.ts";
 import {
   createPowerups,
   isPowerupActive,
   collectPowerups,
   updatePowerups,
   powerupMultiplier,
-} from "./powerups";
-import { powerupConfig } from "../../config/powerups";
-import { updateWater } from "./city-water";
-import { advanceCampaign, currentLevel, levelPosition } from "./campaign";
-import { cityConfig as c, cityTools } from "../../config/city";
-import { siteTechniques } from "../../config/sites";
-import { fundingConfig as funding } from "../../config/funding";
-import { cityLevels } from "../../config/levels";
-import { grantFunding } from "./funding";
-import { updateSaboteur } from "./sabotage";
-import { modifierMultiplier } from "./level-modifiers";
+} from "./powerups.ts";
+import { powerupConfig } from "../../config/powerups.ts";
+import { updateWater } from "./city-water.ts";
+import { advanceCampaign, currentLevel, levelPosition } from "./campaign.ts";
+import { cityConfig as c, cityTools } from "../../config/city.ts";
+import { siteTechniques } from "../../config/sites.ts";
+import { fundingConfig as funding } from "../../config/funding.ts";
+import { cityLevels } from "../../config/levels.ts";
+import { grantFunding } from "./funding.ts";
+import { updateSaboteur } from "./sabotage.ts";
+import { modifierMultiplier } from "./level-modifiers.ts";
 import type {
   CityAction,
   CityMetrics,
   CityPlot,
   CityState,
   Vector3State,
-} from "../interfaces";
+} from "../interfaces.ts";
 
 export function createCity(): CityState {
   return {
@@ -214,7 +215,7 @@ function act(
       : "PORE POWER! Temporary capacity: 1,400 L.";
   }
   if (action === "upgrade") {
-    if (distance(levelPosition(s, c.sandy), position) > c.reach)
+    if (distance(castPosition(s, 1), position) > c.reach)
       return "Visit Sandy's workshop on the left of the square (E).";
     if (s.upgraded)
       return "Sandy: Your 700 L sponge and bubble irrigation are ready. Use B to water distant plots!";

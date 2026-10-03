@@ -39,7 +39,7 @@ test("city renders, water loop and construction work, powers and pause/reset are
   await page.mouse.up();
   await expect(page.locator("#target-info")).toContainText("Unsealed soil");
   await expect(page.locator("#budget")).toContainText(/2['’]210/);
-  await page.keyboard.press("Digit5");
+  await page.keyboard.press("Digit4");
   await page.mouse.down();
   await page.mouse.up();
   await expect(page.locator("#target-info")).toContainText("Rain garden");

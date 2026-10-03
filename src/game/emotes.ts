@@ -1,5 +1,5 @@
-import { emoteConfig } from "../../config/emotes";
-import type { EmoteKind, MovementInput, PlayerState } from "../interfaces";
+import { emoteConfig } from "../../config/emotes.ts";
+import type { EmoteKind, MovementInput, PlayerState } from "../interfaces.ts";
 export function isEmoteId(id: unknown): id is EmoteKind {
   return (
     typeof id === "string" && emoteConfig.items.some((item) => item.id === id)

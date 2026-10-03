@@ -194,3 +194,13 @@ Done when: G+1–5 triggers 67, Macarena, teabag, dab and floss on both characte
 Owner: Codex. Needs: T18.
 Scope: reproduce the reported Level 3 block, verify its remaining achievements and next-level transition; reject irrigation of flooded or saturated destinations without spending water or awarding coins. Preserve fire extinguishing.
 Done when: Level 3 can complete its achievable goals and enter Level 4; flooded/full plots cannot accept extra irrigation; regression checks cover water conservation and progression.
+
+#### T20 Living characters, visible emotes and collisions
+Owner: Codex. Needs: T18–T19.
+Scope: make G emote chords discoverable and visible in the actual game; cartoon character speech bubbles; nearby character gibberish fades to silence at distance; deterministic wandering with walking limbs; shared collision rules for characters, solid plot props and buildings.
+Done when: emotes visibly animate the real character, the chord presents its choices, bubbles follow moving characters, voices respect distance/mute/pause, and solo/co-op movement stops or slides at obstacles without blocking mission actions.
+
+#### T21 Real Basel levels ordered by climate urgency
+Owner: Codex. Needs: T20.
+Scope: use the supplied Basel city-climate sources and Swiss surface-runoff hazard map to rank distinct real mission locations, prioritizing flooding then heat. Move the actual scenery/terrain and gameplay to each site; record source observations and limits instead of inventing local risk measurements.
+Done when: four geographic locations differ, their source-based urgency increases, the actual rendered map follows each location, and gameplay remains achievable at every site. Sources and reproducible selection evidence are documented.

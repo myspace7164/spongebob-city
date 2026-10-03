@@ -71,3 +71,7 @@ Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or area
 
 - Irrigation rejects any destination with standing surface water; fire extinguishing remains exempt. Placeholder shade connectivity spans its actual 7 m neighboring street gap, fixing Level 3-to-4 progression for adjacent plazas.
 - 2026-10-03 · Increase Dr. Beton’s size, anger, concrete darkening, eye glow, cracks and flames across the actual campaign levels, up to 1.58× at the finale · @bikinipowerbottom · Affects: villain visuals · Why: make each level’s escalation obvious while preserving his identity and gameplay behavior · Instead of: swapping characters or changing difficulty.
+
+- T20 adds shared CollisionObstacle footprints and deterministic cast routes, used by client prediction and authoritative co-op. Approximate building bounds derive from the licensed GLB; ground remains walkable. G reveals choices and the camera faces the dancing character. Original synthesized cast voices use simulation time and distance, with strict pause/mute silence.
+
+- Inventory and hotbar now share unlock-order numbering: 1 absorb, 2 spray, 3 karate, 4 rain garden, 5 tree, 6 roof, 7 shade, 8 pond, 9 tank. Guide and keyboard regression expectations use the same order.

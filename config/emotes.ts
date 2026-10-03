@@ -1,4 +1,4 @@
-import type { EmoteKind } from "../src/interfaces";
+import type { EmoteKind } from "../src/interfaces.ts";
 export const emoteConfig = {
   chord: "G",
   items: [

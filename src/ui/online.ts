@@ -1,5 +1,5 @@
-import { onlineRequest, OnlineConnection } from "../game/network";
-import type { Account, RoomSnapshot, LeaderboardEntry } from "../interfaces";
+import { onlineRequest, OnlineConnection } from "../game/network.ts";
+import type { Account, RoomSnapshot, LeaderboardEntry } from "../interfaces.ts";
 const el = (id: string) => document.getElementById(id)!;
 export class OnlineUI {
   available = false;

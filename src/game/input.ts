@@ -1,6 +1,6 @@
-import { emoteConfig } from "../../config/emotes";
-import { gameConfig } from "../../config/game";
-import type { MovementInput } from "../interfaces";
+import { emoteConfig } from "../../config/emotes.ts";
+import { gameConfig } from "../../config/game.ts";
+import type { MovementInput } from "../interfaces.ts";
 
 const movementKeys = new Set([
   "KeyW",
@@ -38,10 +38,10 @@ export class GameInput {
   private selection: number | null = null;
   constructor(private canvas: HTMLCanvasElement) {
     window.addEventListener("keydown", (event) => {
-      if (!this.active) return;
       const code = keyCode(event);
-      if (typeof event.shiftKey === "boolean")
-        this.shiftModifier = event.shiftKey;
+      if (code.startsWith("Shift")) this.shiftModifier = true;
+      if (!this.active) return;
+      if (event.shiftKey) this.shiftModifier = true;
       if (code === "Escape") {
         this.clear();
         document.exitPointerLock();
@@ -63,13 +63,11 @@ export class GameInput {
     });
     window.addEventListener("keyup", (event) => {
       this.keys.delete(event.code || keyCode(event));
-      if (typeof event.shiftKey === "boolean")
-        this.shiftModifier = event.shiftKey;
-      else if (keyCode(event).startsWith("Shift")) this.shiftModifier = false;
+      if (keyCode(event).startsWith("Shift")) this.shiftModifier = false;
     });
     document.addEventListener("mousemove", (event) => {
       if (!this.active) return;
-      this.shiftModifier = event.shiftKey;
+      if (event.shiftKey) this.shiftModifier = true;
       this.yaw -= event.movementX * gameConfig.mouseSensitivity;
       this.pitch = Math.max(
         -0.1,
@@ -86,7 +84,11 @@ export class GameInput {
       }
     });
     document.addEventListener("mouseup", () => (this.clickHeld = false));
-    document.addEventListener("pointerlockchange", () => this.clear());
+    document.addEventListener("pointerlockchange", () => {
+      const shiftHeld = this.shiftModifier;
+      this.clear();
+      this.shiftModifier = shiftHeld;
+    });
     window.addEventListener("blur", () => {
       this.clear();
       document.exitPointerLock();

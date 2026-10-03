@@ -1,10 +1,17 @@
+import { cast } from "../../config/characters.ts";
+import { castPosition } from "./cast.ts";
 import * as THREE from "three";
-import { cityConfig as c } from "../../config/city";
-import { cityLevels } from "../../config/levels";
-import type { CityPlot, CityState, CityTool, PlayerState } from "../interfaces";
-import { cityMetrics, spongeCapacity, weather } from "./city";
-import { activeModifier } from "./level-modifiers";
-import { currentLevel, validDrain } from "./campaign";
+import { cityConfig as c } from "../../config/city.ts";
+import { cityLevels } from "../../config/levels.ts";
+import type {
+  CityPlot,
+  CityState,
+  CityTool,
+  PlayerState,
+} from "../interfaces.ts";
+import { cityMetrics, spongeCapacity, weather } from "./city.ts";
+import { activeModifier } from "./level-modifiers.ts";
+import { currentLevel, validDrain } from "./campaign.ts";
 import {
   ball,
   box,
@@ -12,9 +19,9 @@ import {
   makeCharacter,
   themeColor,
   updateBetonLevelAppearance,
-} from "./characters";
-import { betonConfig as betonTuning } from "../../config/beton";
-import { createCityFireView } from "./city-fire-view";
+} from "./characters.ts";
+import { betonConfig as betonTuning } from "../../config/beton.ts";
+import { createCityFireView } from "./city-fire-view.ts";
 
 function dispose(group: THREE.Group): void {
   group.traverse((object) => {
@@ -540,21 +547,18 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   const grounded: { object: THREE.Object3D; base: number }[] = [];
   const keepOnGround = (object: THREE.Object3D) =>
     grounded.push({ object, base: object.position.y });
-  for (const [kind, text, x, z] of [
-    ["patrick", "Patrick · P: unseal", -11, -3],
-    ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
-    ["squid", "Squidward · more shade!", 12, -5],
-    ["krabs", "Mr. Krabs · budget", -11, 2],
-  ] as const) {
-    const npc = makeCharacter(kind);
-    npc.position.set(x, 0, z);
+  const actors = cast.map((actor) => {
+    const npc = makeCharacter(actor.id);
+    npc.name = "cast-" + actor.id;
+    npc.position.set(actor.x, 0, actor.z);
     root.add(npc);
-    const name = label(text);
-    name.position.set(x, 3, z);
-    root.add(name);
-    keepOnGround(npc);
-    keepOnGround(name);
-  }
+    const name = label(actor.text, true);
+    name.name = "speech-" + actor.id;
+    name.position.set(0, 3, 0);
+    npc.add(name);
+    const limbs = npc.children.filter((part) => part.name.endsWith("-mesh"));
+    return { npc, limbs };
+  });
   const machine = new THREE.Group();
   machine.name = "roaming-asphaltinator";
   machine.position.set(c.machine.x, 0, c.machine.z + 2);
@@ -566,7 +570,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   // Sibling roots keep the character and vehicle independently visible and
   // controllable; the driver anchor links their positions during gameplay.
   root.add(beton);
-  const betonName = label("DR. BETON · E: STOP HIM!");
+  const betonName = label("Dr. Beton: CONCRETE! [E]", true);
   betonName.position.set(0, 3.05, 0);
   beton.add(betonName);
   const driverPoint = vehicle.driverPoint as THREE.Object3D;
@@ -687,6 +691,21 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       root.updateMatrixWorld(true);
       const ground = (x: number, z: number) => groundAt(x, z);
       playerGround = ground(player.position.x, player.position.z);
+      actors.forEach(({ npc, limbs }, index) => {
+        const pose = castPosition(s, index);
+        npc.position.set(
+          pose.x - origin.x,
+          ground(pose.x, pose.z),
+          pose.z - origin.z,
+        );
+        npc.rotation.y = pose.facing;
+        limbs.forEach((limb) => {
+          limb.rotation.x =
+            Math.sin(s.elapsed * 5 + index) *
+            0.35 *
+            (limb.name.startsWith("left") ? 1 : -1);
+        });
+      });
       const nextSignature = `${level?.id}/${groundVersion}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
       if (campaignSignature !== nextSignature) {
         campaignSignature = nextSignature;
@@ -796,7 +815,12 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           ? targetPlot.surface > 0 && s.sponge < spongeCapacity(s)
           : waterAction === "spray" &&
             s.sponge > 0 &&
-            targetPlot.kind !== "asphalt");
+            (s.fires.some((fire) => fire.plotId === targetPlot.id) ||
+              (targetPlot.kind !== "asphalt" &&
+                targetPlot.surface === 0 &&
+                (["tank", "pond", "roof"].includes(targetPlot.kind)
+                  ? targetPlot.stored < c.storageCapacity
+                  : targetPlot.moisture < c.soilCapacity))));
       droplets.visible = !!canFlow;
       if (canFlow && targetPlot)
         droplets.children.forEach((drop, i) => {
@@ -815,9 +839,19 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           drop.scale.setScalar(bubbles ? 2.5 : 1);
         });
       const healthy = cityMetrics(s).healthyTrees;
-      residents.children.forEach(
-        (child, i) => (child.visible = i < healthy * 2),
-      );
+      residents.children.forEach((child, i) => {
+        child.visible = i < healthy * 2;
+        const x = ((i % 4) - 1.5) * 5 + Math.sin(s.elapsed * 0.3 + i) * 1.1;
+        const z =
+          1 + Math.floor(i / 4) * 2 + Math.cos(s.elapsed * 0.3 + i) * 0.5;
+        child.position.set(
+          x,
+          ground(origin.x + x, origin.z + z) +
+            Math.abs(Math.sin(s.elapsed * 4 + i)) * 0.035,
+          z,
+        );
+        child.rotation.y = s.elapsed * 0.3 + i;
+      });
       birds.visible = healthy >= 2;
       birds.position.x = Math.sin(s.elapsed * 0.4) * 2;
       rain.visible = rainy;

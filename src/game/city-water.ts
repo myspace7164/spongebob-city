@@ -1,7 +1,7 @@
-import { cityConfig as c } from "../../config/city";
-import { campaignConfig } from "../../config/levels";
-import { currentLevel, validDrain } from "./campaign";
-import type { CityPlot, CityState } from "../interfaces";
+import { cityConfig as c } from "../../config/city.ts";
+import { campaignConfig } from "../../config/levels.ts";
+import { currentLevel, validDrain } from "./campaign.ts";
+import type { CityPlot, CityState } from "../interfaces.ts";
 const storagePlot = (p: CityPlot) => ["tank", "pond", "roof"].includes(p.kind);
 
 /** Rainfall, soil infiltration, evaporation and tank irrigation conserve litres. */

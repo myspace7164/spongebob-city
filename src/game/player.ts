@@ -1,6 +1,6 @@
-import { updateEmote } from "./emotes";
-import { gameConfig as config } from "../../config/game";
-import type { MovementInput, PlayerState } from "../interfaces";
+import { updateEmote } from "./emotes.ts";
+import { gameConfig as config } from "../../config/game.ts";
+import type { MovementInput, PlayerState } from "../interfaces.ts";
 
 export function createPlayer(): PlayerState {
   return {

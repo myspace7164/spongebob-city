@@ -1,4 +1,4 @@
-import type { CitySound } from "../src/interfaces";
+import type { CitySound } from "../src/interfaces.ts";
 
 /** @aureaphi's uploaded clips, named by their gameplay context. */
 export const citySounds: Record<CitySound, { file: string; volume: number }> = {

@@ -1,4 +1,4 @@
-import type { LevelModifierDefinition } from "../src/interfaces";
+import type { LevelModifierDefinition } from "../src/interfaces.ts";
 
 /** Transparent 60/40 wheel odds; positive weights sum to 6 and negatives to 4. */
 export const modifierWheelConfig = {

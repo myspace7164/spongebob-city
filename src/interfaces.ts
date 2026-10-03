@@ -309,3 +309,12 @@ export interface PowerupState {
   dropIndex: number;
   pulseIn: number;
 }
+
+/** Solid horizontal collision footprint; player position is still at their feet. */
+export interface CollisionObstacle {
+  x: number;
+  z: number;
+  radius?: number;
+  halfX?: number;
+  halfZ?: number;
+}
