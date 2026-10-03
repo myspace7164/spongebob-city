@@ -59,6 +59,7 @@ export function createCampaign(random: () => number = Math.random): CityState {
     wheelPending: false,
     pendingModifier: null,
     activeModifier: null,
+    ownedHats: [],
     equippedHat: null,
   };
   applyLayout(s, currentLevel(s)!);
@@ -273,6 +274,7 @@ export function startNextCampaignLevel(s: CityState): boolean {
     wheelPending: false,
     pendingModifier: null,
     activeModifier: progress.pendingModifier,
+    ownedHats: [...(progress.ownedHats ?? [])],
     equippedHat: progress.equippedHat,
   };
   Object.assign(s, createCity(), { campaign: next });

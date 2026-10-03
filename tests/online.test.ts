@@ -65,7 +65,11 @@ test("co-op shares legal construction, refuses client scores/positions and limit
     });
     const changed = rooms.current(b.id)!;
     assert.equal(changed.city.plots[2].kind, "soil");
-    assert.equal(changed.city.budget, 2210);
+    assert.equal(changed.city.budget, 1210);
+    const hatBalance = changed.city.budget;
+    rooms.command(a.id, { equippedHat: "wizard" });
+    assert.equal(rooms.current(a.id)!.city.budget, hatBalance);
+    assert.deepEqual(rooms.current(a.id)!.city.campaign!.ownedHats, ["wizard"]);
     assert.equal(store.leaderboard()[0].funding, 40);
     assert.equal(
       rooms.current(a.id)!.city.funding.earned,
