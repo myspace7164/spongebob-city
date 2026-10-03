@@ -145,12 +145,16 @@ test("sabotage reseals a plot without destroying its water; disabling machine st
   const initial = totalWater(s);
   s.sabotageIn = 0;
   updateCity(s, 1 / 60, at(s, 0));
+  assert.equal(s.plots[0].kind, "basin");
+  assert.equal(s.saboteur.phase, "approaching");
+  for (let step = 0; step < 1200 && s.plots[0].kind === "basin"; step++)
+    updateCity(s, 1 / 60, at(s, 0));
   assert.equal(s.plots[0].kind, "asphalt");
   assert.equal(s.plots[0].moisture, 0);
   assert.ok(Math.abs(totalWater(s) - initial) < 0.00001);
   act(s, "basin", at(s, 0), 0);
   s.sabotageIn = 0;
-  act(s, "machine", { ...c.machine, y: 0 }, null);
+  act(s, "machine", { ...s.saboteur, y: 0 }, null);
   advance(s, 10);
   assert.equal(s.plots[0].kind, "basin");
   assert.ok(s.machineDisabled > 0);

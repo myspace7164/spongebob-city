@@ -4,6 +4,7 @@ import { cityConfig as c, cityTools, plotCooling } from "../../config/city";
 import { siteTechniques } from "../../config/sites";
 import { fundingConfig as funding } from "../../config/funding";
 import { grantFunding } from "./funding";
+import { updateSaboteur } from "./sabotage";
 import type {
   CityAction,
   CityMetrics,
@@ -38,6 +39,16 @@ export function createCity(): CityState {
     dangerTime: 0,
     sabotageIn: c.sabotageInterval,
     machineDisabled: 0,
+    saboteur: {
+      ...c.machine,
+      facing: 0,
+      destinationX: c.machine.x,
+      destinationZ: c.machine.z,
+      step: 0,
+      phase: "roaming",
+      targetId: null,
+      sealTime: 0,
+    },
     powerTime: 0,
     powerCooldown: 0,
     maximumTime: 0,
@@ -162,9 +173,11 @@ function act(
     return "Sandy: Upgrade installed! 700 L capacity and B for long-range bubble irrigation.";
   }
   if (action === "machine") {
-    if (distance(levelPosition(s, c.machine), position) > c.reach)
+    if (distance(s.saboteur, position) > c.reach)
       return "Get closer to Dr. Beton's Asphaltinator to disable it.";
     s.machineDisabled = c.machineDisableTime;
+    s.saboteur.phase = "disabled";
+    s.saboteur.targetId = null;
     grantFunding(s, "machine", funding.machine);
     return "KARATE! Asphaltinator disabled for 45 seconds. Protect the green plots!";
   }
@@ -238,25 +251,6 @@ function act(
     : `${tool.name} built · ${c.plotArea} m² transformed. ${s.budget} coins left.`;
 }
 
-function updateSabotage(s: CityState, dt: number): void {
-  if (s.machineDisabled > 0) {
-    s.machineDisabled = Math.max(0, s.machineDisabled - dt);
-    return;
-  }
-  s.sabotageIn -= dt;
-  if (s.sabotageIn > 0) return;
-  s.sabotageIn += c.sabotageInterval;
-  // Attack soil/basins first: visible setback without deleting a player's trees.
-  const victim = s.plots.find((p) => p.kind === "soil" || p.kind === "basin");
-  if (!victim) return;
-  victim.kind = "asphalt";
-  victim.surface += victim.moisture + victim.stored;
-  victim.moisture = 0;
-  victim.stored = 0;
-  s.feedback =
-    "Dr. Beton: MORE ASPHALT! A green plot was resealed. Karate my machine to stop me!";
-}
-
 /** Advance from fixed steps only; no clock progresses while the game is paused. */
 export function updateCity(
   s: CityState,
@@ -288,7 +282,7 @@ export function updateCity(
     "patrickCooldown",
   ] as const)
     s[field] = Math.max(0, s[field] - dt);
-  updateSabotage(s, dt);
+  updateSaboteur(s, dt);
   const cooling = s.plots.reduce((n, p) => {
     const wet =
       (p.kind === "pond" ? p.stored : p.moisture) >= c.moistureHealthy;

@@ -152,7 +152,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
     ["squid", "Thaddäus · more shade!", 12, -5],
     ["krabs", "Mr. Krabs · budget", -11, 2],
-    ["beton", "Dr. Beton · E: sabotage off", c.machine.x, c.machine.z],
   ] as const) {
     const npc = makeCharacter(kind);
     npc.position.set(x, 0, z);
@@ -164,12 +163,31 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     keepOnGround(name);
   }
   const machine = new THREE.Group();
+  machine.name = "roaming-asphaltinator";
   machine.position.set(c.machine.x, 0, c.machine.z + 2);
   root.add(machine);
-  keepOnGround(machine);
+  const beton = makeCharacter("beton");
+  beton.name = "dr-beton";
+  beton.position.set(0, 0.7, -0.2);
+  machine.add(beton);
+  const betonName = label("Dr. Beton · E: STOP HIM!");
+  betonName.position.set(0, 3.6, 0);
+  machine.add(betonName);
   box(machine, [2.5, 1.4, 2], [0, 0.85, 0], "concrete");
   const roller = box(machine, [3.3, 0.7, 1], [0, 0.4, 1.2], "ink");
   const warning = ball(machine, 0.22, [0, 1.7, 0], "coral");
+  const attackGeometry = new THREE.BufferGeometry();
+  const attackPoints = new THREE.Float32BufferAttribute(new Float32Array(6), 3);
+  attackGeometry.setAttribute("position", attackPoints);
+  const attackPath = new THREE.Line(
+    attackGeometry,
+    new THREE.LineBasicMaterial({
+      color: themeColor("villain-eye"),
+      depthTest: false,
+    }),
+  );
+  attackPath.frustumCulled = false;
+  root.add(attackPath);
   const residents = new THREE.Group();
   root.add(residents);
   for (let i = 0; i < 8; i++) {
@@ -413,6 +431,43 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);
       attribute.needsUpdate = true;
       roller.rotation.x = s.machineDisabled > 0 ? 0 : s.elapsed * 2;
+      const villain = s.saboteur;
+      machine.position.set(
+        villain.x - origin.x,
+        ground(villain.x, villain.z),
+        villain.z - origin.z,
+      );
+      machine.rotation.y = villain.facing;
+      beton.position.y =
+        0.7 +
+        (villain.phase === "disabled" ? 0 : Math.sin(s.elapsed * 7) * 0.06);
+      beton.rotation.z =
+        villain.phase === "sealing" ? Math.sin(s.elapsed * 22) * 0.15 : 0;
+      machine.userData.phase = villain.phase;
+      beton.traverse((object) => {
+        if (object instanceof THREE.Mesh && object.name === "evil-eye") {
+          (object.material as THREE.MeshLambertMaterial).emissive
+            .copy(themeColor("villain-eye"))
+            .multiplyScalar(villain.phase === "disabled" ? 0 : 0.7);
+        }
+      });
+      const victim = s.plots.find((p) => p.id === villain.targetId);
+      attackPath.visible = !!victim;
+      if (victim) {
+        attackPoints.setXYZ(
+          0,
+          villain.x - origin.x,
+          ground(villain.x, villain.z) + 0.35,
+          villain.z - origin.z,
+        );
+        attackPoints.setXYZ(
+          1,
+          victim.x - origin.x,
+          ground(victim.x, victim.z) + 0.35,
+          victim.z - origin.z,
+        );
+        attackPoints.needsUpdate = true;
+      }
       (warning.material as THREE.MeshLambertMaterial).color.copy(
         themeColor(s.machineDisabled > 0 ? "leaf" : "coral"),
       );

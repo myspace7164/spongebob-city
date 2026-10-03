@@ -39,6 +39,11 @@ function applyLayout(s: CityState, level: CityLevel): void {
     site: position.site,
   }));
   s.feedback = level.objective;
+  const start = levelPosition(s, cityConfig.machine);
+  Object.assign(s.saboteur, start, {
+    destinationX: start.x,
+    destinationZ: start.z,
+  });
 }
 /** Place local controls/NPCs at the active fictional neighbourhood. */
 export function levelPosition(s: CityState, local: { x: number; z: number }) {

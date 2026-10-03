@@ -70,6 +70,10 @@ npm run test:browser
 
 ## Extend
 
+SpongeBob carries a miniature of the selected tool in his right hand. Both the Blender character and fallback swing their arms and legs while walking; hold either Shift key to sprint with a faster gait. Idle arms hang naturally, and the imported character's teeth are white. Runtime limb pivots preserve Dry/WaterFull morph targets; the original Blender source stays intact.
+
+Dr. Beton roams the neighbourhood in his Asphaltinator. When sabotage starts, a red path shows his destination; he walks there and visibly seals before restoring asphalt. Catch him at his current position with E or karate to cancel the attack and disable him. His red eyes, dark outfit and jagged grin mark him as the villain. Movement, attacks and equipment animation pause with the mission.
+
 The large gold wallet shows available coins throughout play. Useful first actions at each site earn government-funding grants, celebrated by a coin burst, receipt and rising chime. Collection, useful irrigation, construction, safe runoff routes, disabling sabotage and upgrading the sponge count; repeated actions and recycling do not generate extra grants. Funding resets with each fresh level or retry.
 
 Each neighbourhood loops its supplied stage track while playing. Pausing, story screens and mute stop the music and coin chime. Rain is mixed at 8% volume; levels use 22%.
@@ -86,6 +90,8 @@ Each neighbourhood loops its supplied stage track while playing. Pausing, story 
 - `src/game/city-water.ts`: rain, infiltration and tank irrigation.
 - `src/game/city-view.ts`: plot transformations, rain and revived city life.
 - `src/game/characters.ts`: procedural character and prop visuals.
+- `src/game/locomotion.ts` and `config/equipment.ts`: relaxed limb pivots, walk/sprint gait and measured hand anchors; `src/game/held-tools.ts` caches the nine miniature tools.
+- `src/game/sabotage.ts` and `config/beton.ts`: reproducible roaming, approach/sealing timing and moving villain position.
 - `src/ui/city.ts`: HUD, field guide and mission report.
 - `src/interfaces.ts`: shared contracts.
 - `src/ui/theme.css`: palette and visual theme.

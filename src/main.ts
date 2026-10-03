@@ -198,7 +198,7 @@ function startGame(): void {
     if (code === "KeyX") act("maximum");
     if (code === "KeyP") act("patrick");
     if (code === "KeyE") {
-      const machine = levelPosition(city, cityConfig.machine);
+      const machine = city.saboteur;
       if (
         Math.hypot(
           player.position.x - machine.x,
@@ -245,8 +245,7 @@ function startGame(): void {
         if (name === "character") {
           characterModel = model;
           updateSpongeWaterState(model, city.sponge, spongeCapacity(city));
-          world.character.remove(world.placeholder);
-          world.character.add(model);
+          world.useCharacter(model);
         } else {
           scenery.add(model);
           cityView.useImportedLevel();
@@ -286,7 +285,7 @@ function startGame(): void {
       const actions = input.consumeActions();
       if (actions.selection !== null)
         city.selected = cityTools[actions.selection].id;
-      const machine = levelPosition(city, cityConfig.machine);
+      const machine = city.saboteur;
       if (
         actions.use &&
         city.selected === "karate" &&
@@ -379,7 +378,12 @@ function startGame(): void {
     placeScenery();
     if (characterModel)
       updateSpongeWaterState(characterModel, city.sponge, spongeCapacity(city));
-    world.update(player, groundAt(player.position.x, player.position.z));
+    world.update(
+      player,
+      groundAt(player.position.x, player.position.z),
+      city.elapsed,
+      city.selected,
+    );
     world.character.scale.setScalar(
       city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1,
     );

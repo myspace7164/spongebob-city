@@ -120,6 +120,17 @@ export interface CityState {
   dangerTime: number;
   sabotageIn: number;
   machineDisabled: number;
+  saboteur: {
+    x: number;
+    z: number;
+    facing: number;
+    destinationX: number;
+    destinationZ: number;
+    step: number;
+    phase: "roaming" | "approaching" | "sealing" | "disabled";
+    targetId: number | null;
+    sealTime: number;
+  };
   powerTime: number;
   powerCooldown: number;
   maximumTime: number;

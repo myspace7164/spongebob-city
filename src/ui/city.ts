@@ -183,7 +183,7 @@ export class CityUI {
             `<span class="power-pill ${ready ? "ready" : ""}"><kbd>${key}</kbd>${name}: ${status}</span>`,
         )
         .join("") +
-      `<span class="power-pill ${s.machineDisabled > 0 ? "" : "threat"}">🦹 Dr. Beton: ${s.machineDisabled > 0 ? `offline ${Math.ceil(s.machineDisabled)}s` : `${Math.ceil(s.sabotageIn)}s`}</span>`;
+      `<span class="power-pill ${s.machineDisabled > 0 ? "" : "threat"}">🦹 Dr. Beton: ${s.machineDisabled > 0 ? `offline ${Math.ceil(s.machineDisabled)}s` : s.saboteur.phase === "roaming" ? `roaming · ${Math.ceil(s.sabotageIn)}s` : `${s.saboteur.phase} #${s.saboteur.targetId! + 1}`}</span>`;
     if (this.selected !== s.selected) {
       this.selected = s.selected;
       [...element("hotbar").children].forEach((button, i) =>

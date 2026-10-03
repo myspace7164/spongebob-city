@@ -1,4 +1,7 @@
 :root {
+  --tooth: #ffffff;
+  --villain-eye: #ff192d;
+  --villain-coat: #252333;
   --wallet-width: 190px;
   --wallet-number-size: 30px;
   /* The interface palette; the world palette below keeps the scene grounded. */

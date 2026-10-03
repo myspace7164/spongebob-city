@@ -22,6 +22,8 @@ Use `--panel-gradient` for glass panels, `--button-gradient` for yellow call-to-
 - Campaign story: short, punchy German lines beside the original vector sponge; the mascot bobs during paced text and wah-wah gibberish, then settles. Start stays visible and can skip speech. Reduced motion disables bobbing; full text is available to assistive technology.
 - Tool dock: raised aqua tiles, numbered corner badges, selected yellow tile and “EQUIPPED” label.
 - Feedback: speech bubble; abilities: individually readable power pills.
+- Player: relaxed idle arms, alternating walking limbs, faster Shift sprint, white teeth and a recognisable held miniature matching the selected tool. Equipment follows the moving right hand.
+- Dr. Beton: dark angular coat/cape, red glowing eyes, slanted brows and toothed grin. Roaming cart follows the terrain; a red path, animated roller and sealing shake telegraph attacks before the plot changes. Gameplay pause freezes all actor animation.
 - Guide/results: light glass panels with bold headings and illustrated metric cards.
 
 Tone: enthusiastic, corny and concise. Keep instructions factual; “I'm ready!” can be playful, but tool names and costs remain clear. Use original vector/CSS artwork; no imported cartoon art or external fonts.
