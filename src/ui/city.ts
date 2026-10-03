@@ -1,9 +1,10 @@
 import { cityConfig as c, cityTools, plotNames } from "../../config/city";
 import { siteTechniques } from "../../config/sites";
+import { downhillNeighbours } from "../game/city-water";
 import { cityMetrics, spongeCapacity, weather } from "../game/city";
 import { levelAchievements } from "../game/campaign";
 import { fundingConfig } from "../../config/funding";
-import type { CityState, CityTool } from "../interfaces";
+import type { CityPlot, CityState, CityTool } from "../interfaces";
 
 const element = (id: string) => document.getElementById(id)!;
 const number = (value: number) => Math.round(value).toLocaleString("en-CH");
@@ -158,7 +159,7 @@ export class CityUI {
     element("item-status").classList.toggle("emergency", s.dangerTime > 0);
     const plot = s.plots.find((p) => p.id === target);
     element("target-info").textContent = plot
-      ? `#${plot.id + 1} ${plotNames[plot.kind]}${plot.site ? ` · ${siteTechniques[plot.site].name}` : ""} · ${number(plot.surface)} L surface · ${number(plot.moisture + plot.stored)} L retained${plot.drainsTo === undefined ? "" : ` · runoff → #${plot.drainsTo + 1}`}${inReach ? "" : " · MOVE CLOSER"}`
+      ? `#${plot.id + 1} ${plotNames[plot.kind]}${plot.site ? ` · ${siteTechniques[plot.site].name}` : ""} · ${number(plot.surface)} L surface · ${number(plot.moisture + plot.stored)} L retained${plot.drainsTo === undefined ? "" : ` · runoff → #${plot.drainsTo + 1}`}${downhill(s, plot)}${inReach ? "" : " · MOVE CLOSER"}`
       : "Aim at a plot on the street or square";
     const timer = (remaining: number) =>
       remaining > 0 ? `${Math.ceil(remaining)}s` : "READY";
@@ -212,4 +213,10 @@ export class CityUI {
         `<div><strong>${(37 - m.temperature).toFixed(1)} °C</strong><span>surface cooling</span></div><div><strong>${number(m.retained)} L</strong><span>rainwater retained now</span></div><div><strong>${m.trees}</strong><span>new trees (${m.healthyTrees} healthy)</span></div><div><strong>${m.unsealedArea} m²</strong><span>unsealed ground</span></div><div><strong>${number(s.reused)} L</strong><span>usefully delivered</span></div><div><strong>${number(s.infiltrated)} L</strong><span>infiltrated to deeper soil</span></div>`;
     }
   }
+}
+
+/** Where a plot's puddle runs on sloped ground, steepest neighbour first. */
+function downhill(s: CityState, plot: CityPlot): string {
+  const lower = downhillNeighbours(s, plot).sort((a, b) => b.weight - a.weight);
+  return lower.length ? ` · runs downhill → #${lower[0].plot.id + 1}` : "";
 }

@@ -92,6 +92,19 @@ test("actual game loop automatically enters each next story and shows the ending
 test("level-two failure retries its entry checkpoint and keeps level one completed", async ({
   page,
 }) => {
+  // A shared browser flag avoids mutating a second Vite module instance when
+  // cache-busting queries are present. The production danger rule still loses.
+  await page.route("**/config/city.ts*", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    await route.fulfill({
+      response,
+      body: source.replace(
+        /dangerSeconds:\s*18/,
+        "get dangerSeconds() { return globalThis.forceCampaignLoss ? 0 : 18; }",
+      ),
+    });
+  });
   await page.route("**/config/levels.ts*", async (route) => {
     const response = await route.fetch();
     const source = await response.text();
@@ -119,17 +132,15 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   await page.mouse.up();
   await expect(page.locator("#city-change")).toContainText("1 trees");
   // Make the next fixed step produce a loss, through the existing danger rule.
-  await page.evaluate(async () => {
-    const configPath = "/config/city.ts";
-    const { cityConfig } = await import(configPath);
-    cityConfig.dangerSeconds = 0;
+  await page.evaluate(() => {
+    (window as unknown as { forceCampaignLoss: boolean }).forceCampaignLoss =
+      true;
   });
   await expect(page.locator("#result")).toBeVisible();
   await expect(page.locator("#restart")).toHaveText("Retry this level ↻");
-  await page.evaluate(async () => {
-    const configPath = "/config/city.ts";
-    const { cityConfig } = await import(configPath);
-    cityConfig.dangerSeconds = 18;
+  await page.evaluate(() => {
+    (window as unknown as { forceCampaignLoss: boolean }).forceCampaignLoss =
+      false;
   });
   await page.locator("#restart").click();
   await expect(page.locator("#mission-level")).toContainText("LEVEL 2/4");

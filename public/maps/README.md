@@ -24,10 +24,23 @@ Re-download from the official service:
 curl --fail --location 'https://wms.geo.admin.ch/?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=ch.swisstopo.swissimage&STYLES=default&CRS=EPSG:2056&BBOX=2610424,1266117.676,2612927.604,1268235.856&WIDTH=4096&HEIGHT=3465&FORMAT=image/jpeg' -o public/maps/basel-aerial.jpg
 ```
 
-Both layers are visual scenery on flat ground. The fictional mission rectangle
+Roads and photo are draped over the terrain grid below (flat if it fails to load). The fictional mission rectangle
 is excluded. Two batched road meshes with translucent estimated surfaces allow
 photographic markings to remain visible. Geometry and imagery have independent
 fallbacks; failed imagery preserves roads on the original ground. No imagery
 service is contacted during gameplay. Settings live in `config/map.ts`.
+
+## Terrain
+
+`basel-terrain.bin` holds 627 × 531 heights on a 4 m grid (Int16 centimetres,
+rows north to south) relative to the building GLB origin height; the grid's
+bounds and source tiles are in `basel-terrain.json`. It is resampled from nine
+swissALTI3D 2 m tiles (2025 release), which download to `.cache/terrain/` and
+are not committed. Rebuild with Python 3 only:
+
+```sh
+python3 scripts/convert-basel-terrain.py
+python3 tests/test_basel_terrain.py
+```
 
 Source credits and licences are recorded in `docs/SOURCES.md` and the field guide.

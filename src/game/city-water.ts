@@ -61,6 +61,7 @@ export function updateWater(s: CityState, dt: number, raining: boolean): void {
     p.moisture -= used;
     s.evaporated += evaporated + used;
   }
+  flowDownhill(s, dt);
   // Drain after rainfall/infiltration: each destination has finite capacity.
   for (const p of s.plots) {
     if (p.kind !== "roof" && p.kind !== "tank") continue;
@@ -82,4 +83,37 @@ export function updateWater(s: CityState, dt: number, raining: boolean): void {
     p.surface -= overflow;
     target.surface += overflow;
   }
+}
+
+/** Lower plots within reach that a plot's surface water runs to, weighted by slope. */
+export function downhillNeighbours(s: CityState, p: CityPlot) {
+  if (p.elevation === undefined) return [];
+  const lower: { plot: CityPlot; weight: number }[] = [];
+  for (const n of s.plots) {
+    if (n === p || n.elevation === undefined) continue;
+    const drop = p.elevation - n.elevation;
+    const distance = Math.hypot(p.x - n.x, p.z - n.z);
+    if (drop >= c.runoffMinimumDrop && distance <= c.runoffReach)
+      lower.push({ plot: n, weight: drop / distance });
+  }
+  return lower;
+}
+
+/**
+ * Surface water runs from each plot to lower neighbours, so low spots flood
+ * first. Flows use the surface at the start of the step: litres are conserved
+ * and no plot sends more than it holds.
+ */
+function flowDownhill(s: CityState, dt: number): void {
+  const incoming = new Map<CityPlot, number>();
+  for (const p of s.plots) {
+    const lower = downhillNeighbours(s, p);
+    if (!lower.length || p.surface <= 0) continue;
+    const total = lower.reduce((n, l) => n + l.weight, 0);
+    const out = Math.min(p.surface, c.runoffRate * dt);
+    p.surface -= out;
+    for (const { plot, weight } of lower)
+      incoming.set(plot, (incoming.get(plot) ?? 0) + (out * weight) / total);
+  }
+  for (const [plot, litres] of incoming) plot.surface += litres;
 }

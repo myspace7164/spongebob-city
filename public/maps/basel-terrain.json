@@ -1,0 +1,20 @@
+{
+ "origin": [
+  2611675.802,
+  1267176.7659999998,
+  268.911
+ ],
+ "bounds": [
+  -1251.8020000001416,
+  -1059.0900000000838,
+  1251.801999999676,
+  1059.089999999851
+ ],
+ "spacing": 4,
+ "columns": 627,
+ "rows": 531,
+ "units": "cm",
+ "source": "swissALTI3D 2 m, swissalti3d_2025_2610-1266_2_2056_5728.xyz.zip, swissalti3d_2025_2610-1267_2_2056_5728.xyz.zip, swissalti3d_2025_2610-1268_2_2056_5728.xyz.zip, swissalti3d_2025_2611-1266_2_2056_5728.xyz.zip, swissalti3d_2025_2611-1267_2_2056_5728.xyz.zip, swissalti3d_2025_2611-1268_2_2056_5728.xyz.zip, swissalti3d_2025_2612-1266_2_2056_5728.xyz.zip, swissalti3d_2025_2612-1267_2_2056_5728.xyz.zip, swissalti3d_2025_2612-1268_2_2056_5728.xyz.zip",
+ "license": "https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices",
+ "copyright": "\u00a9 swisstopo"
+}
