@@ -95,3 +95,15 @@ Done when: the arrival leads through Riehenring, Erlenmatt, St. Johann and Volta
 Notes: preserve supplied German storytelling; geography remains pending. Simple conserved runoff/overflow connections and marked entrances use existing tools. See handoff/t9-level-campaign.md.
 
 Revise this plan before implementing changed scope. Keep progress and checks in the corresponding handoff. Further neighbourhoods and boss encounters need a new design decision and plan task.
+
+## M6 Level polish: quick talking briefings and fresh neighbourhoods
+
+### Chunk F · in order
+
+#### T10 Short animated briefings and independent placeholder levels
+
+Owner: @myspace7164
+Needs: T9
+Files: config/levels.ts, config/briefing.ts, src/interfaces.ts, src/ui/campaign.ts, src/ui/story-speech.ts, src/ui/style.css, src/ui/theme.css, src/game/campaign.ts, src/game/city.ts, src/game/city-view.ts, src/game/map-layers.ts, src/main.ts, index.html, tests/campaign.test.ts, tests/browser/campaign.spec.ts, tests/browser/game.spec.ts, README.md, docs/design.md, docs/style-guide.md, docs/decisions.md, docs/SOURCES.md
+Done when: short German briefings reveal text beside a bobbing SpongeBob with bounded wah-wah audio; starting early/muting stops sound, each next level has fresh state and a distinct placeholder location/layout, retry keeps completed levels, and the mission banner is fully readable at tested desktop sizes.
+Notes: replaces T9's carried improvements with independent levels at the user's request. Reuse original vector mascot and synthesise speech locally; surveyed maps remain pending. See handoff/t10-level-briefings.md.

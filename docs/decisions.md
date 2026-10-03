@@ -24,3 +24,5 @@ Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or area
 
 - 2026-10-03 · Add CityLevel, LevelGoal, LevelAchievement and optional CampaignProgress/CityPlot.drainsTo contracts in src/interfaces.ts; campaign rules reuse CityState while standalone createCity remains available · @myspace7164 · Affects: T9/interface · Why: HUD and progression share achievement truth; stable plot IDs carry improvements between placeholder layouts.
 - 2026-10-03 · Add RoadNetwork to src/interfaces.ts and render dataset 100250 street ribbons over local SWISSIMAGE imagery, sharing the GLB origin · Affects: Basel scenery · Why: user chose combined geometry and photography; approximate widths and flat height preserve the current mission, with independent image fallback and source credits.
+
+- 2026-10-03 · Replace carried improvements with fresh neighbourhood state and distinct placeholder origins/layouts; use concise German briefings with paced text, an original bobbing vector mascot and bounded Web Audio wah-wah speech · @myspace7164 · Affects: T10 · Why: user requested faster storytelling and independent locations; actual geography remains pending.
