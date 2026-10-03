@@ -155,7 +155,6 @@ export type LevelMetric =
   | "reused"
   | "heat"
   | "flood"
-  | "entrancesDry"
   | "stormCompleted"
   | "roofs"
   | "shadeConnected"
@@ -182,7 +181,6 @@ export interface CityLevel {
   layout: readonly { x: number; z: number; site?: SiteType }[];
   /** Absent on placeholder levels, which keep the fictional square. */
   site?: LevelSite;
-  entranceIds: readonly number[];
   weather: { dryDuration: number; rainDuration: number; rainRate: number };
   goals: readonly LevelGoal[];
 }

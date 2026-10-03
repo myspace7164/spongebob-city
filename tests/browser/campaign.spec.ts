@@ -25,7 +25,7 @@ test("short talking briefing pauses the simulation on short screens", async ({
   await expect(page.locator("#mission-layout")).toContainText(
     "Real street: Riehenring",
   );
-  await expect(page.locator("#goals")).toContainText("Hauseingang trocken");
+  await expect(page.locator("#goals")).not.toContainText(/trocken/i);
   await page.keyboard.press("KeyH");
   await page.locator("#read-story").click();
   await expect(page.locator("#inventory-panel")).toBeHidden();

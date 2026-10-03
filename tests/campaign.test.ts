@@ -62,21 +62,11 @@ test("campaign starts with the four story levels and cannot skip incomplete achi
   assert.equal(s.campaign!.stormCompleted, false);
 });
 
-test("entrances cannot be built on, including Patrick's multi-plot action", () => {
+test("plot 15 is freely usable and no drying achievement remains", () => {
   const s = createCampaign();
-  act(s, "basin", at(s, 15), 15);
   act(s, "karate", at(s, 15), 15);
-  act(s, "patrick", at(s, 15), null);
-  assert.equal(s.plots[15].kind, "asphalt");
-  assert.equal(
-    levelAchievements(s).find((goal) => goal.metric === "entrancesDry")!.done,
-    false,
-  );
-  act(s, "absorb", at(s, 15), 15);
-  assert.equal(
-    levelAchievements(s).find((goal) => goal.metric === "entrancesDry")!.done,
-    true,
-  );
+  assert.equal(s.plots[15].kind, "soil");
+  assert.equal(levelAchievements(s).some((goal) => /trocken/i.test(goal.label)), false);
 });
 
 test("runoff requires reachable safe destinations, rejects loops and conserves water with saturated ground", () => {
@@ -225,10 +215,10 @@ function playLegalStrategy(elevate?: (s: CityState) => void) {
     ) {
       if (s.machineDisabled < 1)
         act(s, "machine", { ...levelPosition(s, c.machine), y: 0 }, null);
-      const entrance = s.plots[15];
+      const plot15 = s.plots[15];
       const source =
-        entrance.surface > 0
-          ? entrance
+        plot15.surface > 0
+          ? plot15
           : [...s.plots].sort((a, b) => b.surface - a.surface)[0];
       act(s, "absorb", at(s, source.id), source.id, 30);
       const trees = s.plots

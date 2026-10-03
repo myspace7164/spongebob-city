@@ -39,7 +39,7 @@ export const riehenringSite: LevelSite = {
   bounds: { minX: -11.5, maxX: 11.5, minZ: -100, maxZ: 12 },
 };
 const spot = (x: number, z: number, site: SiteType) => ({ x, z, site });
-/** Index = stable plot ID; 15 is the Messe entrance by the footbridge. */
+/** Stable plot order follows the street's parking, verge and facade locations. */
 const riehenringLayout = [
   spot(-8, -20, "swale"),
   spot(-8, -26, "swale"),
@@ -60,7 +60,6 @@ const riehenringLayout = [
   spot(9, -40, "facade"),
 ];
 export const campaignConfig = {
-  entranceSurfaceLimit: 20,
   roofReleaseRate: 8,
   overflowRate: 60,
   basinInfiltrationRate: 90,
@@ -88,19 +87,16 @@ export const cityLevels: readonly CityLevel[] = [
     origin: origins[0],
     layout: riehenringLayout,
     site: riehenringSite,
-    entranceIds: [15],
     weather: { dryDuration: 25, rainDuration: 25, rainRate: 8 },
     story: [
       "„Asphalt ist kein Abfluss, Leute!“",
       "Knack den Boden. Fang die Pfützen. Gib dem Regen ein Zuhause.",
     ],
-    objective:
-      "4 Flächen öffnen. 2 Mulden bauen. 400 L verteilen. Eingang trocken halten.",
+    objective: "4 Flächen öffnen. 2 Mulden bauen. 400 L gezielt verteilen.",
     goals: [
       { metric: "permeable", target: 4, label: "Flächen entsiegeln" },
       { metric: "basins", target: 2, label: "Pflanzmulden schaffen" },
       { metric: "reused", target: 400, label: "Liter gezielt verteilen" },
-      { metric: "entrancesDry", target: 1, label: "Hauseingang trocken" },
       { metric: "heat", target: 82, label: "Hitze höchstens", maximum: true },
       {
         metric: "flood",
@@ -117,7 +113,6 @@ export const cityLevels: readonly CityLevel[] = [
     title: "Basel braucht Wurzeln",
     origin: origins[1],
     layout: placeholderLayout(1),
-    entranceIds: [15],
     weather: { dryDuration: 35, rainDuration: 30, rainRate: 12 },
     story: [
       "„Mehr Wurzeln. Weniger Grillplatte.“",
@@ -145,7 +140,6 @@ export const cityLevels: readonly CityLevel[] = [
     title: "Schatten über den Strassen",
     origin: origins[2],
     layout: placeholderLayout(2),
-    entranceIds: [15],
     weather: { dryDuration: 45, rainDuration: 35, rainRate: 16 },
     story: [
       "„Dein Dach kann mehr als heiss sein.“",
@@ -183,14 +177,12 @@ export const cityLevels: readonly CityLevel[] = [
     title: "Platz für den grossen Regen",
     origin: origins[3],
     layout: placeholderLayout(3),
-    entranceIds: [15],
     weather: { dryDuration: 55, rainDuration: 45, rainRate: 20 },
     story: [
       "„Mein Bauch ist kein Stausee!“",
       "Tanks füllen. Teiche bauen. Überläufe verbinden. Dann: Gewitter abwehren.",
     ],
-    objective:
-      "2 Tanks. 1 Teich. 2 Mulden. Dächer und Überläufe verbinden. Schule trocken halten.",
+    objective: "2 Tanks. 1 Teich. 2 Mulden. Dächer und Überläufe verbinden.",
     goals: [
       { metric: "tanks", target: 2, label: "Rain Tanks bauen" },
       { metric: "ponds", target: 1, label: "Pond bauen" },
@@ -205,7 +197,6 @@ export const cityLevels: readonly CityLevel[] = [
       { metric: "healthyTrees", target: 3, label: "Gesunde Bäume" },
       { metric: "retained", target: 2000, label: "Liter Vorrat zurückhalten" },
       { metric: "reused", target: 1500, label: "Liter gezielt verteilen" },
-      { metric: "entrancesDry", target: 1, label: "Schuleingang trocken" },
       { metric: "heat", target: 48, label: "Hitze höchstens", maximum: true },
       {
         metric: "flood",
