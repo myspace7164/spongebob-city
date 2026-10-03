@@ -8,6 +8,8 @@ import { expect, test } from "@playwright/test";
 test("city renders, water loop and construction work, powers and pause/reset are wired", async ({
   page,
 }) => {
+  // Software WebGL needs extra time for the shared procedural facade model and screenshots.
+  test.setTimeout(150000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");

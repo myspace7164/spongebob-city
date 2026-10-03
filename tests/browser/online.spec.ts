@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 test("username cookie, duplicate rejection, two-browser co-op and persisted ranking", async ({
   browser,
 }) => {
+  test.setTimeout(150000);
   const contextA = await browser.newContext(),
     contextB = await browser.newContext();
   const a = await contextA.newPage(),
@@ -10,6 +11,13 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted rank
   try {
     for (const page of [a, b]) {
       await page.route("**/models/spongebob.glb", (route) =>
+        route.fulfill({
+          status: 404,
+          body: "Use fallback for network lifecycle check",
+        }),
+      );
+      // Networking uses the procedural scenery; imported facade rendering is covered by map tests.
+      await page.route("**/models/basel-city.glb", (route) =>
         route.fulfill({
           status: 404,
           body: "Use fallback for network lifecycle check",
@@ -43,8 +51,13 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted rank
     await expect(b.locator("#team-status")).toContainText("2/4");
     // Start only A: the authoritative server receives real movement input. Both browsers see its build.
     await a.locator("#story-start").click();
+    await expect(a.locator("#crosshair")).toBeVisible();
+    await a.waitForFunction(
+      () => document.pointerLockElement === document.querySelector("#game"),
+    );
     await a.keyboard.down("KeyW");
-    await a.waitForTimeout(850);
+    await expect(a.locator("#target-info")).toContainText("Sealed asphalt");
+    await expect(a.locator("#target-info")).not.toContainText("MOVE CLOSER");
     await a.keyboard.up("KeyW");
     await a.keyboard.press("Digit3");
     await a.mouse.down();

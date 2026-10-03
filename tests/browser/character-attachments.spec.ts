@@ -56,7 +56,9 @@ test("sponge character arms and socks stay attached in idle and walk through wat
     const bodyMesh = model.getObjectByName("Body_Cube_morph_export")!;
     const sleeveBodyClearance = armPairs.map(([, sleeveName]) => {
       const bodyBounds = new THREE.Box3().setFromObject(bodyMesh);
-      const sleeveBounds = new THREE.Box3().setFromObject(model.getObjectByName(sleeveName)!);
+      const sleeveBounds = new THREE.Box3().setFromObject(
+        model.getObjectByName(sleeveName)!,
+      );
       return sleeveBounds.getCenter(new THREE.Vector3()).x < 0
         ? bodyBounds.min.x - sleeveBounds.max.x
         : sleeveBounds.min.x - bodyBounds.max.x;
@@ -155,8 +157,7 @@ test("sponge character arms and socks stay attached in idle and walk through wat
     );
     const armRestDown = rightArm.rotation.z > 0 && leftArm.rotation.z < 0;
     const shoulderPivotsClose =
-      Math.abs(rightArm.position.x) < 0.7 &&
-      Math.abs(leftArm.position.x) < 0.7;
+      Math.abs(rightArm.position.x) < 0.7 && Math.abs(leftArm.position.x) < 0.7;
     const maximumRelativeError = [0, 1].map(() => 0);
     const walkDistances = [0, 0];
     for (let frame = 0; frame <= 30; frame++) {
@@ -196,8 +197,12 @@ test("sponge character arms and socks stay attached in idle and walk through wat
         ),
         keyValues: keys,
         sleeveSpacingError: Math.abs(
-          Math.abs(objectCenter(model.getObjectByName("Cube_morph_export_1")!).x) -
-            Math.abs(objectCenter(model.getObjectByName("Cube_morph_export_2")!).x),
+          Math.abs(
+            objectCenter(model.getObjectByName("Cube_morph_export_1")!).x,
+          ) -
+            Math.abs(
+              objectCenter(model.getObjectByName("Cube_morph_export_2")!).x,
+            ),
         ),
       });
     }
@@ -227,10 +232,24 @@ test("sponge character arms and socks stay attached in idle and walk through wat
       armRestDown,
       shoulderPivotsClose,
       sleeveBodyClearance,
-      bodySleeveSeams: armPairs.map(([, sleeveName]) => indexedSurfaceGap(bodyMesh, model.getObjectByName(sleeveName)!)),
+      bodySleeveSeams: armPairs.map(([, sleeveName]) =>
+        indexedSurfaceGap(bodyMesh, model.getObjectByName(sleeveName)!),
+      ),
       shoulderPositions: [
-        { pivot: rightArm.position.toArray(), sleeve: objectCenter(model.getObjectByName("Cube_morph_export_1")!).toArray(), arm: objectCenter(model.getObjectByName("right-arm-mesh")!).toArray() },
-        { pivot: leftArm.position.toArray(), sleeve: objectCenter(model.getObjectByName("Cube_morph_export_2")!).toArray(), arm: objectCenter(model.getObjectByName("left-arm-mesh")!).toArray() },
+        {
+          pivot: rightArm.position.toArray(),
+          sleeve: objectCenter(
+            model.getObjectByName("Cube_morph_export_1")!,
+          ).toArray(),
+          arm: objectCenter(model.getObjectByName("right-arm-mesh")!).toArray(),
+        },
+        {
+          pivot: leftArm.position.toArray(),
+          sleeve: objectCenter(
+            model.getObjectByName("Cube_morph_export_2")!,
+          ).toArray(),
+          arm: objectCenter(model.getObjectByName("left-arm-mesh")!).toArray(),
+        },
       ],
       walkSwing,
       maximumRelativeError,
@@ -253,8 +272,15 @@ test("sponge character arms and socks stay attached in idle and walk through wat
   await page.screenshot({ path: "/tmp/sponge-attachments-right-angle.png" });
   await page.evaluate(() => (window as any).attachmentPreview.walkFrame(7));
   await page.screenshot({ path: "/tmp/sponge-attachments-walk.png" });
-  for (const [value, state] of [[0, "dry"], [400, "waterfull"], [200, "normal"]] as const) {
-    await page.evaluate((water) => (window as any).attachmentPreview.water(water), value);
+  for (const [value, state] of [
+    [0, "dry"],
+    [400, "waterfull"],
+    [200, "normal"],
+  ] as const) {
+    await page.evaluate(
+      (water) => (window as any).attachmentPreview.water(water),
+      value,
+    );
     await page.screenshot({ path: `/tmp/sponge-attachments-${state}.png` });
   }
   expect(report.attachedSleeves.sort()).toEqual(["left-arm", "right-arm"]);
@@ -269,7 +295,9 @@ test("sponge character arms and socks stay attached in idle and walk through wat
   );
   expect(report.walkDistances.every((error) => error < 0.0001)).toBe(true);
   expect(report.stateChecks.every((state) => state.attachments)).toBe(true);
-  expect(report.stateChecks.every((state) => state.sleeveSpacingError < 0.02)).toBe(true);
+  expect(
+    report.stateChecks.every((state) => state.sleeveSpacingError < 0.02),
+  ).toBe(true);
   expect(report.stateChecks.map((state) => state.keyValues)).toEqual([
     [1, 0, 1, 0],
     [0, 0, 0, 0],

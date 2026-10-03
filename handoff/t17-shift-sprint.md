@@ -1,4 +1,5 @@
 # T17 Shift sprint
-Status: verifying
-Done: normalize logical Shift with missing physical codes; recover held modifier from keyboard/mouse events so Shift held before pointer capture still works. Either Shift continues to use the original 9 m/s versus 5 m/s walk speed. Compact footer confirms RUNNING. Added keyboard edge, real browser movement and authoritative co-op checks.
-Next: run targeted checks after current browser suite; update verification and save/push all work.
+Status: done
+Done: recognize physical left/right Shift, logical Shift with missing codes, and modifier state held before mouse capture. Running stays 9 m/s versus 5 m/s walking; release restores walking. Footer displays RUNNING while Shift is active. Sprint also reaches the authoritative co-op server; Läckerli multiplies sprint speed.
+Checks: unit input edge cases and co-op speed assertions pass. Real browser test holds Shift before capture, observes speed above 8.5 m/s, releases it and returns to 5 m/s. Main game browser verifies RUNNING indicator and release. All 61 unit/API tests, 21 browser cases and build pass.
+Next: done.

@@ -231,17 +231,21 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
     rightArm.rotation.set(swing, 0, imported ? c.relaxedArmAngle : 0);
     leftArm.rotation.set(-swing, 0, imported ? -c.relaxedArmAngle : 0);
     if (imported) {
-      const body = model.getObjectByName("Body_Cube_morph_export") as THREE.Mesh;
+      const body = model.getObjectByName(
+        "Body_Cube_morph_export",
+      ) as THREE.Mesh;
       const waterFullIndex = body.morphTargetDictionary?.WaterFull;
-      const waterFull = waterFullIndex === undefined
-        ? 0
-        : body.morphTargetInfluences?.[waterFullIndex] ?? 0;
+      const waterFull =
+        waterFullIndex === undefined
+          ? 0
+          : (body.morphTargetInfluences?.[waterFullIndex] ?? 0);
       const insetX = c.importedShoulderInset;
       const morphClearance = waterFull * 0.12;
       // WaterFull widens the torso. Let both sleeve/arm pivots track only a
       // small part of that expansion so the cuffs remain visible at the seam.
       rightArm.position.x = rightShoulderRestX - morphClearance;
-      leftArm.position.x = leftShoulderRestX + c.importedLeftShoulderOutset + morphClearance;
+      leftArm.position.x =
+        leftShoulderRestX + c.importedLeftShoulderOutset + morphClearance;
     }
     rightLeg.rotation.x = -swing;
     leftLeg.rotation.x = swing;
