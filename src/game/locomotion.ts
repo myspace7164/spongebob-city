@@ -98,6 +98,69 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
       new THREE.Vector3(c.importedHipX, c.importedHipY, -0.13),
       (p) => p.y < c.importedHipY && p.x >= 0,
     );
+
+    // The exported shirt sleeves are separate GLB meshes. Keep them on the
+    // same shoulder pivot as the matching arm triangles so the seam cannot
+    // open when the arm swings. Spatial side is authoritative here: in this
+    // model anatomical right is -X and left is +X.
+    const sleeves: THREE.Mesh[] = [];
+    model.traverse((object) => {
+      if (
+        object instanceof THREE.Mesh &&
+        materialsOf(object).some((material) =>
+          material.name.startsWith("Sleeve "),
+        )
+      ) {
+        const x = new THREE.Box3()
+          .setFromObject(object)
+          .getCenter(new THREE.Vector3()).x;
+        // Two small sleeve-colored panels sit over the torso; only the two
+        // meshes beside the shoulder anchors are the moving arm sleeves.
+        if (Math.abs(x) > c.importedShoulderX * 0.45) sleeves.push(object);
+      }
+    });
+    for (const sleeve of sleeves) {
+      const bounds = new THREE.Box3().setFromObject(sleeve);
+      const isRight = bounds.getCenter(new THREE.Vector3()).x < 0;
+      (isRight ? rightArm : leftArm).attach(sleeve);
+      sleeve.userData.attachedToLimb = isRight ? "right-arm" : "left-arm";
+    }
+
+    // Socks and their colored cuff rings are separate material meshes from
+    // the leg/body mesh. Split each two-sided mesh by its triangle position,
+    // then nest the pieces under the matching leg pivot just like the shoes.
+    const legAccessories: THREE.Mesh[] = [];
+    model.traverse((object) => {
+      if (
+        object instanceof THREE.Mesh &&
+        materialsOf(object).some((material) =>
+          /^(sock|red ring|blue ring) export$/i.test(material.name),
+        )
+      )
+        legAccessories.push(object);
+    });
+    for (const accessory of legAccessories) {
+      const label = materialsOf(accessory)[0]?.name ?? "sock";
+      for (const isRight of [true, false]) {
+        const leg = isRight ? rightLeg : leftLeg;
+        const hip = isRight
+          ? new THREE.Vector3(-c.importedHipX, c.importedHipY, -0.13)
+          : new THREE.Vector3(c.importedHipX, c.importedHipY, -0.13);
+        const sockPart = limb(
+          model,
+          accessory,
+          `${isRight ? "right" : "left"}-${label}`
+            .toLowerCase()
+            .replace(/[^a-z0-9-]+/g, "-"),
+          hip,
+          (point) => (isRight ? point.x < 0 : point.x >= 0),
+        );
+        leg.attach(sockPart);
+        sockPart.userData.attachedToLimb = isRight ? "right-leg" : "left-leg";
+      }
+      accessory.visible = false;
+    }
+
     for (const [name, leg] of [
       ["Shoe_cube002", rightLeg],
       ["Shoe_cube003", leftLeg],
@@ -165,4 +228,8 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
   };
   update(0, 0, true);
   return { rightHand, update };
+}
+
+function materialsOf(mesh: THREE.Mesh): THREE.Material[] {
+  return Array.isArray(mesh.material) ? mesh.material : [mesh.material];
 }
