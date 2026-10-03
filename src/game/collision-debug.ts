@@ -1,7 +1,7 @@
 import * as THREE from "three";
-import { gameConfig } from "../../config/game";
-import type { Vector3State } from "../interfaces";
-import type { SolidCollider } from "./collisions";
+import { gameConfig } from "../../config/game.ts";
+import type { Vector3State } from "../interfaces.ts";
+import type { SolidCollider } from "./collisions.ts";
 
 const colors = {
   environment: new THREE.Color(0x50e3a4),

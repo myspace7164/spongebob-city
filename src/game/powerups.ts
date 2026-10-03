@@ -1,12 +1,12 @@
-import { cityConfig } from "../../config/city";
-import { powerupConfig as c } from "../../config/powerups";
-import { performCityAction } from "./city";
+import { cityConfig } from "../../config/city.ts";
+import { powerupConfig as c } from "../../config/powerups.ts";
+import { performCityAction } from "./city.ts";
 import type {
   CityState,
   PowerupState,
   PowerupKind,
   Vector3State,
-} from "../interfaces";
+} from "../interfaces.ts";
 /** One carried or active boost, and at most one ground pickup. */
 export function createPowerups(): PowerupState {
   return {

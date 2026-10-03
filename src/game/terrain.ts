@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import type { CityLevel, CityState, TerrainGrid } from "../interfaces";
-import { sceneryPose, worldToMap } from "./streets";
+import type { CityLevel, CityState, TerrainGrid } from "../interfaces.ts";
+import { sceneryPose, worldToMap } from "./streets.ts";
 
 type Bounds = TerrainGrid["bounds"];
 type Rectangle = { left: number; right: number; back: number; front: number };
@@ -118,7 +118,7 @@ export function levelScenery(
   level: CityLevel | undefined,
   grid: TerrainGrid | null,
 ) {
-  const base = sceneryPose(level?.site);
+  const base = sceneryPose(level?.mapSite ?? level?.site);
   const origin = level?.origin ?? { x: 0, z: 0 };
   const pose = {
     rotationY: base.rotationY,

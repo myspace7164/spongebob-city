@@ -1,5 +1,5 @@
-import { hats } from "../../config/hats";
-import type { HatId } from "../interfaces";
+import { hats } from "../../config/hats.ts";
+import type { HatId } from "../interfaces.ts";
 
 const element = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;

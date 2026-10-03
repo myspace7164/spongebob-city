@@ -1,4 +1,4 @@
-import { briefingConfig as c } from "../../config/briefing";
+import { briefingConfig as c } from "../../config/briefing.ts";
 
 /** Word-paced text with a bounded, original wah-wah voice; no recorded speech. */
 export class StorySpeech {

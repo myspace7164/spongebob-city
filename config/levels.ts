@@ -1,7 +1,8 @@
-import type { CityLevel, LevelSite, SiteType } from "../src/interfaces";
-import { cityConfig } from "./city";
+import { baselLocations } from "./level-locations.ts";
+import type { CityLevel, LevelSite, SiteType } from "../src/interfaces.ts";
+import { cityConfig } from "./city.ts";
 
-/** User-supplied story; all layouts and thresholds are fictional until maps arrive. */
+/** User-supplied story; all layouts and thresholds are illustrative; real map anchors use climate-risk area evidence. */
 /** Separate fictional stages; these offsets are not geographic coordinates. */
 const origins = [
   { x: 0, z: 0 },
@@ -83,7 +84,8 @@ export const endingStory = {
 export const cityLevels: readonly CityLevel[] = [
   {
     id: "riehenring",
-    location: "Riehenring",
+    location: baselLocations[0].name,
+    mapSite: baselLocations[0].site,
     title: "LET THE GROUND BREATHE",
     origin: origins[0],
     layout: riehenringLayout,
@@ -110,7 +112,8 @@ export const cityLevels: readonly CityLevel[] = [
   },
   {
     id: "erlenmatt",
-    location: "Erlenmatt",
+    location: baselLocations[2].name,
+    mapSite: baselLocations[2].site,
     title: "ROOTS BEAT HEAT",
     origin: origins[1],
     layout: placeholderLayout(1),
@@ -137,7 +140,8 @@ export const cityLevels: readonly CityLevel[] = [
   },
   {
     id: "st-johann",
-    location: "St. Johann",
+    location: baselLocations[4].name,
+    mapSite: baselLocations[4].site,
     title: "SHADE THE STREETS",
     origin: origins[2],
     layout: placeholderLayout(2),
@@ -168,7 +172,8 @@ export const cityLevels: readonly CityLevel[] = [
   },
   {
     id: "voltanord",
-    location: "VoltaNord · Lysbüchelplatz",
+    location: baselLocations[6].name,
+    mapSite: baselLocations[6].site,
     title: "MAKE ROOM FOR THE STORM",
     origin: origins[3],
     layout: placeholderLayout(3),

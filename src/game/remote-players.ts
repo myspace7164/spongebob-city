@@ -1,10 +1,10 @@
 import * as THREE from "three";
-import { makeCharacter } from "./characters";
-import { createLocomotion } from "./locomotion";
-import { createHeldTools } from "./held-tools";
-import { createHatModel, disposeHatModel } from "./hats";
-import { updateSpongeWaterState } from "./assets";
-import type { HatId, OnlinePlayer } from "../interfaces";
+import { makeCharacter } from "./characters.ts";
+import { createLocomotion } from "./locomotion.ts";
+import { createHeldTools } from "./held-tools.ts";
+import { createHatModel, disposeHatModel } from "./hats.ts";
+import { updateSpongeWaterState } from "./assets.ts";
+import type { HatId, OnlinePlayer } from "../interfaces.ts";
 
 type RemoteRig = ReturnType<typeof createLocomotion>;
 type RemoteEquipment = ReturnType<typeof createHeldTools>;

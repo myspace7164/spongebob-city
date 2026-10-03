@@ -70,6 +70,7 @@ test("recycling, sabotage repair and reconnecting cannot farm government grants"
   assert.equal(s.funding.earned, earned);
   const budget = s.budget;
   recyclePlot(s, 0, at(s, 0));
+  if (s.plots[0].kind === "asphalt") act(s, "karate", at(s, 0), 0);
   act(s, "roof", at(s, 0), 0);
   connect();
   assert.equal(s.budget, budget);

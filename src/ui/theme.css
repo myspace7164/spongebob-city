@@ -158,3 +158,13 @@
   --gauge-height: 50px;
   --wallet-number-size: 28px;
 }
+
+:root {
+  --buddy-hoodie: #bcaa8e;
+  --buddy-hoodie-shadow: #ab9679;
+  --buddy-jeans: #b8cbdc;
+  --buddy-shoe: #292c2e;
+  --buddy-sole: #687077;
+  --buddy-hair: #29231f;
+  --buddy-can: #608947;
+}

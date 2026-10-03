@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { PlayerState } from "../interfaces";
+import type { PlayerState } from "../interfaces.ts";
 
 export type SolidShape =
   | { type: "circle"; x: number; z: number; radius: number }

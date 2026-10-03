@@ -677,7 +677,7 @@ header #sound-toggle {
 }
 #target-info {
   position: fixed;
-  top: calc(50% + 30px);
+  top: calc(50% + 145px);
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
@@ -2438,4 +2438,26 @@ body:has(#inventory-panel:not([hidden])) .boost-ready {
     transform: translate(-50%, -50%) rotate(var(--segment-angle))
       translateY(-72px) rotate(calc(-1 * var(--segment-angle)));
   }
+}
+#emote-choices {
+  position: fixed;
+  top: 125px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  padding: 10px 18px;
+  border: 3px solid var(--border);
+  border-radius: 28px;
+  background: var(--panel);
+  color: var(--text);
+  text-align: center;
+  pointer-events: none;
+}
+#emote-choices strong,
+#emote-choices span {
+  display: block;
+}
+#emote-choices b {
+  display: inline-block;
+  margin: 6px;
 }

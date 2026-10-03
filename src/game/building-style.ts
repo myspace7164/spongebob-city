@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { buildingStyle as style } from "../../config/buildings";
+import { buildingStyle as style } from "../../config/buildings.ts";
 
 const colour = (hex: string) => new THREE.Color(hex);
 

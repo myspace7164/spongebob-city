@@ -1,9 +1,9 @@
-import { levelModifiers, modifierWheelConfig } from "../../config/modifiers";
+import { levelModifiers, modifierWheelConfig } from "../../config/modifiers.ts";
 import {
   chooseLevelModifier,
   wheelLandingRotation,
-} from "../game/level-modifiers";
-import type { CityState, LevelModifierId } from "../interfaces";
+} from "../game/level-modifiers.ts";
+import type { CityState, LevelModifierId } from "../interfaces.ts";
 
 const byId = (id: string) => document.getElementById(id)!;
 

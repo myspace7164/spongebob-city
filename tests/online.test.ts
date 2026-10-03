@@ -40,6 +40,11 @@ test("co-op shares legal construction, refuses client scores/positions and limit
       b = store.create("BetaSponge").account;
     const first = rooms.create(a);
     rooms.join(b, first.code);
+    assert.deepEqual(
+      rooms.current(b.id)!.city.campaign!.locations,
+      first.city.campaign!.locations,
+    );
+    assert.equal(new Set(first.city.campaign!.locations).size, 4);
     rooms.command(a.id, { equippedHat: "wizard" });
     assert.equal(rooms.current(b.id)!.city.campaign!.equippedHat, "wizard");
     assert.throws(

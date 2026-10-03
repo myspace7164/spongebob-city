@@ -1,6 +1,6 @@
 import { Mesh, MeshStandardMaterial, type Group } from "three";
-import { cityConfig } from "../../config/city";
-import type { ModelConfig } from "../interfaces";
+import { cityConfig } from "../../config/city.ts";
+import type { ModelConfig } from "../interfaces.ts";
 
 export const spongeEyeBlue = 0x4b39ff;
 

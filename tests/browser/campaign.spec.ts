@@ -1,6 +1,10 @@
 import { registerTestAccount } from "./account-fixture";
 test.beforeEach(async ({ page }) => {
   await registerTestAccount(page);
+  // Full imported scenery is covered by map.spec; flow checks use the lightweight fallback.
+  await page.route("**/models/basel-city.glb", (route) =>
+    route.fulfill({ status: 404, body: "Campaign flow fixture" }),
+  );
 });
 import { expect, test } from "@playwright/test";
 
@@ -27,10 +31,10 @@ test("short talking briefing pauses the simulation on short screens", async ({
   await page.locator("#story-start").click();
   await expect(page.locator("#crosshair")).toBeVisible();
   await expect(page.locator("#mission-level")).toContainText(
-    "LEVEL 1/4 · Riehenring",
+    "LEVEL 1/4 · St. Alban-Kirchrain",
   );
   await expect(page.locator("#mission-layout")).toContainText(
-    "Real street: Riehenring",
+    "Real map: St. Alban-Kirchrain · illustrative plots",
   );
   await expect(page.locator("#goals")).not.toContainText(/entrance|school/i);
   await page.keyboard.press("KeyH");
@@ -58,7 +62,10 @@ test("actual game loop automatically enters each next story and shows the ending
   });
   await page.route("**/config/modifiers.ts*", async (route) => {
     const response = await route.fetch();
-    const source = await response.text();
+    const source = (await response.text()).replaceAll(
+      "random = Math.random",
+      "random = () => 0",
+    );
     await route.fulfill({
       response,
       body: source.replace("spinDurationMs: 4100", "spinDurationMs: 120"),
@@ -70,9 +77,9 @@ test("actual game loop automatically enters each next story and shows the ending
   await page.locator("#play").click();
   await page.locator("#story-start").click();
   for (const [index, location] of [
-    "Erlenmatt",
-    "St. Johann",
-    "VoltaNord",
+    "St. Alban-Vorstadt",
+    "Aeschenplatz",
+    "Riehenring",
   ].entries()) {
     await expect(page.locator("#modifier-wheel")).toBeVisible();
     await expect(page.locator("#wheel-options li")).toHaveCount(8);
@@ -105,7 +112,7 @@ test("actual game loop automatically enters each next story and shows the ending
     await expect(page.locator("#campaign-route .complete")).toHaveCount(
       index + 1,
     );
-    if (location === "VoltaNord") {
+    if (location === "Riehenring") {
       await expect(page.locator("#story-fulltext")).not.toContainText(
         /connect overflows|roof inflows|tank overflows/i,
       );
@@ -152,7 +159,10 @@ test("wheel reveals controlled positive and negative results and emits sounds", 
   await page.route("**/models/basel-city.glb", (route) => route.abort());
   await page.route("**/config/levels.ts*", async (route) => {
     const response = await route.fetch();
-    const source = await response.text();
+    const source = (await response.text()).replaceAll(
+      "random = Math.random",
+      "random = () => 0",
+    );
     await route.fulfill({
       response,
       body: source
@@ -162,7 +172,10 @@ test("wheel reveals controlled positive and negative results and emits sounds", 
   });
   await page.route("**/config/modifiers.ts*", async (route) => {
     const response = await route.fetch();
-    const source = await response.text();
+    const source = (await response.text()).replaceAll(
+      "random = Math.random",
+      "random = () => 0",
+    );
     await route.fulfill({
       response,
       body: source.replace("spinDurationMs: 4100", "spinDurationMs: 100"),
@@ -197,7 +210,9 @@ test("wheel reveals controlled positive and negative results and emits sounds", 
   ).toBeGreaterThan(2);
 
   await page.locator("#wheel-continue").click();
-  await expect(page.locator("#story-title")).toContainText("Erlenmatt");
+  await expect(page.locator("#story-title")).toContainText(
+    "St. Alban-Vorstadt",
+  );
   await page.locator("#story-start").click();
   await expect(page.locator("#modifier-wheel")).toBeVisible();
   await expect(page.locator("#active-modifier")).toBeHidden();
@@ -225,7 +240,10 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   // cache-busting queries are present. The production danger rule still loses.
   await page.route("**/config/city.ts*", async (route) => {
     const response = await route.fetch();
-    const source = await response.text();
+    const source = (await response.text()).replaceAll(
+      "random = Math.random",
+      "random = () => 0",
+    );
     await route.fulfill({
       response,
       body: source.replace(
@@ -236,7 +254,10 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   });
   await page.route("**/config/levels.ts*", async (route) => {
     const response = await route.fetch();
-    const source = await response.text();
+    const source = (await response.text()).replaceAll(
+      "random = Math.random",
+      "random = () => 0",
+    );
     const split = source.indexOf('id: "erlenmatt"');
     expect(split).toBeGreaterThan(0);
     const first = source
@@ -252,7 +273,9 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   await page.locator("#wheel-spin").click();
   await page.locator("#wheel-continue").waitFor({ state: "visible" });
   await page.locator("#wheel-continue").click();
-  await expect(page.locator("#story-title")).toContainText("Erlenmatt");
+  await expect(page.locator("#story-title")).toContainText(
+    "St. Alban-Vorstadt",
+  );
   await page.locator("#story-start").click();
   await expect(page.locator("#campaign-story")).toBeHidden();
   await expect(page.locator("#target-info")).toContainText("Sealed asphalt");
@@ -260,7 +283,7 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   await page.mouse.down();
   await page.mouse.up();
   await expect(page.locator("#target-info")).toContainText("Unsealed soil");
-  await page.keyboard.press("Digit4");
+  await page.keyboard.press("Digit5");
   await page.mouse.down();
   await page.mouse.up();
   await expect(page.locator("#city-change")).toContainText("1 trees");
@@ -285,7 +308,9 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   await expect(page.locator("#story-body")).not.toContainText(
     "gelben Rheinschwimmsack",
   );
-  await expect(page.locator("#story-title")).toContainText("Erlenmatt");
+  await expect(page.locator("#story-title")).toContainText(
+    "St. Alban-Vorstadt",
+  );
 });
 
 test("briefing reveals briskly with a bounded wah-wah voice; mute and early start silence it", async ({
@@ -419,8 +444,11 @@ test("Level 3 wider-gap shade neighbors advance to the Level 4 briefing", async 
     );
   await page.route("**/src/game/campaign.ts*", async (route) => {
     const response = await route.fetch();
-    const source = await response.text();
-    const marker = "applyLayout(s, cityLevels[0]);";
+    const source = (await response.text()).replaceAll(
+      "random = Math.random",
+      "random = () => 0",
+    );
+    const marker = "applyLayout(s, currentLevel(s));";
     expect(source).toContain(marker);
     await route.fulfill({
       response,
@@ -450,11 +478,11 @@ test("Level 3 wider-gap shade neighbors advance to the Level 4 briefing", async 
   });
   await page.goto("/");
   await page.locator("#play").click();
-  await expect(page.locator("#story-title")).toContainText("St. Johann");
+  await expect(page.locator("#story-title")).toContainText("3.");
   await page.locator("#story-start").click();
   await expect(page.locator("#modifier-wheel")).toBeVisible();
   await page.locator("#wheel-spin").click();
   await page.locator("#wheel-continue").click();
-  await expect(page.locator("#story-title")).toContainText("VoltaNord");
+  await expect(page.locator("#story-title")).toContainText("Riehenring");
   await expect(page.locator("#mission-level")).toContainText("LEVEL 4/4");
 });
