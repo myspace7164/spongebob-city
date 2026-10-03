@@ -48,7 +48,10 @@ Source credits and licences are recorded in `docs/SOURCES.md` and the field guid
 ## Drawn ground and trees
 
 `basel-ground-0..3.png` hold Basel's land cover (Bodenbedeckung, dataset
-100477) as 0.4 m category texels in four tiles (each ≤ 4096 px, split on 100 m
+100477) as 0.4 m texels in four RGB tiles: red is the category, green the
+distance from the texel centre to the nearest real polygon edge (up to two
+texels, 16 levels), which lets the shader draw straight sub-texel boundaries
+and fixed-width curbs. Tiles (each ≤ 4096 px, split on 100 m
 terrain tiles); codes and tile extents are in `basel-ground.json` and must
 match `config/ground.ts`. On terrain the game draws roads, curbs, paving,
 grass, water and rail areas from them instead of the aerial photo and road

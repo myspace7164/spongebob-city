@@ -10,4 +10,6 @@ Verified: 53 unit tests, Python converter tests (ground 5, trees 3, map 5, roads
 
 Branch: tried on a local test branch, reviewed by the participant, merged into main.
 
-Limits: 0.4 m texels (edges smoothed, not exact); no lane markings yet; tree heights estimated from age; trees and ground have no collisions.
+Straight edges: the converter also stores each texel's exact distance to the nearest real edge (green channel, 16 levels over 0.8 m); the shader reconstructs boundaries from signed distances instead of a noisy majority lookup, and curbs are continuous dark-grey 0.22 m bands (a 4×4 texel search finds the footway beside the road). Ground tiles grow from about 0.9 MB to 6.1 MB.
+
+Limits: boundaries are straight but approximate where three categories meet; no lane markings yet; tree heights estimated from age; trees and ground have no collisions.
