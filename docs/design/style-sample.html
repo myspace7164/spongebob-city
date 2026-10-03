@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sponge City style reference</title>
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body class="style-sample">
+    <main>
+      <div>
+        <p class="eyebrow">CARTOON × FRUTIGER AERO</p>
+        <h1>I'm ready, Basel!</h1>
+        <p class="description">
+          Original CSS and vector art. Bright glass, chunky outlines, and a
+          healthy dose of cheese.
+        </p>
+      </div>
+      <div class="sample-row">
+        <div class="meter heat">
+          <div>🌡️ HEAT<strong>37 °C · 76%</strong></div>
+          <progress max="100" value="76" aria-label="Heat sample"></progress>
+        </div>
+        <div class="meter flood">
+          <div>🌊 FLOOD<strong>23% danger</strong></div>
+          <progress max="100" value="23" aria-label="Flood sample"></progress>
+        </div>
+        <div class="meter sponge">
+          <div>🧽 SPONGE<strong>200 / 400 L</strong></div>
+          <progress max="400" value="200" aria-label="Sponge sample"></progress>
+        </div>
+      </div>
+      <div class="sample-row">
+        <button class="cta">I'm ready! <span>➜</span></button
+        ><button class="inventory-item">
+          <span class="tool-icon">🌳</span
+          ><span
+            ><strong>Plant tree · 110 coins</strong
+            ><small
+              >Plant on unsealed soil, then water it for cooling.</small
+            ></span
+          >
+        </button>
+      </div>
+      <div id="hotbar">
+        <button class="slot" aria-pressed="true">
+          <span class="tool-key">1</span><span class="tool-icon">🧽</span
+          ><span class="tool-name">Sponge vacuum</span
+          ><small>FREE</small></button
+        ><button class="slot" aria-pressed="false">
+          <span class="tool-key">2</span><span class="tool-icon">💦</span
+          ><span class="tool-name">Water spray</span><small>FREE</small></button
+        ><button class="slot" aria-pressed="false">
+          <span class="tool-key">4</span><span class="tool-icon">🌳</span
+          ><span class="tool-name">Plant tree</span><small>110 coins</small>
+        </button>
+      </div>
+      <div id="abilities">
+        <span class="power-pill ready"><kbd>Q</kbd> Poren-Power: READY</span
+        ><span class="power-pill">🫧 Bubble irrigation: locked</span
+        ><span class="power-pill threat">Dr. Beton: sabotage in 38s</span>
+      </div>
+      <p class="small">
+        Keyboard focus is visible. Reduced-motion preferences disable decorative
+        motion. The live mission exercises every component.
+      </p>
+    </main>
+  </body>
+</html>

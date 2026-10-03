@@ -80,7 +80,7 @@ function startGame(): void {
       await canvas.requestPointerLock();
     } catch {
       message.textContent =
-        "Mouse capture was blocked. Open the game in its own browser tab and click Enter again.";
+        "Mouse capture was blocked. Open the game in its own browser tab and click I’M READY again.";
     }
   });
   document.addEventListener(
