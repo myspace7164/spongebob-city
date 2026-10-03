@@ -58,7 +58,7 @@ test("campaign starts with the four story levels and cannot skip incomplete achi
   updateCity(s, 0, at(s, 0));
   updateCity(s, Number.NaN, at(s, 0));
   assert.equal(s.elapsed, 0);
-  s.elapsed = 26;
+  s.elapsed = cityLevels[0].weather.dryDuration + 1;
   assert.equal(weather(s).raining, true);
   assert.equal(s.campaign!.stormCompleted, false);
 });

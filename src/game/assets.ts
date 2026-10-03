@@ -55,7 +55,12 @@ export function spongeWaterMorphWeights(
   const waterFull = fill > 0.5 ? (fill - 0.5) * 2 : 0;
   const heatDry = Math.max(
     0,
-    Math.min(1, (temperature - cityConfig.heatSystem.dryThresholdCelsius) / 8),
+    Math.min(
+      1,
+      (temperature - cityConfig.heatSystem.dryThresholdCelsius) /
+        (cityConfig.heatSystem.dryFullCelsius -
+          cityConfig.heatSystem.dryThresholdCelsius),
+    ),
   );
   return {
     dry: waterDry + (1 - waterDry) * heatDry,

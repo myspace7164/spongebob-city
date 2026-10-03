@@ -27,6 +27,7 @@ export function createCampaign(): CityState {
     wheelPending: false,
     pendingModifier: null,
     activeModifier: null,
+    equippedHat: null,
   };
   applyLayout(s, cityLevels[0]);
   return s;
@@ -239,6 +240,7 @@ export function startNextCampaignLevel(s: CityState): boolean {
     wheelPending: false,
     pendingModifier: null,
     activeModifier: progress.pendingModifier,
+    equippedHat: progress.equippedHat,
   };
   Object.assign(s, createCity(), { campaign: next });
   applyLayout(s, currentLevel(s)!);
