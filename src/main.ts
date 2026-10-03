@@ -15,8 +15,8 @@ import {
   levelPosition,
   recyclePlot,
 } from "./game/campaign";
-import { clampToLevel, sceneryPose, worldToMap } from "./game/streets";
-import { assignElevations, heightAt } from "./game/terrain";
+import { clampToLevel } from "./game/streets";
+import { assignElevations, levelScenery } from "./game/terrain";
 import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
@@ -70,29 +70,15 @@ function startGame(): void {
   const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
   let sceneryLoaded = false;
   let terrain: TerrainGrid | null = null;
-  let pose = { rotationY: 0, x: 0, z: 0 };
+  let ground = levelScenery(currentLevel(city), terrain).groundAt;
   /** World height of the Basel terrain under a point; flat (0) until it loads. */
-  const groundAt = (x: number, z: number) =>
-    terrain
-      ? heightAt(terrain, ...worldToMap(pose, x, z)) + scenery.position.y
-      : 0;
+  const groundAt = (x: number, z: number) => ground(x, z);
   const placeScenery = () => {
     const site = currentLevel(city)?.site;
-    const origin = currentLevel(city)?.origin;
-    const base = sceneryPose(site);
-    pose = {
-      rotationY: base.rotationY,
-      x: base.x + (origin?.x ?? 0),
-      z: base.z + (origin?.z ?? 0),
-    };
-    scenery.rotation.y = pose.rotationY;
-    // Lower or raise Basel so the level's play area sits at y ≈ 0.
-    const centre = levelPosition(city, { x: 0, z: 0 });
-    scenery.position.set(
-      pose.x,
-      terrain ? -heightAt(terrain, ...worldToMap(pose, centre.x, centre.z)) : 0,
-      pose.z,
-    );
+    const placed = levelScenery(currentLevel(city), terrain);
+    scenery.rotation.y = placed.rotationY;
+    scenery.position.set(placed.x, placed.y, placed.z);
+    ground = placed.groundAt;
     if (terrain) assignElevations(city, groundAt);
     if (sceneryLoaded)
       levelStatus.textContent = `Basel buildings loaded · ${site ? site.street : "fictional mission square"}`;

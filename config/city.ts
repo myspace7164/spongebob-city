@@ -32,6 +32,10 @@ export const cityConfig = {
   tankIrrigationRate: 8,
   irrigationReachMultiplier: 1.5,
   floodLitres: 8500,
+  /** Downhill surface flow between plots with terrain heights (litres/s, metres). */
+  runoffRate: 20,
+  runoffReach: 7.5,
+  runoffMinimumDrop: 0.05,
   heatResponse: 0.04,
   temperatureBase: 25,
   temperatureSpan: 12,

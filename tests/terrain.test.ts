@@ -3,6 +3,8 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { mapConfig } from "../config/map.ts";
 import { riehenringSite } from "../config/levels.ts";
+import { createCity } from "../src/game/city.ts";
+import { downhillNeighbours, updateWater } from "../src/game/city-water.ts";
 import { roadGeometry } from "../src/game/map-layers.ts";
 import { createPlayer, updatePlayer } from "../src/game/player.ts";
 import { sceneryPose, worldToMap } from "../src/game/streets.ts";
@@ -127,4 +129,37 @@ test("the player lands on and walks along a slope", () => {
     updatePlayer(player, walk, -Math.PI / 2, 1 / 60, slope);
   assert.ok(player.position.x > 5);
   assert.ok(Math.abs(player.position.y - slope(player.position.x)) < 1e-9);
+});
+
+test("surface water runs only downhill, conserves litres and needs elevations", () => {
+  const s = createCity();
+  s.plots.forEach((p) => (p.surface = 0));
+  const [high, low, far] = [s.plots[0], s.plots[1], s.plots[3]];
+  high.surface = 100;
+  updateWater(s, 1, false);
+  assert.equal(low.surface, 0, "flat plots without elevations keep water");
+  s.plots.forEach((p) => (p.elevation = 0));
+  high.elevation = 1;
+  far.elevation = -5; // lower but out of reach
+  const before = s.plots.reduce((n, p) => n + p.surface, 0) + s.evaporated;
+  updateWater(s, 1, false);
+  assert.ok(low.surface > 0, "water reaches the lower neighbour");
+  assert.equal(far.surface, 0, "only plots within reach receive water");
+  assert.ok(high.surface < 99);
+  const after = s.plots.reduce((n, p) => n + p.surface, 0) + s.evaporated;
+  assert.ok(Math.abs(after - before) < 1e-9);
+  // Uphill never receives water.
+  const uphill = createCity();
+  uphill.plots.forEach((p, i) => {
+    p.surface = i === 1 ? 50 : 0;
+    p.elevation = i === 0 ? 2 : 0;
+  });
+  updateWater(uphill, 1, false);
+  assert.equal(uphill.plots[0].surface, 0);
+  assert.deepEqual(
+    downhillNeighbours(uphill, uphill.plots[0])
+      .map((n) => n.plot.id)
+      .sort(),
+    [1, 4, 5],
+  );
 });

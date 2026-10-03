@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import type { CityState, TerrainGrid } from "../interfaces";
+import type { CityLevel, CityState, TerrainGrid } from "../interfaces";
+import { sceneryPose, worldToMap } from "./streets";
 
 type Bounds = TerrainGrid["bounds"];
 type Rectangle = { left: number; right: number; back: number; front: number };
@@ -106,4 +107,26 @@ export function assignElevations(
   groundAt: (x: number, z: number) => number,
 ): void {
   for (const p of s.plots) p.elevation = groundAt(p.x, p.z);
+}
+
+/**
+ * Where the Basel scenery goes for a level, and the world ground height that
+ * results: the street's pose plus the stage offset, lifted so the play area's
+ * centre sits at y = 0. Without terrain the ground stays flat.
+ */
+export function levelScenery(
+  level: CityLevel | undefined,
+  grid: TerrainGrid | null,
+) {
+  const base = sceneryPose(level?.site);
+  const origin = level?.origin ?? { x: 0, z: 0 };
+  const pose = {
+    rotationY: base.rotationY,
+    x: base.x + origin.x,
+    z: base.z + origin.z,
+  };
+  const y = grid ? -heightAt(grid, ...worldToMap(pose, origin.x, origin.z)) : 0;
+  const groundAt = (x: number, z: number) =>
+    grid ? heightAt(grid, ...worldToMap(pose, x, z)) + y : 0;
+  return { ...pose, y, groundAt };
 }
