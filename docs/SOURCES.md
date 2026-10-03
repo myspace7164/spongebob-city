@@ -9,3 +9,4 @@ Every dataset, API, notable library and AI tool used, with licence. Feeds the so
 | Climate and water coefficients | Original synthetic gameplay values in config/city.ts | Project-authored; illustrative, not empirical | Mission balancing and outcome metrics |
 | Basel stage set | Procedural geometry inspired by the supplied Barfüsserplatz setting | Original project geometry; no survey/map data or imported art | Mission environment |
 | Three.js | https://github.com/mrdoob/three.js | MIT | 3D renderer and glTF loader |
+| Imported SpongeBob Blender model | User-supplied live Blender scene | Original model author and asset licence not established; SpongeBob is a third-party fictional character | Editable source and GLB character export; shirt/sleeve edits made through Blender MCP |
