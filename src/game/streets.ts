@@ -33,6 +33,17 @@ export function worldToMap(
   return [c * dx - s * dz, s * dx + c * dz];
 }
 
+/** World coordinates of a map-local point for scenery placed with this pose. */
+export function mapToWorld(
+  pose: { rotationY: number; x: number; z: number },
+  x: number,
+  z: number,
+): [number, number] {
+  const c = Math.cos(pose.rotationY),
+    s = Math.sin(pose.rotationY);
+  return [c * x + s * z + pose.x, -s * x + c * z + pose.z];
+}
+
 /** Inverse of sceneryPose: play-area metres back to map-local metres. */
 export function playToMap(
   site: LevelSite,

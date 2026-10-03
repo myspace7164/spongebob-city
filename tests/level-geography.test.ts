@@ -7,8 +7,8 @@ import {
 } from "../config/level-locations.ts";
 import { cityLevels } from "../config/levels.ts";
 import { cityConfig } from "../config/city.ts";
-import { levelScenery } from "../src/game/terrain.ts";
-import { worldToMap } from "../src/game/streets.ts";
+import { levelLocalGroundAt, levelScenery } from "../src/game/terrain.ts";
+import { mapToWorld, worldToMap } from "../src/game/streets.ts";
 import {
   createCampaign,
   currentLevel,
@@ -38,6 +38,38 @@ test("eight real candidates match recorded area priority and actual scenery tran
     assert.ok(Math.abs(mapped[0] - location.site.origin[0]) < 1e-8);
     assert.ok(Math.abs(mapped[1] - location.site.origin[1]) < 1e-8);
   }
+});
+
+test("builder markers sample terrain through the rotated and shifted scenery pose", () => {
+  const grid = {
+    bounds: [-100, -100, 100, 100] as [number, number, number, number],
+    columns: 3,
+    rows: 3,
+    spacing: 100,
+    heights: Float32Array.from([0, 10, 20, 20, 30, 40, 40, 50, 60]),
+  };
+  const level = {
+    ...cityLevels[0],
+    origin: { x: 35, z: -22 },
+    site: {
+      street: "Rotated test street",
+      origin: [45, -30] as [number, number],
+      heading: 0.7,
+      bounds: { minX: -20, maxX: 20, minZ: -40, maxZ: 8 },
+      start: [0, 0] as [number, number],
+    },
+  };
+  const pose = levelScenery(level, grid);
+  const marker: [number, number] = [52, -61];
+  const [worldX, worldZ] = mapToWorld(pose, ...marker);
+  assert.equal(
+    levelLocalGroundAt(pose, ...marker, pose.groundAt),
+    pose.groundAt(worldX, worldZ) - pose.y,
+  );
+  assert.notEqual(
+    pose.groundAt(marker[0], marker[1]),
+    pose.groundAt(worldX, worldZ),
+  );
 });
 
 test("all sixteen randomized routes have four different sites with increasing urgency", () => {

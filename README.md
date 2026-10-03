@@ -69,7 +69,7 @@ npm run test:browser
 
 ## Extend
 
-The level builder is a local development tool. Run `npm run dev` and open `/?builder` to place an area's bounds, construction spots, player spawn and characters; press **N** to open or close it during play. **Save** writes the validated draft to `config/built-levels/index.ts`. It is disabled in production and cannot open after joining an online room. Review the generated level in the game before committing it.
+The level builder is a local development tool. Run `npm run dev` and open `/?builder` to place an area's bounds, construction spots, player spawn and characters; press **N** to open or close it during play. **Test play** uses the draft only in memory. **Save draft** stores it in this browser; **Apply to level** explicitly updates `config/built-levels/index.ts` after keeping the previous state in `config/built-levels/history/`. Select a saved version and choose **Restore** to go back; restoring also keeps the state it replaces. Ctrl+S saves a browser draft. It is disabled in production and cannot open after joining an online room.
 
 SpongeBob carries a miniature of the selected tool in his right hand. Both the Blender character and fallback swing their arms and legs while walking; hold either Shift key to sprint with a faster gait. Shift held before mouse capture also works; the footer shows RUNNING while sprint is active. Idle arms hang naturally, and the imported character's teeth are white. Runtime limb pivots preserve Dry/WaterFull morph targets; the original Blender source stays intact.
 
