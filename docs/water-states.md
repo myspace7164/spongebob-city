@@ -1,6 +1,6 @@
 # Character water states
 
-The editable Blender source contains Basis and WaterFull on these eight meshes:
+The editable Blender source contains Basis, WaterFull and Dry on these eight meshes:
 
 | Object | Morph purpose |
 |---|---|
@@ -10,16 +10,25 @@ The editable Blender source contains Basis and WaterFull on these eight meshes:
 | Cube.005 | Upper eyelids and lashes follow the eyes, preserving Mirror seams |
 | Sphere.001 | Lower eyelids follow the eyes, preserving Mirror seams |
 | Cube.001, Cube.002 | Teeth translate to follow the expanded face |
-| Tie Cube | Tie follows the shirt expansion |
+| Tie Cube | Tie follows the shirt expansion; Dry draws it slightly inward |
+
+Dry uses the normal Basis as its reference. It narrows and thins the sponge,
+shirt and pants in the torso region while preserving height and keeping the
+lower legs and shoes stable. Arms and sleeves shrink slightly across their
+cross-section. Eyes, lids and teeth move inward a small amount. The eyelid
+meshes keep their existing Mirror seams by following with a rigid offset.
+Dry is present on each of the eight listed meshes; shoes remain rigid.
 
 Shoes have no morph. Basis equals the original normal mesh. Only shape-key
 coordinates were added: base topology, weights, vertex groups, parenting,
 material assignments and the existing armature/modifiers are unchanged.
 The existing degenerate geometry was retained.
 
-Set WaterFull to the same value on all eight meshes when previewing the state.
-No driver, animation, Action or keyframe was created. Dry has not been created.
-The saved file is neutral with every WaterFull value at zero.
+Set the same state value on all eight meshes. Keep Dry and WaterFull mutually
+exclusive in gameplay. Both keys were tested at zero, independently at one,
+and together at one for technical stability. The simultaneous state is not a
+normal gameplay state. No driver, animation, Action or keyframe was created.
+The saved file is neutral with both keys at zero.
 
 ## Verification
 
@@ -31,12 +40,21 @@ Front and side inspections found no severe clipping or detached clothing/face.
 All pose matrices and rotation modes were restored. The original scene
 fingerprint and unchanged Basis coordinates were verified afterward.
 
-The pre-morph backup and diagnostic screenshots/reports remain local in .hack/.
-Run scripts/create-waterfull.py only on the original unkeyed character;
-it refuses to overwrite existing keys or the backup. Run
-scripts/verify-waterfull.py to repeat the temporary tests.
+Dry reached 8.8% narrower and 8.1% thinner at value 1; evaluated height was
+unchanged. The values 0, 0.25, 0.5, 0.75 and 1 passed finite-position and
+stable-vertex-count checks. Both arms/elbows, knees and torso were posed with
+Dry at 1. No severe clipping or detached clothing/face appeared in front and
+side inspections. WaterFull coordinates, Basis, topology, weights, parenting,
+materials and rig matched the pre-Dry audit. The rig and both key values were
+restored to neutral; zero Actions remain.
+
+The backups and diagnostic screenshots/reports remain local in .hack/.
+Run scripts/create-waterfull.py only on the original unkeyed character. Run
+scripts/create-dry.py on the verified WaterFull setup. Each refuses to overwrite
+an existing backup or its own keys. Run scripts/verify-waterfull.py and
+scripts/verify-dry.py to repeat their temporary tests.
 
 The current GLB exporter produces a static evaluated normal-state snapshot.
-WaterFull is editable in the Blender source; exporting a skeletal model with
-morph targets for the game is separate work. Arbitrary extreme poses can still
+Both WaterFull and Dry are editable in the Blender source; exporting a skeletal
+model with both morph targets for the game is separate work. Arbitrary extreme poses can still
 intersect the broad body, as documented in rigging.md.
