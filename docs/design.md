@@ -56,7 +56,10 @@ illustrative facade families (old-town houses with shutters and flower boxes,
 apartments, offices, workshops) with their own storey heights and windows, a
 muted Basel plaster and sandstone palette, tile or slate pitched roofs and
 gravel or green flat roofs. Colours and windows are artistic, chosen per
-building from a stable seed, not surveyed; bridges stay grey.
+building from a stable seed, not surveyed. Bridges (Basel's `Bru_` objects and
+unlabelled spans that float above the terrain) have no windows: asphalt deck,
+concrete sides and a darker underside. Hand-picked landmarks get their own look;
+the Messe Basel hall on Riehenring shows its aluminium band facade.
 
 The ground is real swissALTI3D terrain (4 m grid): the photo is draped over it,
 roads follow it, and buildings keep their surveyed heights on top. Each level's

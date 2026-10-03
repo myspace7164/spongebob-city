@@ -33,6 +33,11 @@ export function createBuildingMaterial(): THREE.MeshLambertMaterial {
     uGreenRoof: { value: colour(style.greenRoof) },
     uPetal: { value: colour(style.flowerPetal) },
     uBridge: { value: colour(style.bridge) },
+    uBridgeDeck: { value: colour(style.bridgeDeck) },
+    uBridgeUnderside: { value: colour(style.bridgeUnderside) },
+    uMetalBand: { value: colour(style.metalBand) },
+    uMetalGlass: { value: colour(style.metalGlass) },
+    uSoffit: { value: colour(style.soffit) },
     uShutterShare: { value: style.shutterShare },
     uFlowerShare: { value: style.flowerShare },
     uGreenRoofShare: { value: style.greenRoofShare },
@@ -70,6 +75,7 @@ uniform vec4 uFamilies[${families}];
 uniform float uFamilyShares[${families}];
 uniform vec3 uShutter, uGlass, uFrame, uDoor, uTileRoof, uSlateRoof;
 uniform vec3 uGravelRoof, uBitumenRoof, uGreenRoof, uPetal, uBridge;
+uniform vec3 uBridgeDeck, uBridgeUnderside, uMetalBand, uMetalGlass, uSoffit;
 uniform float uShutterShare, uFlowerShare, uGreenRoofShare, uSlateRoofShare, uWallLimit, uFlatRoof;
 // Polynomial hash avoids high-frequency sine noise on neighbouring fragments.
 float styleHash(vec2 p) {
@@ -152,6 +158,31 @@ vec3 wallColour(vec3 n, float seed, float base) {
   float blur = smoothstep(0.18, 0.75, max(fwidth(u) / bayWidth, fwidth(h) / floorHeight));
   return mix(c, mix(plaster, uGlass, family == 2 ? 0.4 : 0.2), blur);
 }
+// No windows on bridges: asphalt deck, concrete sides with panel seams, darker underside.
+vec3 bridgeColour(vec3 n) {
+  if (n.y > uFlatRoof) return uBridgeDeck;
+  if (n.y < -uWallLimit) return uBridgeUnderside;
+  float seam = 1.0 - smoothstep(0.03, 0.08, fract(vLocal.y / 0.9));
+  float fade = smoothstep(0.2, 0.6, fwidth(vLocal.y / 0.9));
+  return uBridge * mix(1.0 - 0.12 * seam, 0.97, fade);
+}
+// Messe-style landmark: twisted aluminium bands above a glazed ground floor.
+vec3 metalColour(vec3 n, float base) {
+  if (n.y > uFlatRoof) return uGravelRoof;
+  if (n.y < -uWallLimit) return uSoffit;
+  float u = abs(n.x) > abs(n.z) ? vLocal.z : vLocal.x;
+  float h = vLocal.y - base;
+  if (h < 4.5) {
+    float mullion = 1.0 - smoothstep(0.04, 0.09, abs(fract(u / 1.5) - 0.5) * 1.5);
+    return mix(uMetalGlass, uMetalBand * 0.8, mullion);
+  }
+  float band = floor(h / 1.4);
+  float twist = 0.84 + 0.16 * sin(u * 0.32 + band * 1.9);
+  float gap = smoothstep(0.0, 0.08, fract(h / 1.4)) * smoothstep(1.0, 0.92, fract(h / 1.4));
+  vec3 c = uMetalBand * twist * mix(0.55, 1.0, gap);
+  float fade = smoothstep(0.2, 0.6, fwidth(h / 1.4));
+  return mix(c, uMetalBand * 0.88, fade);
+}
 vec3 roofColour(vec3 n, float seed) {
   float choice = styleHash(vec2(seed, 9.0));
   if (abs(n.y) < uFlatRoof) {
@@ -177,14 +208,15 @@ vec3 roofColour(vec3 n, float seed) {
 {
   vec3 viewNormal = normalize(cross(dFdx(vViewPosition), dFdy(vViewPosition)));
   vec3 n = normalize((vec4(viewNormal, 0.0) * viewMatrix).xyz);
-  vec3 styled = vBuilding.z > 0.5 ? uBridge
+  vec3 styled = vBuilding.z > 1.5 ? metalColour(n, vBuilding.y)
+    : vBuilding.z > 0.5 ? bridgeColour(n)
     : abs(n.y) < uWallLimit ? wallColour(n, vBuilding.x, vBuilding.y)
     : roofColour(n, vBuilding.x);
   diffuseColor.rgb = styled;
 }`,
       );
   };
-  material.customProgramCacheKey = () => "basel-building-style-v2";
+  material.customProgramCacheKey = () => "basel-building-style-v4";
   return material;
 }
 
