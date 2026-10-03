@@ -51,14 +51,17 @@ export function makeCharacter(
       ball(g, 0.24, [x, 1.65, 0.27], "white");
       ball(g, 0.105, [x, 1.65, 0.46], "water");
       ball(g, 0.05, [x, 1.65, 0.54], "ink");
-      box(g, [0.12, 0.35, 0.12], [x, 0.32, 0], "sponge");
-      box(g, [0.29, 0.16, 0.35], [x, 0.08, 0.06], "ink");
-      box(g, [0.12, 0.55, 0.12], [x * 2.35, 1.02, 0], "sponge");
+      box(g, [0.12, 0.35, 0.12], [x, 0.32, 0], "sponge").name =
+        `${x < 0 ? "right" : "left"}-leg-mesh`;
+      box(g, [0.29, 0.16, 0.35], [x, 0.08, 0.06], "ink").name =
+        `${x < 0 ? "right" : "left"}-shoe`;
+      box(g, [0.12, 0.55, 0.12], [x * 2.35, 1.02, 0], "sponge").name =
+        `${x < 0 ? "right" : "left"}-arm-mesh`;
       ball(g, 0.09, [x * 1.6, 1.2, 0.265], "pore");
     }
     box(g, [0.42, 0.05, 0.04], [0, 1.19, 0.29], "ink");
-    box(g, [0.14, 0.15, 0.06], [-0.1, 1.1, 0.28], "white");
-    box(g, [0.14, 0.15, 0.06], [0.1, 1.1, 0.28], "white");
+    box(g, [0.14, 0.15, 0.06], [-0.1, 1.1, 0.28], "tooth");
+    box(g, [0.14, 0.15, 0.06], [0.1, 1.1, 0.28], "tooth");
     ball(g, 0.1, [0, 1.42, 0.32], "sponge");
     for (const [x, y] of [
       [-0.42, 1.86],
@@ -100,8 +103,29 @@ export function makeCharacter(
     box(g, [0.7, 0.4, 0.6], [0, 0.62, 0], "water");
   }
   if (kind === "beton") {
-    box(g, [0.85, 0.2, 0.7], [0, 2.02, 0], "coral");
-    box(g, [0.45, 0.1, 0.09], [0, 1.48, 0.37], "white");
+    body.material = new THREE.MeshLambertMaterial({
+      color: themeColor("villain-coat"),
+    });
+    box(g, [0.85, 0.2, 0.7], [0, 2.02, 0], "villain-coat");
+    box(g, [0.48, 0.13, 0.04], [0, 1.46, 0.39], "ink");
+    for (const x of [-0.18, 0.18]) {
+      const brow = box(g, [0.3, 0.085, 0.07], [x, 1.89, 0.4], "villain-coat");
+      brow.rotation.z = x < 0 ? -0.35 : 0.35;
+      const eye = ball(g, 0.078, [x, 1.73, 0.445], "villain-eye");
+      eye.name = "evil-eye";
+      const tooth = box(g, [0.06, 0.08, 0.045], [x * 0.7, 1.46, 0.43], "white");
+      tooth.rotation.z = x < 0 ? -0.2 : 0.2;
+    }
+    const cape = box(g, [0.88, 0.9, 0.08], [0, 0.95, -0.45], "villain-coat");
+    cape.rotation.x = -0.15;
+    for (const x of [-0.26, 0.26]) {
+      const spike = new THREE.Mesh(
+        new THREE.ConeGeometry(0.1, 0.3, 4),
+        new THREE.MeshLambertMaterial({ color: themeColor("villain-coat") }),
+      );
+      spike.position.set(x, 2.22, 0);
+      g.add(spike);
+    }
   }
   if (kind === "sandy") {
     const helmet = new THREE.Mesh(

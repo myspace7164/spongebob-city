@@ -60,8 +60,10 @@ test("construction requires reach, soil, available budget and an unused plot", (
   s.budget = 0;
   act(s, "tank", at(s, 1), 1);
   assert.equal(s.plots[1].kind, "asphalt");
+  const earnedBeforePatrick = s.funding.earned;
   act(s, "patrick", at(s, 1), null);
-  assert.equal(s.budget, 0);
+  assert.equal(s.budget, s.funding.earned - earnedBeforePatrick);
+  assert.ok(s.budget > 0);
   assert.ok(cityMetrics(s).permeable >= 2);
   const permeable = cityMetrics(s).permeable;
   act(s, "patrick", at(s, 15), null);
@@ -103,9 +105,9 @@ test("Sandy upgrade enables distant bubbles, is charged once and requires visiti
   const sandy = { ...c.sandy, y: 0 };
   act(s, "upgrade", sandy, null);
   assert.equal(s.upgraded, true);
-  assert.equal(s.budget, c.budget - c.upgradeCost);
+  assert.equal(s.budget, c.budget - c.upgradeCost + s.funding.earned);
   act(s, "upgrade", sandy, null);
-  assert.equal(s.budget, c.budget - c.upgradeCost);
+  assert.equal(s.budget, c.budget - c.upgradeCost + s.funding.earned);
   act(s, "spray", position, 3, 100);
   assert.equal(s.reused, 0);
   act(s, "spray", position, 3, 100, true);
@@ -143,12 +145,16 @@ test("sabotage reseals a plot without destroying its water; disabling machine st
   const initial = totalWater(s);
   s.sabotageIn = 0;
   updateCity(s, 1 / 60, at(s, 0));
+  assert.equal(s.plots[0].kind, "basin");
+  assert.equal(s.saboteur.phase, "approaching");
+  for (let step = 0; step < 1200 && s.plots[0].kind === "basin"; step++)
+    updateCity(s, 1 / 60, at(s, 0));
   assert.equal(s.plots[0].kind, "asphalt");
   assert.equal(s.plots[0].moisture, 0);
   assert.ok(Math.abs(totalWater(s) - initial) < 0.00001);
   act(s, "basin", at(s, 0), 0);
   s.sabotageIn = 0;
-  act(s, "machine", { ...c.machine, y: 0 }, null);
+  act(s, "machine", { ...s.saboteur, y: 0 }, null);
   advance(s, 10);
   assert.equal(s.plots[0].kind, "basin");
   assert.ok(s.machineDisabled > 0);

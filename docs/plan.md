@@ -95,3 +95,39 @@ Done when: the arrival leads through Riehenring, Erlenmatt, St. Johann and Volta
 Notes: preserve supplied German storytelling; geography remains pending. Simple conserved runoff/overflow connections and marked entrances use existing tools. See handoff/t9-level-campaign.md.
 
 Revise this plan before implementing changed scope. Keep progress and checks in the corresponding handoff. Further neighbourhoods and boss encounters need a new design decision and plan task.
+
+## M6 Level polish: quick talking briefings and fresh neighbourhoods
+
+### Chunk F · in order
+
+#### T10 Short animated briefings and independent placeholder levels
+
+Owner: @myspace7164
+Needs: T9
+Files: config/levels.ts, config/briefing.ts, src/interfaces.ts, src/ui/campaign.ts, src/ui/story-speech.ts, src/ui/style.css, src/ui/theme.css, src/game/campaign.ts, src/game/city.ts, src/game/city-view.ts, src/game/map-layers.ts, src/main.ts, index.html, tests/campaign.test.ts, tests/browser/campaign.spec.ts, tests/browser/game.spec.ts, README.md, docs/design.md, docs/style-guide.md, docs/decisions.md, docs/SOURCES.md
+Done when: short German briefings reveal text beside a bobbing SpongeBob with bounded wah-wah audio; starting early/muting stops sound, each next level has fresh state and a distinct placeholder location/layout, retry keeps completed levels, and the mission banner is fully readable at tested desktop sizes.
+Notes: replaces T9's carried improvements with independent levels at the user's request. Reuse original vector mascot and synthesise speech locally; surveyed maps remain pending. See handoff/t10-level-briefings.md.
+
+## M7 City funding: useful actions earn visible rewards
+
+### Chunk G · in order
+
+#### T11 Prominent wallet and government-funding rewards
+
+Owner: @myspace7164
+Needs: T10
+Files: config/funding.ts, config/audio.ts, public/audio/*stage*.wav, src/interfaces.ts, src/game/funding.ts, src/game/city.ts, src/game/campaign.ts, src/game/audio.ts, src/main.ts, src/ui/city.ts, src/ui/style.css, src/ui/theme.css, index.html, tests/funding.test.ts, tests/city.test.ts, tests/campaign.test.ts, tests/browser/funding.spec.ts, tests/browser/audio.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/style-guide.md, docs/SOURCES.md
+Done when: available coins stay prominent during play; useful actions award actual spendable coins with a rising chime and coin animation; failed/repeated actions and recycling cannot farm grants; each level plays its supplied stage track, rain is quieter, and mute/pause/reduced motion and fresh-level resets work.
+Notes: grant ledger tracks earned coins separately from costs/refunds, so rewarded construction celebrates even when wallet balance decreases. See handoff/t11-city-funding.md.
+
+## M8 Visible equipment and a moving antagonist
+
+### Chunk H · in order
+
+#### T12 Walking character, held tools and roaming Dr. Beton
+
+Owner: @myspace7164
+Needs: T11
+Files: config/equipment.ts, config/beton.ts, src/interfaces.ts, src/game/held-tools.ts, src/game/locomotion.ts, src/game/sabotage.ts, src/game/city.ts, src/game/campaign.ts, src/game/characters.ts, src/game/city-view.ts, src/game/world.ts, src/main.ts, src/ui/city.ts, index.html, tests/sabotage.test.ts, tests/locomotion.test.ts, tests/city.test.ts, tests/campaign.test.ts, tests/browser/equipment.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/style-guide.md
+Done when: arms and legs animate while walking or Shift-sprinting, idle arms are relaxed, teeth are white and every selected inventory tool appears in SpongeBob's moving hand with either model; Dr. Beton roams, visibly approaches the chosen plot and seals only after reaching it; he looks menacing, can be intercepted at his real position, and pause/reset/terrain and water conservation remain correct.
+Notes: original procedural props and cartoon villain geometry; deterministic pseudo-random roaming permits reproducible checks. See handoff/t12-held-tools-villain.md.

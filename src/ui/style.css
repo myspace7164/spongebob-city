@@ -48,6 +48,7 @@ footer {
 }
 
 header {
+  z-index: 3;
   top: var(--hud-top);
   align-items: flex-start;
 }
@@ -372,8 +373,8 @@ h1 {
   transform: rotate(1deg);
 }
 .mission-tab {
-  width: max-content;
-  margin: -30px auto var(--gap-md);
+  width: 100%;
+  margin: 0 0 var(--gap-md);
   padding: var(--gap-sm) var(--gap-lg);
   background: var(--tool-gradient);
   color: var(--text);
@@ -383,22 +384,96 @@ h1 {
   font-size: var(--font-sm);
   font-weight: 900;
   text-shadow: var(--shadow-text);
-  transform: rotate(-3deg);
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 #mission h2 {
   font-size: 24px;
   margin: var(--gap-sm) 0 var(--gap-md);
   line-height: 1;
 }
-#budget {
+#coin-wallet {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  width: var(--wallet-width);
   background: var(--sponge-gradient);
-  border: 2px solid var(--border);
+  border: var(--outline) solid var(--border);
+  padding: var(--gap-sm) var(--gap-md);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-panel);
+  line-height: 1;
+}
+#budget {
+  display: block;
+  font-size: var(--wallet-number-size);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+#coin-wallet small {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--font-xs);
+  font-weight: 900;
+}
+.wallet-icon {
+  font-size: 34px;
+}
+#funding-receipt {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 5px);
+  width: max-content;
   padding: var(--gap-sm);
+  background: var(--cream);
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: var(--font-sm);
-  font-weight: 800;
-  line-height: 1.4;
-  margin: 0 0 var(--gap-md);
+  font-weight: 900;
+  box-shadow: var(--shadow-panel);
+}
+#coin-burst {
+  position: absolute;
+  left: 24px;
+  top: 15px;
+}
+#coin-burst i {
+  position: absolute;
+  font-style: normal;
+  font-size: 28px;
+}
+#weather {
+  position: absolute;
+  right: 110px;
+  max-width: 200px;
+}
+header #sound-toggle {
+  position: absolute;
+  right: 0;
+}
+@media (max-width: 1150px) {
+  #coin-wallet {
+    top: 0;
+    right: 110px;
+    padding-block: var(--gap-xs);
+  }
+  #weather {
+    right: 310px;
+  }
+  #funding-receipt {
+    position: fixed;
+    top: calc(var(--sidebar-top) - 34px);
+    right: var(--edge);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #coin-burst {
+    display: none;
+  }
 }
 #goals {
   display: grid;
@@ -1214,7 +1289,7 @@ body:has(#result:not([hidden])) .bubble {
   inset: var(--space);
   margin: auto;
   width: min(730px, calc(100% - var(--space) * 2));
-  height: min(740px, calc(100dvh - var(--space) * 2));
+  height: min(var(--briefing-panel-height), calc(100dvh - var(--space) * 2));
   padding: var(--space);
   z-index: 6;
   display: flex;
@@ -1277,4 +1352,53 @@ body:has(#campaign-story:not([hidden])) .bubble {
 }
 body:has(#campaign-story:not([hidden])) #target-info {
   visibility: hidden;
+}
+.story-scene {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-lg);
+  flex: 1;
+  min-height: 0;
+}
+#story-mascot {
+  width: var(--briefing-mascot-width);
+  flex-shrink: 0;
+}
+#story-mascot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: none;
+}
+#story-mascot.speaking {
+  animation: sponge-speaking var(--briefing-bob-duration) ease-in-out infinite
+    alternate;
+}
+#story-body {
+  min-height: var(--briefing-reading-height);
+  max-height: 100%;
+}
+#story-copy {
+  min-height: var(--briefing-reading-height);
+}
+#story-copy p {
+  font-size: var(--font-lg);
+}
+@keyframes sponge-speaking {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-1 * var(--briefing-bob-height)));
+  }
+}
+@media (max-width: 680px) {
+  #story-mascot {
+    width: calc(var(--briefing-mascot-width) * 0.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #story-mascot.speaking {
+    animation: none;
+  }
 }

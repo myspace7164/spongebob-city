@@ -46,6 +46,12 @@ test("browser D and W stay held during mouse-look events under pointer lock", as
     .not.toBe(before);
   await expect(page.locator("#state")).toContainText('"right":1');
   await expect(page.locator("#state")).toContainText('"forward":1');
+  for (const shift of ["ShiftLeft", "ShiftRight"]) {
+    await page.keyboard.down(shift);
+    await expect(page.locator("#state")).toContainText('"run":true');
+    await page.keyboard.up(shift);
+    await expect(page.locator("#state")).toContainText('"run":false');
+  }
   await page.keyboard.up("d");
   await expect(page.locator("#state")).toContainText('"right":0');
   await expect(page.locator("#state")).toContainText('"forward":1');

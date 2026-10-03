@@ -2,6 +2,8 @@
 
 Status: done
 
+Follow-up: T10 supersedes the full-length briefings and carried improvements described below. Levels now reset in distinct fictional locations; see handoff/t10-level-briefings.md for current behavior.
+
 Goal: implement the supplied arrival, four neighbourhood chapters and ending with automatic achievement-based progression and replaceable placeholder layouts.
 
 Done: recorded design/plan before coding; added shared level/campaign contracts, the complete supplied German narrative, neighbourhood goals and escalating weather, conserved runoff connections, protected entrance markers, recycling, automatic progression, entry checkpoints and paused story/ending screens. Existing tools/audio/scenery remain in use; merged the latest team roads and aerial imagery, resolving the startup import conflict by preserving both features. Fixed the Sound button's pointer handling and bounded the mission checklist above the dock on short screens.

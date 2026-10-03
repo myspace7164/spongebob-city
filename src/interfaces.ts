@@ -25,6 +25,14 @@ export interface ModelConfig {
   rotationY: number;
 }
 
+/** swissALTI3D heights on a regular grid in map-local metres; rows run north to south. */
+export interface TerrainGrid {
+  bounds: [number, number, number, number];
+  spacing: number;
+  columns: number;
+  rows: number;
+  heights: Float32Array;
+}
 /** Derived LV95 road centrelines: local X east, Z south, metres; estimated widths. */
 export interface RoadNetwork {
   origin: [number, number, number];
@@ -80,6 +88,19 @@ export interface CityPlot {
   stored: number;
   /** Optional runoff/overflow destination; plot IDs are stable across placeholder levels. */
   drainsTo?: number;
+  /** Real street situation on surveyed levels; limits which upgrades fit here. */
+  site?: SiteType;
+  /** Ground height in metres from the terrain; absent means flat (no downhill runoff). */
+  elevation?: number;
+}
+/** Street situations that map to urban unsealing techniques (config/sites.ts). */
+export type SiteType = "parking" | "verge" | "swale" | "facade";
+/** Map-local metres (GLB origin) re-centred and turned so the street runs along -Z. */
+export interface LevelSite {
+  street: string;
+  origin: [number, number];
+  heading: number;
+  bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
 }
 export interface CityState {
   plots: CityPlot[];
@@ -88,6 +109,8 @@ export interface CityState {
   flood: number;
   sponge: number;
   budget: number;
+  /** Per-level grants; total earned is independent of spending and refunds. */
+  funding: { earned: number; claimed: string[] };
   reused: number;
   rainfall: number;
   evaporated: number;
@@ -97,6 +120,17 @@ export interface CityState {
   dangerTime: number;
   sabotageIn: number;
   machineDisabled: number;
+  saboteur: {
+    x: number;
+    z: number;
+    facing: number;
+    destinationX: number;
+    destinationZ: number;
+    step: number;
+    phase: "roaming" | "approaching" | "sealing" | "disabled";
+    targetId: number | null;
+    sealTime: number;
+  };
   powerTime: number;
   powerCooldown: number;
   maximumTime: number;
@@ -141,9 +175,13 @@ export interface CityLevel {
   id: string;
   location: string;
   title: string;
+  /** Fictional stage offset, unrelated to surveyed Basel coordinates. */
+  origin?: { x: number; z: number };
   story: readonly string[];
   objective: string;
-  layout: readonly { x: number; z: number }[];
+  layout: readonly { x: number; z: number; site?: SiteType }[];
+  /** Absent on placeholder levels, which keep the fictional square. */
+  site?: LevelSite;
   entranceIds: readonly number[];
   weather: { dryDuration: number; rainDuration: number; rainRate: number };
   goals: readonly LevelGoal[];

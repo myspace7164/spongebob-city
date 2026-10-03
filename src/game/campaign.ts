@@ -9,6 +9,8 @@ import type {
   Vector3State,
 } from "../interfaces";
 import { createCity, cityMetrics } from "./city";
+import { grantFunding } from "./funding";
+import { fundingConfig } from "../../config/funding";
 
 export function currentLevel(s: CityState): CityLevel | undefined {
   return s.campaign ? cityLevels[s.campaign.level] : undefined;
@@ -32,10 +34,21 @@ function applyLayout(s: CityState, level: CityLevel): void {
     surface: cityConfig.initialSurface,
     moisture: 0,
     stored: 0,
-    ...s.plots.find((p) => p.id === id),
     ...position,
+    // Each level's street decides which techniques fit its fresh plots.
+    site: position.site,
   }));
   s.feedback = level.objective;
+  const start = levelPosition(s, cityConfig.machine);
+  Object.assign(s.saboteur, start, {
+    destinationX: start.x,
+    destinationZ: start.z,
+  });
+}
+/** Place local controls/NPCs at the active fictional neighbourhood. */
+export function levelPosition(s: CityState, local: { x: number; z: number }) {
+  const origin = currentLevel(s)?.origin;
+  return { x: local.x + (origin?.x ?? 0), z: local.z + (origin?.z ?? 0) };
 }
 export function validDrain(
   s: CityState,
@@ -96,6 +109,7 @@ export function connectRunoff(
   }
   progress.connectFrom = null;
   s.feedback = `Runoff connected: #${source.id + 1} → #${target.id + 1}. Roofs release slowly; tank overflow uses this route.`;
+  grantFunding(s, `route:${source.id}`, fundingConfig.route);
 }
 /** Reclaim an upgrade so an accidental build cannot exhaust the campaign's plots. */
 export function recyclePlot(
@@ -184,7 +198,7 @@ export function levelAchievements(s: CityState): LevelAchievement[] {
       : values[goal.metric] >= goal.target,
   }));
 }
-/** Mutate in place after all achievements: preserve improvements/water, reset level hazards. */
+/** Start a fresh independent neighbourhood while retaining completed level IDs. */
 export function advanceCampaign(s: CityState): boolean {
   const progress = s.campaign;
   if (
@@ -200,17 +214,14 @@ export function advanceCampaign(s: CityState): boolean {
     s.outcome = "won";
     return true;
   }
-  progress.level++;
-  progress.stormCompleted = false;
-  s.elapsed = 0;
-  s.stormSeen = false;
-  s.reused = 0;
-  s.dangerTime = 0;
-  s.sabotageIn = cityConfig.sabotageInterval;
-  s.machineDisabled = 0;
-  s.powerTime = s.maximumTime = 0;
-  s.powerCooldown = s.maximumCooldown = s.patrickCooldown = 0;
-  s.budget += cityConfig.budget;
+  Object.assign(s, createCity(), {
+    campaign: {
+      level: progress.level + 1,
+      completed: [...progress.completed],
+      stormCompleted: false,
+      connectFrom: null,
+    },
+  });
   applyLayout(s, currentLevel(s)!);
   return true;
 }

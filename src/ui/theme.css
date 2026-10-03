@@ -1,4 +1,9 @@
 :root {
+  --tooth: #ffffff;
+  --villain-eye: #ff192d;
+  --villain-coat: #252333;
+  --wallet-width: 190px;
+  --wallet-number-size: 30px;
   /* The interface palette; the world palette below keeps the scene grounded. */
   --background: #a7e7ef;
   --text: #183e55;
@@ -97,4 +102,11 @@
   --church: #c59482;
   --shade: #ead28b;
   --skin: #e1b38b;
+}
+:root {
+  --briefing-mascot-width: 150px;
+  --briefing-bob-height: 10px;
+  --briefing-bob-duration: 320ms;
+  --briefing-reading-height: 160px;
+  --briefing-panel-height: 520px;
 }

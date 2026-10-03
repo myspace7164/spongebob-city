@@ -66,6 +66,28 @@ test("all sound assets decode and contextual audio respects success, pause and m
     await new Promise((resolve) => setTimeout(resolve, 100));
     const rainPlaying =
       clips.find((clip) => clip.src.endsWith("rain.wav"))!.paused === false;
+    const rainVolume = clips.find((clip) =>
+      clip.src.endsWith("rain.wav"),
+    )!.volume;
+    const stageCalls: string[] = [];
+    const stageFiles = [
+      "18_stage_1_calm.wav",
+      "19_stage_2_active.wav",
+      "20_stage_3_pressure.wav",
+      "21_stage_4_panic.wav",
+    ];
+    const levels = ["riehenring", "erlenmatt", "st-johann", "voltanord"];
+    for (const [i, level] of levels.entries()) {
+      audio.update(true, false, level);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const playing = clips.filter(
+        (clip) =>
+          stageFiles.some((file) => clip.src.endsWith(file)) && !clip.paused,
+      );
+      if (playing.length !== 1 || !playing[0].src.endsWith(stageFiles[i]))
+        throw new Error(`Wrong stage music for ${level}`);
+      stageCalls.push(stageFiles[i]);
+    }
     audio.update(false, false);
     const paused = clips.every((clip) => clip.paused && clip.currentTime === 0);
     audio.toggleMuted();
@@ -84,6 +106,8 @@ test("all sound assets decode and contextual audio respects success, pause and m
       muted,
       dry,
       rainPlaying,
+      rainVolume,
+      stageCalls,
       durations: clips.map((clip) => clip.duration),
     };
   });
@@ -98,10 +122,16 @@ test("all sound assets decode and contextual audio respects success, pause and m
       "pond.wav",
       "water-storage.wav",
       "rain.wav",
+      "18_stage_1_calm.wav",
+      "19_stage_2_active.wav",
+      "20_stage_3_pressure.wav",
+      "21_stage_4_panic.wav",
     ]),
   );
   expect(result.durations.every((duration) => duration > 0)).toBe(true);
   expect(result.rainPlaying).toBe(true);
+  expect(result.rainVolume).toBe(0.08);
+  expect(result.stageCalls).toHaveLength(4);
   expect(result.paused).toBe(true);
   expect(result.muted).toBe(true);
   expect(result.dry).toBe(true);

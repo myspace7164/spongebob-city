@@ -1,13 +1,25 @@
 import * as THREE from "three";
 import { mapConfig as c } from "../../config/map";
-import type { RoadNetwork } from "../interfaces";
+import type { RoadNetwork, TerrainGrid } from "../interfaces";
 import { themeColor } from "./characters";
+import { heightAt, terrainFromBuffer, terrainTiles } from "./terrain";
 
-/** Batch street ribbons with round joins into two meshes instead of thousands. */
-export function roadGeometry(network: RoadNetwork, kind: "road" | "path") {
+type Ground = (x: number, z: number) => number;
+
+/**
+ * Batch street ribbons with round joins into two meshes instead of thousands.
+ * With terrain, segments are cut into short pieces so they follow the slope.
+ */
+export function roadGeometry(
+  network: RoadNetwork,
+  kind: "road" | "path",
+  ground?: Ground,
+) {
   const vertices: number[] = [];
   const triangle = (...points: [number, number][]) => {
-    points.forEach(([x, z]) => vertices.push(x, c.roadHeight, z));
+    points.forEach(([x, z]) =>
+      vertices.push(x, ground ? ground(x, z) + c.roadLift : c.roadHeight, z),
+    );
   };
   for (const road of network.roads.filter((road) => road.kind === kind)) {
     for (const [a, b] of road.segments) {
@@ -18,12 +30,23 @@ export function roadGeometry(network: RoadNetwork, kind: "road" | "path") {
       const radius = road.width / 2;
       const nx = (-dz / length) * radius,
         nz = (dx / length) * radius;
-      const al: [number, number] = [a[0] + nx, a[1] + nz];
-      const ar: [number, number] = [a[0] - nx, a[1] - nz];
-      const bl: [number, number] = [b[0] + nx, b[1] + nz];
-      const br: [number, number] = [b[0] - nx, b[1] - nz];
-      triangle(al, bl, ar);
-      triangle(ar, bl, br);
+      const pieces = ground ? Math.ceil(length / c.roadStep) : 1;
+      for (let k = 0; k < pieces; k++) {
+        const p: [number, number] = [
+          a[0] + (dx * k) / pieces,
+          a[1] + (dz * k) / pieces,
+        ];
+        const q: [number, number] = [
+          a[0] + (dx * (k + 1)) / pieces,
+          a[1] + (dz * (k + 1)) / pieces,
+        ];
+        const pl: [number, number] = [p[0] + nx, p[1] + nz];
+        const pr: [number, number] = [p[0] - nx, p[1] - nz];
+        const ql: [number, number] = [q[0] + nx, q[1] + nz];
+        const qr: [number, number] = [q[0] - nx, q[1] - nz];
+        triangle(pl, ql, pr);
+        triangle(pr, ql, qr);
+      }
       for (const p of [a, b]) {
         for (let i = 0; i < 8; i++) {
           const angle = (i * Math.PI) / 4,
@@ -82,17 +105,47 @@ export function imageryGeometry(bounds: RoadNetwork["bounds"]) {
   return geometry;
 }
 
-/** Road and imagery failures are independent; roads remain available without photos. */
+async function loadTerrain(): Promise<TerrainGrid> {
+  const [meta, data] = await Promise.all([
+    fetch(c.terrainMetaUrl).then((r) => {
+      if (!r.ok) throw new Error(`Terrain metadata: HTTP ${r.status}`);
+      return r.json();
+    }),
+    fetch(c.terrainUrl).then((r) => {
+      if (!r.ok) throw new Error(`Terrain heights: HTTP ${r.status}`);
+      return r.arrayBuffer();
+    }),
+  ]);
+  return terrainFromBuffer(meta, data);
+}
+
+/**
+ * Terrain, road and imagery failures are independent: roads stay without
+ * photos, and everything falls back to the original flat ground without terrain.
+ */
 export async function loadMapLayers(
-  scene: THREE.Scene,
+  scene: THREE.Object3D,
   canvas: HTMLCanvasElement,
+  onTerrain?: (grid: TerrainGrid) => void,
 ) {
+  canvas.dataset.terrain = "loading";
   canvas.dataset.roads = "loading";
   canvas.dataset.imagery = "loading";
+  let grid: TerrainGrid | undefined;
+  try {
+    grid = await loadTerrain();
+    onTerrain?.(grid);
+    canvas.dataset.terrain = "loaded";
+  } catch (error) {
+    canvas.dataset.terrain = "fallback";
+    console.warn("Basel terrain unavailable; keeping flat ground.", error);
+  }
+  const ground = grid && ((x: number, z: number) => heightAt(grid, x, z));
+  let network: RoadNetwork | undefined;
   try {
     const response = await fetch(c.roadsUrl);
     if (!response.ok) throw new Error(`Road data: HTTP ${response.status}`);
-    const network: RoadNetwork = await response.json();
+    network = (await response.json()) as RoadNetwork;
     for (const kind of ["road", "path"] as const) {
       const material = new THREE.MeshBasicMaterial({
         color: themeColor(kind === "road" ? "asphalt" : "ground"),
@@ -100,33 +153,41 @@ export async function loadMapLayers(
         transparent: true,
         opacity: c.roadOpacity,
         depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1,
       });
-      scene.add(new THREE.Mesh(roadGeometry(network, kind), material));
+      scene.add(new THREE.Mesh(roadGeometry(network, kind, ground), material));
     }
     canvas.dataset.roads = "loaded";
+  } catch (error) {
+    canvas.dataset.roads = "fallback";
+    console.warn("Basel road layers unavailable.", error);
+  }
+  const bounds = network?.bounds ?? grid?.bounds;
+  let photo: THREE.Material | undefined;
+  if (bounds)
     try {
       const texture = await new THREE.TextureLoader().loadAsync(c.imageryUrl);
       texture.colorSpace = THREE.SRGBColorSpace;
-      scene.add(
-        new THREE.Mesh(
-          imageryGeometry(network.bounds),
-          new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }),
-        ),
-      );
+      photo = new THREE.MeshBasicMaterial({
+        map: texture,
+        side: THREE.DoubleSide,
+      });
       canvas.dataset.imagery = "loaded";
     } catch (error) {
-      canvas.dataset.imagery = "fallback";
-      console.warn(
-        "Basel imagery unavailable; keeping roads and plain ground.",
-        error,
-      );
+      console.warn("Basel imagery unavailable; keeping plain ground.", error);
     }
-  } catch (error) {
-    canvas.dataset.roads = "fallback";
-    canvas.dataset.imagery = "fallback";
-    console.warn(
-      "Basel road layers unavailable; keeping original ground.",
-      error,
-    );
-  }
+  if (!photo) canvas.dataset.imagery = "fallback";
+  if (grid && bounds) {
+    const plain = new THREE.MeshLambertMaterial({
+      color: themeColor("ground"),
+      side: THREE.DoubleSide,
+    });
+    for (const tile of terrainTiles(grid, bounds, c.mission)) {
+      scene.add(new THREE.Mesh(tile.photo, photo ?? plain));
+      scene.add(new THREE.Mesh(tile.plain, plain));
+    }
+  } else if (photo && bounds)
+    scene.add(new THREE.Mesh(imageryGeometry(bounds), photo));
 }

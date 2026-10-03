@@ -8,12 +8,20 @@ import { createWorld } from "./game/world";
 import { loadModel, updateSpongeWaterState } from "./game/assets";
 import { spongeCapacity, updateCity, weather } from "./game/city";
 import { loadMapLayers } from "./game/map-layers";
-import { connectRunoff, createCampaign, recyclePlot } from "./game/campaign";
+import {
+  connectRunoff,
+  createCampaign,
+  currentLevel,
+  levelPosition,
+  recyclePlot,
+} from "./game/campaign";
+import { clampToLevel } from "./game/streets";
+import { assignElevations, levelScenery } from "./game/terrain";
 import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
 import { CityUI } from "./ui/city";
-import type { CityAction } from "./interfaces";
+import type { CityAction, TerrainGrid } from "./interfaces";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game")!;
 const menu = document.querySelector<HTMLElement>("#menu")!;
@@ -29,6 +37,8 @@ function startGame(): void {
   });
   renderer.setPixelRatio(Math.min(devicePixelRatio, gameConfig.maxPixelRatio));
   const scene = new THREE.Scene();
+  const scenery = new THREE.Group();
+  scene.add(scenery);
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 150);
   const world = createWorld(scene);
   const input = new GameInput(canvas);
@@ -37,23 +47,52 @@ function startGame(): void {
     document.querySelector<HTMLButtonElement>("#sound-toggle")!;
   soundToggle.addEventListener("click", () => {
     const muted = audio.toggleMuted();
+    campaignUI.setMuted(muted);
     soundToggle.textContent = muted ? "Sound: off" : "Sound: on";
     soundToggle.setAttribute("aria-pressed", String(muted));
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) audio.update(false, false);
   });
-  let player = createPlayer();
   let city = createCampaign();
+  const spawnPlayer = () => {
+    const player = createPlayer();
+    Object.assign(player.position, levelPosition(city, player.position));
+    return player;
+  };
+  let player = spawnPlayer();
   let checkpoint = structuredClone(city);
   let storyPending = true;
   const campaignUI = new CampaignUI();
   let characterModel: THREE.Group | null = null;
   const cityView = createCityView(scene, city);
-  const ui = new CityUI((tool) => {
-    city.selected = tool;
-    ui.render(city, targetId, inReach());
-  });
+  // Basel buildings, roads and photo move together so each level's street meets the play area.
+  const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
+  let sceneryLoaded = false;
+  let terrain: TerrainGrid | null = null;
+  let ground = levelScenery(currentLevel(city), terrain).groundAt;
+  /** World height of the Basel terrain under a point; flat (0) until it loads. */
+  const groundAt = (x: number, z: number) => ground(x, z);
+  const placeScenery = () => {
+    const site = currentLevel(city)?.site;
+    const placed = levelScenery(currentLevel(city), terrain);
+    scenery.rotation.y = placed.rotationY;
+    scenery.position.set(placed.x, placed.y, placed.z);
+    ground = placed.groundAt;
+    if (terrain) assignElevations(city, groundAt);
+    if (sceneryLoaded)
+      levelStatus.textContent = `Basel buildings loaded · ${site ? site.street : "fictional mission square"}`;
+  };
+  placeScenery();
+  const ui = new CityUI(
+    (tool) => {
+      city.selected = tool;
+      ui.render(city, targetId, inReach());
+    },
+    () => {
+      if (input.active && city.outcome === "playing") audio.playFunding();
+    },
+  );
   canvas.tabIndex = 0;
   let targetId: number | null = null;
   let accumulator = 0,
@@ -72,10 +111,11 @@ function startGame(): void {
   };
   const reset = () => {
     audio.update(false, false);
-    player = createPlayer();
     city =
       city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
+    player = spawnPlayer();
     checkpoint = structuredClone(city);
+    placeScenery();
     storyPending = true;
     campaignUI.hide();
     input.clear();
@@ -158,7 +198,7 @@ function startGame(): void {
     if (code === "KeyX") act("maximum");
     if (code === "KeyP") act("patrick");
     if (code === "KeyE") {
-      const machine = cityConfig.machine;
+      const machine = city.saboteur;
       if (
         Math.hypot(
           player.position.x - machine.x,
@@ -191,7 +231,6 @@ function startGame(): void {
       "Graphics connection lost. Reload this page to restart.";
   });
   async function addAssets(): Promise<void> {
-    const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
     for (const [name, config] of Object.entries({
       character: gameConfig.character,
       level: gameConfig.level,
@@ -206,15 +245,19 @@ function startGame(): void {
         if (name === "character") {
           characterModel = model;
           updateSpongeWaterState(model, city.sponge, spongeCapacity(city));
-          world.character.remove(world.placeholder);
-          world.character.add(model);
+          world.useCharacter(model);
         } else {
-          scene.add(model);
+          scenery.add(model);
           cityView.useImportedLevel();
-          void loadMapLayers(scene, canvas);
+          void loadMapLayers(scenery, canvas, (grid) => {
+            terrain = grid;
+            placeScenery();
+            world.useTerrain();
+            cityView.useGround(groundAt);
+          });
           canvas.dataset.level = "loaded";
-          levelStatus.textContent =
-            "Basel buildings loaded · fictional mission square";
+          sceneryLoaded = true;
+          placeScenery();
         }
       } catch (error) {
         if (name === "level") {
@@ -242,7 +285,7 @@ function startGame(): void {
       const actions = input.consumeActions();
       if (actions.selection !== null)
         city.selected = cityTools[actions.selection].id;
-      const machine = cityConfig.machine;
+      const machine = city.saboteur;
       if (
         actions.use &&
         city.selected === "karate" &&
@@ -260,18 +303,29 @@ function startGame(): void {
         act(city.selected);
       accumulator += dt;
       while (accumulator >= gameConfig.fixedStep) {
-        updatePlayer(player, input.consume(), input.yaw, gameConfig.fixedStep);
-        // The playable square has flat-ground bounds, so the mission stays in reach.
-        player.position.x = THREE.MathUtils.clamp(
-          player.position.x,
-          cityConfig.bounds.minX,
-          cityConfig.bounds.maxX,
+        updatePlayer(
+          player,
+          input.consume(),
+          input.yaw,
+          gameConfig.fixedStep,
+          groundAt,
         );
-        player.position.z = THREE.MathUtils.clamp(
-          player.position.z,
-          cityConfig.bounds.minZ,
-          cityConfig.bounds.maxZ,
-        );
+        if (currentLevel(city)?.site)
+          clampToLevel(player.position, currentLevel(city)?.site);
+        else {
+          // The playable square has flat-ground bounds, so the mission stays in reach.
+          const origin = levelPosition(city, { x: 0, z: 0 });
+          player.position.x = THREE.MathUtils.clamp(
+            player.position.x,
+            cityConfig.bounds.minX + origin.x,
+            cityConfig.bounds.maxX + origin.x,
+          );
+          player.position.z = THREE.MathUtils.clamp(
+            player.position.z,
+            cityConfig.bounds.minZ + origin.z,
+            cityConfig.bounds.maxZ + origin.z,
+          );
+        }
         if (
           input.using &&
           !input.held("KeyB") &&
@@ -299,26 +353,37 @@ function startGame(): void {
         const previousLevel = city.campaign!.level;
         updateCity(city, gameConfig.fixedStep, player.position);
         if (city.campaign!.level !== previousLevel) {
-          player = createPlayer();
+          player = spawnPlayer();
           input.yaw = 0;
           input.pitch = 0.28;
           targetId = null;
           accumulator = 0;
           hudTime = 0;
           checkpoint = structuredClone(city);
+          placeScenery();
           storyPending = true;
           showStory();
           break;
         }
         if (city.sponge > spongeBeforeUpdate) audio.requestAbsorption();
-        audio.update(city.outcome === "playing", weather(city).raining);
+        audio.update(
+          city.outcome === "playing",
+          weather(city).raining,
+          currentLevel(city)?.id,
+        );
         accumulator -= gameConfig.fixedStep;
       }
     }
     if (!active) audio.update(false, false);
+    placeScenery();
     if (characterModel)
       updateSpongeWaterState(characterModel, city.sponge, spongeCapacity(city));
-    world.update(player);
+    world.update(
+      player,
+      groundAt(player.position.x, player.position.z),
+      city.elapsed,
+      city.selected,
+    );
     world.character.scale.setScalar(
       city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1,
     );
@@ -333,6 +398,11 @@ function startGame(): void {
       target.x + Math.sin(input.yaw) * horizontalDistance,
       target.y + Math.sin(input.pitch) * gameConfig.cameraDistance,
       target.z + Math.cos(input.yaw) * horizontalDistance,
+    );
+    // Keep the camera out of hillsides behind the player.
+    camera.position.y = Math.max(
+      camera.position.y,
+      groundAt(camera.position.x, camera.position.z) + 0.5,
     );
     camera.lookAt(target);
     camera.updateMatrixWorld();

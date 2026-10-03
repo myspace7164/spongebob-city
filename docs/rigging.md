@@ -71,3 +71,7 @@ active and both water keys at zero. The current GLB remains a static morph-targe
 asset without a rig or animation clips. `scripts/create-locomotion-actions.py`
 creates and checks these Actions in Blender; local pose screenshots/reports and
 the pre-animation backup stay under `.hack/`.
+
+## Runtime locomotion
+
+The game builds lightweight limb pivots around the static GLB's existing arm/leg triangles in `src/game/locomotion.ts`. Triangle subsets retain all vertex and morph attributes, so Dry/WaterFull still update on the torso and separated limbs. Arms rest beside the body and swing opposite their legs while walking; Shift increases movement speed and gait intensity. Shoes follow the leg pivots, handheld props follow the right arm, and `Cube004`/`Cube006` tooth materials are white. Measured anchors/timing live in `config/equipment.ts`. This leaves the Blender source and its original Actions untouched; replacing the export requires checking its semantic mesh names and anchors. The fallback character uses the same gait with procedural limb pivots.

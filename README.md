@@ -1,6 +1,6 @@
 # Sponge City · Basel
 
-A playable four-level 3D sponge-city campaign through Riehenring, Erlenmatt, St. Johann and VoltaNord, using placeholder layouts until the real topology and geography are supplied. Collect storm water with SpongeBob, distribute it to plants and storage, and transform asphalt into a cooler, greener square. Manage heat and flooding together while Dr. Beton tries to reseal your work.
+A playable four-level 3D sponge-city campaign through Riehenring, Erlenmatt, St. Johann and VoltaNord, with Riehenring played on the real street (spots on its parking lane, sidewalk verges, corners and building edges) and placeholder layouts for the other levels until their map data is added. Collect storm water with SpongeBob, distribute it to plants and storage, and transform asphalt into a cooler, greener square. Manage heat and flooding together while Dr. Beton tries to reseal your work.
 
 Built on Three.js, TypeScript and Vite. See [the design](docs/design.md) for gameplay, scope and limits.
 
@@ -35,7 +35,7 @@ Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **I’M R
 | V                                  | Recycle the aimed upgrade and reclaim its cost               |
 | R                                  | Retry the current level from its entry checkpoint            |
 
-All current-level achievements must be satisfied together to advance automatically. The next story pauses gameplay until you start the level. Improvements, water and purchased upgrades carry forward; each level grants a new budget allowance and resets its reuse target and weather clock. Failure retries the current entry checkpoint; the final ending offers a full campaign restart. H includes a button to reread the current story.
+All current-level achievements must be satisfied together to advance automatically. The next story pauses gameplay until you start the level. Each new neighbourhood starts fresh: plots, water, budget, upgrades and weather reset. Only completed levels carry forward. Distinct fictional origins/layouts stand in for the eventual real maps. Failure retries the current entry checkpoint; the final ending offers a full campaign restart. H includes a button to reread the current story.
 
 Aim at a plot: a green border means it is in reach, orange means move closer. Trees require unsealed soil. Other structures can be built directly on asphalt and include unsealing in their price. Sponge water above normal capacity after a power expires stays available for distribution. Yellow entrance markers must stay clear of construction. Blue connection lines show runoff routes: roofs release stored water slowly; tanks send surface overflow to the chosen receiver. Receivers can saturate, so use planted basins and keep monitoring flood danger.
 
@@ -70,14 +70,28 @@ npm run test:browser
 
 ## Extend
 
-- `config/levels.ts`: German story chapters, per-level achievements/weather and placeholder plot coordinates (stable IDs preserve improvements); replace coordinates when the actual level layouts arrive.
+SpongeBob carries a miniature of the selected tool in his right hand. Both the Blender character and fallback swing their arms and legs while walking; hold either Shift key to sprint with a faster gait. Idle arms hang naturally, and the imported character's teeth are white. Runtime limb pivots preserve Dry/WaterFull morph targets; the original Blender source stays intact.
+
+Dr. Beton roams the neighbourhood in his Asphaltinator. When sabotage starts, a red path shows his destination; he walks there and visibly seals before restoring asphalt. Catch him at his current position with E or karate to cancel the attack and disable him. His red eyes, dark outfit and jagged grin mark him as the villain. Movement, attacks and equipment animation pause with the mission.
+
+The large gold wallet shows available coins throughout play. Useful first actions at each site earn government-funding grants, celebrated by a coin burst, receipt and rising chime. Collection, useful irrigation, construction, safe runoff routes, disabling sabotage and upgrading the sponge count; repeated actions and recycling do not generate extra grants. Funding resets with each fresh level or retry.
+
+Each neighbourhood loops its supplied stage track while playing. Pausing, story screens and mute stop the music and coin chime. Rain is mixed at 8% volume; levels use 22%.
+
+- `config/levels.ts`: short German briefings, per-level achievements/weather and independent locations/layouts, including the real Riehenring street; replace coordinates when the actual level layouts arrive.
+- `config/sites.ts`: street situations and which unsealing technique fits each one.
 - `src/game/campaign.ts`: shared achievement evaluation, automatic progression and runoff/recycling rules.
 - `src/ui/campaign.ts`: paused story screens, campaign route and ending.
+- `config/briefing.ts` and `src/ui/story-speech.ts`: 300-word/minute text reveal and original Web Audio wah-wah voice, capped at 12 seconds. Start early to skip; M/Sound mutes the voice too. Reduced motion disables mascot bobbing.
 - `config/city.ts`: fictional simulation tuning, tools, prices and standalone mission goals.
+- `config/funding.ts` and `src/game/funding.ts`: grant amounts and the once-per-level claim ledger.
+- `config/audio.ts`: action sounds, quiet rain and neighbourhood stage-track mapping; the fifth supplied stage track is reserved for a future level.
 - `src/game/city.ts`: mission actions, weather, heat, sabotage and outcome.
 - `src/game/city-water.ts`: rain, infiltration and tank irrigation.
 - `src/game/city-view.ts`: plot transformations, rain and revived city life.
 - `src/game/characters.ts`: procedural character and prop visuals.
+- `src/game/locomotion.ts` and `config/equipment.ts`: relaxed limb pivots, walk/sprint gait and measured hand anchors; `src/game/held-tools.ts` caches the nine miniature tools.
+- `src/game/sabotage.ts` and `config/beton.ts`: reproducible roaming, approach/sealing timing and moving villain position.
 - `src/ui/city.ts`: HUD, field guide and mission report.
 - `src/interfaces.ts`: shared contracts.
 - `src/ui/theme.css`: palette and visual theme.
@@ -90,10 +104,10 @@ Static assets live under `public/`: team sound clips in `public/audio/`, optiona
 
 The supplied Basel model loads by default. While it loads, the original scenery remains playable; if loading fails, the original buildings remain. To use only procedural scenery, clear `level.url` in `config/game.ts`.
 
-When the Basel model loads, local street geometry and SWISSIMAGE aerial ground imagery load beneath it. Widths are approximate, terrain remains flat, and the fictional mission area stays clear. Settings are in `config/map.ts`; rebuilding assets and source limits are documented in [ground layer notes](public/maps/README.md).
+When the Basel model loads, local street geometry and SWISSIMAGE aerial ground imagery load beneath it. They are draped over real swissALTI3D terrain, so the city has its hills and slopes; on sloped levels rainwater runs downhill to lower plots. Widths are approximate and the fictional mission area stays clear. Settings are in `config/map.ts`; rebuilding assets and source limits are documented in [ground layer notes](public/maps/README.md).
 
-Optional Blender exports go into `public/models/`. Set `character.url` or `level.url` in `config/game.ts`, with scale and rotation. Use a feet-centred origin, Y up and front facing +Z. An empty URL retains procedural visuals; failed loads report an error and keep the fallback. Imported models and buildings are visual only; movement uses the flat ground with mission bounds.
+Optional Blender exports go into `public/models/`. Set `character.url` or `level.url` in `config/game.ts`, with scale and rotation. Use a feet-centred origin, Y up and front facing +Z. An empty URL retains procedural visuals; failed loads report an error and keep the fallback. Imported models and buildings are visual only (no collisions); movement follows the terrain height within each level's bounds.
 
 ## Limits and sources
 
-Four story levels with a shared sixteen-plot placeholder grid, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. No persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology, entrances and runoff links remain fictional; imported Basel buildings are background scenery. The map is centred on the supplied dataset rather than geographically aligned to the four story locations. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
+Four story levels: Riehenring on its real street, the other three in separate fictional layouts, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. No persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology, entrances and runoff links remain fictional; imported Basel buildings are background scenery. Only Riehenring is aligned to its real location; the other levels use offset background scenery, and their neighbourhoods lie outside the current map data. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).

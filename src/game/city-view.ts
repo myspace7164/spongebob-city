@@ -83,7 +83,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     const tile = new THREE.Group();
     tile.position.set(p.x, 0, p.z);
     root.add(tile);
-    const ground = box(tile, [4.7, 0.12, 4.7], [0, 0.01, 0], "asphalt");
+    // A skirt below the surface keeps tiles from floating on slopes.
+    const ground = box(tile, [4.7, 0.5, 4.7], [0, -0.18, 0], "asphalt");
     const props = new THREE.Group();
     tile.add(props);
     const water = box(tile, [4.4, 0.05, 4.4], [0, 0.13, 0], "water");
@@ -137,12 +138,20 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   const entrances = new THREE.Group();
   root.add(routes, entrances);
   let campaignSignature = "";
+  let importedLevel = false;
+  // World height of the terrain; flat until the Basel terrain has loaded.
+  let groundAt = (_x: number, _z: number) => 0;
+  let groundVersion = 0;
+  let playerGround = 0;
+  /** Static props keep their height above ground; re-placed when level or terrain changes. */
+  const grounded: { object: THREE.Object3D; base: number }[] = [];
+  const keepOnGround = (object: THREE.Object3D) =>
+    grounded.push({ object, base: object.position.y });
   for (const [kind, text, x, z] of [
     ["patrick", "Patrick · P: unseal", -11, -3],
     ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
     ["squid", "Thaddäus · more shade!", 12, -5],
     ["krabs", "Mr. Krabs · budget", -11, 2],
-    ["beton", "Dr. Beton · E: sabotage off", c.machine.x, c.machine.z],
   ] as const) {
     const npc = makeCharacter(kind);
     npc.position.set(x, 0, z);
@@ -150,13 +159,35 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     const name = label(text);
     name.position.set(x, 3, z);
     root.add(name);
+    keepOnGround(npc);
+    keepOnGround(name);
   }
   const machine = new THREE.Group();
+  machine.name = "roaming-asphaltinator";
   machine.position.set(c.machine.x, 0, c.machine.z + 2);
   root.add(machine);
+  const beton = makeCharacter("beton");
+  beton.name = "dr-beton";
+  beton.position.set(0, 0.7, -0.2);
+  machine.add(beton);
+  const betonName = label("Dr. Beton · E: STOP HIM!");
+  betonName.position.set(0, 3.6, 0);
+  machine.add(betonName);
   box(machine, [2.5, 1.4, 2], [0, 0.85, 0], "concrete");
   const roller = box(machine, [3.3, 0.7, 1], [0, 0.4, 1.2], "ink");
   const warning = ball(machine, 0.22, [0, 1.7, 0], "coral");
+  const attackGeometry = new THREE.BufferGeometry();
+  const attackPoints = new THREE.Float32BufferAttribute(new Float32Array(6), 3);
+  attackGeometry.setAttribute("position", attackPoints);
+  const attackPath = new THREE.Line(
+    attackGeometry,
+    new THREE.LineBasicMaterial({
+      color: themeColor("villain-eye"),
+      depthTest: false,
+    }),
+  );
+  attackPath.frustumCulled = false;
+  root.add(attackPath);
   const residents = new THREE.Group();
   root.add(residents);
   for (let i = 0; i < 8; i++) {
@@ -165,9 +196,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     ball(person, 0.18, [0, 1.13, 0], "skin");
     person.position.set(((i % 4) - 1.5) * 5, 0, 1 + Math.floor(i / 4) * 2);
     residents.add(person);
+    keepOnGround(person);
   }
   const birds = new THREE.Group();
   root.add(birds);
+  keepOnGround(birds);
   for (let i = 0; i < 6; i++) {
     const bird = box(
       birds,
@@ -200,11 +233,19 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   const point = new THREE.Vector3();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   return {
+    /** Terrain heights for world coordinates; props and plots follow it from the next update. */
+    useGround(ground: (x: number, z: number) => number) {
+      groundAt = ground;
+      groundVersion++;
+    },
     useImportedLevel() {
+      importedLevel = true;
       architecture.visible = false;
     },
     target(s: CityState, camera: THREE.Camera): number | null {
       ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+      // Aim at the ground level around the player; nearby slopes are gentle.
+      floor.constant = -playerGround;
       if (!ray.ray.intersectPlane(floor, point)) return null;
       const nearest = [...s.plots].sort(
         (a, b) =>
@@ -224,7 +265,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       bubbles = false,
     ) {
       const level = currentLevel(s);
-      const nextSignature = `${level?.id}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
+      const origin = level?.origin ?? { x: 0, z: 0 };
+      root.position.set(origin.x, 0, origin.z);
+      const ground = (x: number, z: number) => groundAt(x, z);
+      playerGround = ground(player.position.x, player.position.z);
+      const nextSignature = `${level?.id}/${groundVersion}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
       if (campaignSignature !== nextSignature) {
         campaignSignature = nextSignature;
         dispose(routes);
@@ -232,15 +277,34 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         root.remove(sign);
         sign.material.map?.dispose();
         sign.material.dispose();
-        sign = label(`${level?.location ?? "BARFÜSSERPLATZ"} · PLACEHOLDER`);
-        sign.position.set(0, 6, -27);
+        sign = label(
+          level?.site
+            ? level.site.street.toUpperCase()
+            : `${level?.location ?? "BARFÜSSERPLATZ"} · PLACEHOLDER`,
+        );
+        // The stand-in square would block a real street when the Basel model is missing.
+        architecture.visible = !importedLevel && !level?.site;
+        sign.position.set(0, 6 + ground(origin.x, origin.z - 27), -27);
         root.add(sign);
+        for (const { object, base } of grounded)
+          object.position.y =
+            base +
+            ground(origin.x + object.position.x, origin.z + object.position.z);
+        architecture.position.y = ground(origin.x, origin.z);
         for (const p of s.plots) {
           const destination = validDrain(s, p);
           if (destination && (p.kind === "roof" || p.kind === "tank")) {
             const geometry = new THREE.BufferGeometry().setFromPoints([
-              new THREE.Vector3(p.x, 0.3, p.z),
-              new THREE.Vector3(destination.x, 0.3, destination.z),
+              new THREE.Vector3(
+                p.x - origin.x,
+                ground(p.x, p.z) + 0.3,
+                p.z - origin.z,
+              ),
+              new THREE.Vector3(
+                destination.x - origin.x,
+                ground(destination.x, destination.z) + 0.3,
+                destination.z - origin.z,
+              ),
             ]);
             routes.add(
               new THREE.Line(
@@ -250,13 +314,22 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
             );
           }
           if (level?.entranceIds.includes(p.id)) {
-            box(entrances, [4, 0.2, 0.3], [p.x, 0.2, p.z - 2], "accent");
+            box(
+              entrances,
+              [4, 0.2, 0.3],
+              [p.x - origin.x, ground(p.x, p.z - 2) + 0.2, p.z - origin.z - 2],
+              "accent",
+            );
             const marker = label(
               level.id === "voltanord"
                 ? "SCHULE · KEEP DRY"
                 : "EINGANG · KEEP DRY",
             );
-            marker.position.set(p.x, 2, p.z);
+            marker.position.set(
+              p.x - origin.x,
+              ground(p.x, p.z) + 2,
+              p.z - origin.z,
+            );
             entrances.add(marker);
           }
         }
@@ -267,7 +340,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         scene.fog.color.copy(scene.background);
       s.plots.forEach((p, i) => {
         const view = plotViews[i];
-        view.tile.position.set(p.x, 0, p.z);
+        view.tile.position.set(
+          p.x - origin.x,
+          p.elevation ?? ground(p.x, p.z),
+          p.z - origin.z,
+        );
         const signature = `${p.kind}/${p.moisture >= c.moistureHealthy}`;
         if (view.signature !== signature) {
           plotProps(view.props, p);
@@ -292,7 +369,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       const targetPlot = s.plots.find((p) => p.id === targetId);
       border.visible = !!targetPlot;
       if (targetPlot) {
-        border.position.set(targetPlot.x, 0.15, targetPlot.z);
+        border.position.set(
+          targetPlot.x - origin.x,
+          ground(targetPlot.x, targetPlot.z) + 0.15,
+          targetPlot.z - origin.z,
+        );
         (border.material as THREE.MeshBasicMaterial).color.copy(
           themeColor(
             Math.hypot(
@@ -321,10 +402,14 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           const phase = (s.elapsed * 2 + i / 8) % 1;
           const t = waterAction === "absorb" ? 1 - phase : phase;
           drop.position.set(
-            THREE.MathUtils.lerp(player.position.x, targetPlot.x, t),
-            THREE.MathUtils.lerp(player.position.y + 1.3, 0.4, t) +
+            THREE.MathUtils.lerp(player.position.x, targetPlot.x, t) - origin.x,
+            THREE.MathUtils.lerp(
+              player.position.y + 1.3,
+              ground(targetPlot.x, targetPlot.z) + 0.4,
+              t,
+            ) +
               Math.sin(t * Math.PI) * (bubbles ? 2 : 0.6),
-            THREE.MathUtils.lerp(player.position.z, targetPlot.z, t),
+            THREE.MathUtils.lerp(player.position.z, targetPlot.z, t) - origin.z,
           );
           drop.scale.setScalar(bubbles ? 2.5 : 1);
         });
@@ -335,11 +420,54 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       birds.visible = healthy >= 2;
       birds.position.x = Math.sin(s.elapsed * 0.4) * 2;
       rain.visible = rainy;
+      // Rain covers the area around the player, so it also falls further down a street.
+      rain.position.set(
+        player.position.x - origin.x,
+        playerGround,
+        player.position.z - origin.z + 15,
+      );
       const attribute = rainGeometry.getAttribute("position");
       for (let i = 0; i < 180; i++)
         attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);
       attribute.needsUpdate = true;
       roller.rotation.x = s.machineDisabled > 0 ? 0 : s.elapsed * 2;
+      const villain = s.saboteur;
+      machine.position.set(
+        villain.x - origin.x,
+        ground(villain.x, villain.z),
+        villain.z - origin.z,
+      );
+      machine.rotation.y = villain.facing;
+      beton.position.y =
+        0.7 +
+        (villain.phase === "disabled" ? 0 : Math.sin(s.elapsed * 7) * 0.06);
+      beton.rotation.z =
+        villain.phase === "sealing" ? Math.sin(s.elapsed * 22) * 0.15 : 0;
+      machine.userData.phase = villain.phase;
+      beton.traverse((object) => {
+        if (object instanceof THREE.Mesh && object.name === "evil-eye") {
+          (object.material as THREE.MeshLambertMaterial).emissive
+            .copy(themeColor("villain-eye"))
+            .multiplyScalar(villain.phase === "disabled" ? 0 : 0.7);
+        }
+      });
+      const victim = s.plots.find((p) => p.id === villain.targetId);
+      attackPath.visible = !!victim;
+      if (victim) {
+        attackPoints.setXYZ(
+          0,
+          villain.x - origin.x,
+          ground(villain.x, villain.z) + 0.35,
+          villain.z - origin.z,
+        );
+        attackPoints.setXYZ(
+          1,
+          victim.x - origin.x,
+          ground(victim.x, victim.z) + 0.35,
+          victim.z - origin.z,
+        );
+        attackPoints.needsUpdate = true;
+      }
       (warning.material as THREE.MeshLambertMaterial).color.copy(
         themeColor(s.machineDisabled > 0 ? "leaf" : "coral"),
       );

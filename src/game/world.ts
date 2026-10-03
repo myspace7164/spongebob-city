@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import { gameConfig } from "../../config/game";
-import type { PlayerState } from "../interfaces";
+import type { PlayerState, CityTool } from "../interfaces";
 import { makeCharacter } from "./characters";
+import { createLocomotion } from "./locomotion";
+import { createHeldTools } from "./held-tools";
 
 /** Fixed-size visuals that follow the player; world geometry never accumulates. */
 export function createWorld(scene: THREE.Scene) {
@@ -25,6 +27,8 @@ export function createWorld(scene: THREE.Scene) {
   const character = new THREE.Group();
   const placeholder = makeCharacter("sponge");
   character.add(placeholder);
+  let rig = createLocomotion(placeholder, false);
+  let equipment = createHeldTools(rig.rightHand);
   scene.add(character);
 
   // A single transparent disc gives a readable height cue without shadow maps.
@@ -43,14 +47,37 @@ export function createWorld(scene: THREE.Scene) {
   return {
     character,
     placeholder,
-    update(player: PlayerState) {
+    useCharacter(model: THREE.Group) {
+      const nextRig = createLocomotion(model, true);
+      character.remove(placeholder);
+      character.add(model);
+      rig = nextRig;
+      equipment = createHeldTools(rig.rightHand);
+    },
+    /** The flat plane only stands in while no terrain is loaded. */
+    useTerrain() {
+      ground.visible = false;
+    },
+    update(
+      player: PlayerState,
+      groundY = 0,
+      elapsed = 0,
+      selected: CityTool = "absorb",
+    ) {
+      rig.update(
+        elapsed,
+        Math.hypot(player.velocity.x, player.velocity.z),
+        player.grounded,
+      );
+      equipment.select(selected);
       const { x, y, z } = player.position;
+      const height = y - groundY;
       character.position.set(x, y, z);
       character.rotation.y = player.facing;
       ground.position.set(x, 0, z);
-      shadow.position.set(x, 0.015, z);
-      shadow.scale.setScalar(1 + y * 0.15);
-      shadow.material.opacity = 0.25 / (1 + y);
+      shadow.position.set(x, groundY + 0.015, z);
+      shadow.scale.setScalar(1 + height * 0.15);
+      shadow.material.opacity = 0.25 / (1 + height);
     },
   };
 }
