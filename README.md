@@ -104,7 +104,7 @@ Static assets live under `public/`: team sound clips in `public/audio/`, optiona
 
 The supplied Basel model loads by default. While it loads, the original scenery remains playable; if loading fails, the original buildings remain. To use only procedural scenery, clear `level.url` in `config/game.ts`.
 
-When the Basel model loads, local street geometry and SWISSIMAGE aerial ground imagery load beneath it. They are draped over real swissALTI3D terrain, so the city has its hills and slopes; on sloped levels rainwater runs downhill to lower plots. Widths are approximate and the fictional mission area stays clear. Settings are in `config/map.ts`; rebuilding assets and source limits are documented in [ground layer notes](public/maps/README.md).
+Basel buildings are drawn with procedural facades and roofs (`config/buildings.ts`); colours and windows are illustrative, not surveyed. When the Basel model loads, local street geometry and SWISSIMAGE aerial ground imagery load beneath it. They are draped over real swissALTI3D terrain, so the city has its hills and slopes; on sloped levels rainwater runs downhill to lower plots. Widths are approximate and the fictional mission area stays clear. Settings are in `config/map.ts`; rebuilding assets and source limits are documented in [ground layer notes](public/maps/README.md).
 
 Optional Blender exports go into `public/models/`. Set `character.url` or `level.url` in `config/game.ts`, with scale and rotation. Use a feet-centred origin, Y up and front facing +Z. An empty URL retains procedural visuals; failed loads report an error and keep the fallback. Imported models and buildings are visual only (no collisions); movement follows the terrain height within each level's bounds.
 

@@ -8,6 +8,7 @@ import { createWorld } from "./game/world";
 import { loadModel, updateSpongeWaterState } from "./game/assets";
 import { spongeCapacity, updateCity, weather } from "./game/city";
 import { loadMapLayers } from "./game/map-layers";
+import { styleBuildings } from "./game/building-style";
 import {
   connectRunoff,
   createCampaign,
@@ -247,6 +248,7 @@ function startGame(): void {
           updateSpongeWaterState(model, city.sponge, spongeCapacity(city));
           world.useCharacter(model);
         } else {
+          styleBuildings(model);
           scenery.add(model);
           cityView.useImportedLevel();
           void loadMapLayers(scenery, canvas, (grid) => {
