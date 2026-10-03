@@ -1,5 +1,5 @@
 import { updateWater } from "./city-water";
-import { advanceCampaign, currentLevel } from "./campaign";
+import { advanceCampaign, currentLevel, levelPosition } from "./campaign";
 import { cityConfig as c, cityTools, plotCooling } from "../../config/city";
 import type {
   CityAction,
@@ -144,7 +144,7 @@ function act(
       : "POREN-POWER! Temporary capacity: 1,400 L.";
   }
   if (action === "upgrade") {
-    if (distance(c.sandy, position) > c.reach)
+    if (distance(levelPosition(s, c.sandy), position) > c.reach)
       return "Visit Sandy's workshop on the left of the square (E).";
     if (s.upgraded)
       return "Sandy: Your 700 L sponge and bubble irrigation are ready. Use B to water distant plots!";
@@ -155,7 +155,7 @@ function act(
     return "Sandy: Upgrade installed! 700 L capacity and B for long-range bubble irrigation.";
   }
   if (action === "machine") {
-    if (distance(c.machine, position) > c.reach)
+    if (distance(levelPosition(s, c.machine), position) > c.reach)
       return "Get closer to Dr. Beton's Asphaltinator to disable it.";
     s.machineDisabled = c.machineDisableTime;
     return "KARATE! Asphaltinator disabled for 45 seconds. Protect the green plots!";

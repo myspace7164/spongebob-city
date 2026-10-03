@@ -1,12 +1,21 @@
 import { arrivalStory, cityLevels, endingStory } from "../../config/levels";
 import { currentLevel } from "../game/campaign";
 import type { CityState } from "../interfaces";
+import { StorySpeech } from "./story-speech";
 
 const element = (id: string) => document.getElementById(id)!;
 /** German narrative and abstract route map; no geographic placement is implied. */
 export class CampaignUI {
   private panel = element("campaign-story");
+  private speech = new StorySpeech(element("story-mascot"));
   constructor() {
+    const mascot = document
+      .querySelector(".hero-sponge")!
+      .cloneNode(true) as SVGElement;
+    element("story-mascot").append(mascot);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) this.speech.stop();
+    });
     this.panel.addEventListener("keydown", (event) => {
       if (event.key !== "Tab") return;
       const body = element("story-body"),
@@ -19,7 +28,11 @@ export class CampaignUI {
     return !this.panel.hidden;
   }
   hide(): void {
+    this.speech.stop();
     this.panel.hidden = true;
+  }
+  setMuted(muted: boolean): void {
+    this.speech.setMuted(muted);
   }
   show(s: CityState): void {
     element("story-status").textContent = "";
@@ -28,28 +41,16 @@ export class CampaignUI {
       s.campaign!.level === 0 && s.campaign!.completed.length === 0;
     element("story-title").textContent =
       `${s.campaign!.level + 1}. ${level.location} — ${level.title}`;
-    const body = element("story-body");
-    body.replaceChildren();
-    if (arrival) {
-      const heading = document.createElement("h3");
-      heading.textContent = arrivalStory.title;
-      body.append(heading);
-    }
-    for (const text of [
+    const paragraphs = [
       ...(arrival ? arrivalStory.paragraphs : []),
       ...level.story,
-    ]) {
-      const paragraph = document.createElement("p");
-      paragraph.textContent = text;
-      body.append(paragraph);
-    }
-    const objective = document.createElement("p");
-    objective.className = "story-objective";
-    objective.textContent = `Levelziel: ${level.objective}`;
-    body.append(objective);
-    body.scrollTop = 0;
+    ];
+    element("story-fulltext").textContent = paragraphs.join(" ");
+    element("story-objective").textContent = level.objective;
+    element("story-body").scrollTop = 0;
     this.renderRoute(s, element("story-route"));
     this.panel.hidden = false;
+    this.speech.speak(element("story-copy"), paragraphs);
     element("story-start").focus({ preventScroll: true });
   }
   render(s: CityState): void {
@@ -64,7 +65,7 @@ export class CampaignUI {
     if (s.outcome === "won") {
       element("result-title").textContent = endingStory.title;
       element("result-reason").textContent =
-        "Basel wird Schwammstadt – Fläche für Fläche.";
+        "Fläche für Fläche. Level für Level.";
       const ending = element("campaign-ending");
       if (!ending.childElementCount) {
         for (const text of endingStory.paragraphs) {

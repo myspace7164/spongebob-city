@@ -1,17 +1,15 @@
 import { expect, test } from "@playwright/test";
 
-test("arrival/story entry pauses the simulation and preserves the supplied narrative on short screens", async ({
+test("short talking briefing pauses the simulation on short screens", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1024, height: 600 });
   await page.goto("/");
   await page.locator("#play").click();
   await expect(page.locator("#campaign-story")).toBeVisible();
-  await expect(page.locator("#story-body")).toContainText(
-    "gelben Rheinschwimmsack",
-  );
-  await expect(page.locator("#story-body")).toContainText(
-    "dieselbe Pfütze mit einem Umweg",
+  await expect(page.locator("#story-fulltext")).toContainText("Burger gesucht");
+  await expect(page.locator("#story-fulltext")).toContainText(
+    "Gib dem Regen ein Zuhause",
   );
   await expect(page.locator("#story-route li")).toHaveCount(4);
   await expect(page.locator("#story-start")).toBeInViewport();
@@ -75,10 +73,10 @@ test("actual game loop automatically enters each next story and shows the ending
   }
   await expect(page.locator("#result")).toBeVisible();
   await expect(page.locator("#result-title")).toHaveText(
-    "Die Stadt wird zum Schwamm",
+    "Basel wird Schwammstadt",
   );
   await expect(page.locator("#campaign-ending")).toContainText(
-    "Dabei braucht es ganz viele kleine.",
+    "Viele kleine Lösungen",
   );
   await expect(page.locator("#campaign-route .complete")).toHaveCount(4);
   await page.screenshot({ path: "/tmp/sponge-campaign-ending.png" });
@@ -135,10 +133,120 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
   await expect(page.locator("#mission-level")).toContainText("LEVEL 2/4");
   await expect(page.locator("#campaign-route .complete")).toHaveCount(1);
   await expect(page.locator("#city-change")).toContainText("0 trees · 0 m²");
-  await expect(page.locator("#budget")).toContainText(/4['’]400/);
+  await expect(page.locator("#budget")).toContainText(/2['’]200/);
   await page.locator("#play").click();
   await expect(page.locator("#story-body")).not.toContainText(
     "gelben Rheinschwimmsack",
   );
   await expect(page.locator("#story-title")).toContainText("Erlenmatt");
+});
+
+test("briefing reveals briskly with a bounded wah-wah voice; mute and early start silence it", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const audio = { created: 0, ended: 0 };
+    Object.defineProperty(window, "briefingAudio", { value: audio });
+    const create = AudioContext.prototype.createOscillator;
+    AudioContext.prototype.createOscillator = function () {
+      const voice = create.call(this);
+      audio.created++;
+      voice.addEventListener("ended", () => audio.ended++);
+      return voice;
+    };
+  });
+  await page.goto("/");
+  await page.locator("#play").click();
+  const mascot = page.locator("#story-mascot");
+  await expect(mascot.locator("svg")).toBeVisible();
+  await expect(mascot).toHaveAttribute("data-speaking", "true");
+  const full = await page.locator("#story-fulltext").textContent();
+  const initial = await page.locator("#story-copy").textContent();
+  expect(initial!.length).toBeLessThan(full!.length);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { briefingAudio: { created: number } })
+            .briefingAudio.created,
+      ),
+    )
+    .toBeGreaterThan(0);
+  await expect(mascot).toHaveAttribute("data-speaking", "false", {
+    timeout: 13000,
+  });
+  await expect(page.locator("#story-copy")).toContainText(
+    "Gib dem Regen ein Zuhause.",
+  );
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const audio = (
+          window as unknown as {
+            briefingAudio: { created: number; ended: number };
+          }
+        ).briefingAudio;
+        return audio.created - audio.ended;
+      }),
+    )
+    .toBe(0);
+  await page.screenshot({ path: "/tmp/sponge-short-briefing.png" });
+  await page.locator("#story-start").click();
+  await page.keyboard.press("KeyH");
+  await page.locator("#read-story").click();
+  await expect(mascot).toHaveAttribute("data-speaking", "true");
+  await page.locator("#sound-toggle").click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const audio = (
+          window as unknown as {
+            briefingAudio: { created: number; ended: number };
+          }
+        ).briefingAudio;
+        return audio.created - audio.ended;
+      }),
+    )
+    .toBe(0);
+  const mutedCount = await page.evaluate(
+    () =>
+      (window as unknown as { briefingAudio: { created: number } })
+        .briefingAudio.created,
+  );
+  await page.waitForTimeout(350);
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { briefingAudio: { created: number } })
+          .briefingAudio.created,
+    ),
+  ).toBe(mutedCount);
+  await page.locator("#sound-toggle").click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as unknown as { briefingAudio: { created: number } })
+            .briefingAudio.created,
+      ),
+    )
+    .toBeGreaterThan(mutedCount);
+  await page.locator("#story-start").click();
+  await expect(mascot).toHaveAttribute("data-speaking", "false");
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const audio = (
+          window as unknown as {
+            briefingAudio: { created: number; ended: number };
+          }
+        ).briefingAudio;
+        return audio.created - audio.ended;
+      }),
+    )
+    .toBe(0);
+  await page.keyboard.press("KeyH");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.locator("#read-story").click();
+  await expect(mascot).toHaveCSS("animation-name", "none");
 });

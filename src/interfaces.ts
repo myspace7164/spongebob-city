@@ -141,6 +141,8 @@ export interface CityLevel {
   id: string;
   location: string;
   title: string;
+  /** Fictional stage offset, unrelated to surveyed Basel coordinates. */
+  origin?: { x: number; z: number };
   story: readonly string[];
   objective: string;
   layout: readonly { x: number; z: number }[];

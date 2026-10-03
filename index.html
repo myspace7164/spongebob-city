@@ -145,6 +145,7 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="story-title"
+      aria-describedby="story-fulltext"
       lang="de"
     >
       <p class="eyebrow">BASEL WIRD SCHWAMMSTADT</p>
@@ -153,7 +154,14 @@
       <p class="small">
         Platzhalterkarte · Topologie und Geografie folgen später.
       </p>
-      <div id="story-body" tabindex="0" aria-label="Geschichte"></div>
+      <div class="story-scene">
+        <div id="story-mascot" aria-hidden="true"></div>
+        <div id="story-body" tabindex="0" aria-label="Geschichte">
+          <div id="story-copy" aria-hidden="true"></div>
+          <p id="story-objective" class="story-objective"></p>
+        </div>
+      </div>
+      <p id="story-fulltext" class="sr-only"></p>
       <p id="story-status" role="status"></p>
       <button id="story-start" class="cta">Level starten ➜</button>
     </section>

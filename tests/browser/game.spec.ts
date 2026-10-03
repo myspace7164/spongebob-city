@@ -99,9 +99,18 @@ for (const viewport of [
     const dock = await page.locator("#hotbar").boundingBox();
     expect(menu!.y + menu!.height).toBeLessThan(dock!.y);
     const mission = await page.locator("#mission").boundingBox();
+    const banner = await page.locator(".mission-tab").boundingBox();
+    expect(banner!.y).toBeGreaterThanOrEqual(mission!.y);
+    expect(banner!.x).toBeGreaterThanOrEqual(mission!.x);
+    expect(banner!.x + banner!.width).toBeLessThanOrEqual(
+      mission!.x + mission!.width,
+    );
+    await expect(page.locator(".mission-tab")).toHaveText(
+      "🌴 OPERATION: LESS CONCRETE!",
+    );
     expect(mission!.y + mission!.height).toBeLessThan(dock!.y);
     const caption = await page.locator("#menu .description").boundingBox();
-    const mascot = await page.locator(".hero-sponge").boundingBox();
+    const mascot = await page.locator("#menu .hero-sponge").boundingBox();
     expect(mascot!.y + mascot!.height).toBeLessThanOrEqual(caption!.y + 2);
     await page.screenshot({
       path: `/tmp/sponge-aero-${viewport.width}-${viewport.height}.png`,

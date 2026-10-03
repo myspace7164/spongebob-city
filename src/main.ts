@@ -8,7 +8,13 @@ import { createWorld } from "./game/world";
 import { loadModel } from "./game/assets";
 import { loadMapLayers } from "./game/map-layers";
 import { updateCity, weather } from "./game/city";
-import { connectRunoff, createCampaign, recyclePlot } from "./game/campaign";
+import {
+  connectRunoff,
+  createCampaign,
+  currentLevel,
+  levelPosition,
+  recyclePlot,
+} from "./game/campaign";
 import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
@@ -29,6 +35,8 @@ function startGame(): void {
   });
   renderer.setPixelRatio(Math.min(devicePixelRatio, gameConfig.maxPixelRatio));
   const scene = new THREE.Scene();
+  const scenery = new THREE.Group();
+  scene.add(scenery);
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 150);
   const world = createWorld(scene);
   const input = new GameInput(canvas);
@@ -37,14 +45,20 @@ function startGame(): void {
     document.querySelector<HTMLButtonElement>("#sound-toggle")!;
   soundToggle.addEventListener("click", () => {
     const muted = audio.toggleMuted();
+    campaignUI.setMuted(muted);
     soundToggle.textContent = muted ? "Sound: off" : "Sound: on";
     soundToggle.setAttribute("aria-pressed", String(muted));
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) audio.update(false, false);
   });
-  let player = createPlayer();
   let city = createCampaign();
+  const spawnPlayer = () => {
+    const player = createPlayer();
+    Object.assign(player.position, levelPosition(city, player.position));
+    return player;
+  };
+  let player = spawnPlayer();
   let checkpoint = structuredClone(city);
   let storyPending = true;
   const campaignUI = new CampaignUI();
@@ -71,9 +85,9 @@ function startGame(): void {
   };
   const reset = () => {
     audio.update(false, false);
-    player = createPlayer();
     city =
       city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
+    player = spawnPlayer();
     checkpoint = structuredClone(city);
     storyPending = true;
     campaignUI.hide();
@@ -157,7 +171,7 @@ function startGame(): void {
     if (code === "KeyX") act("maximum");
     if (code === "KeyP") act("patrick");
     if (code === "KeyE") {
-      const machine = cityConfig.machine;
+      const machine = levelPosition(city, cityConfig.machine);
       if (
         Math.hypot(
           player.position.x - machine.x,
@@ -206,9 +220,9 @@ function startGame(): void {
           world.character.remove(world.placeholder);
           world.character.add(model);
         } else {
-          scene.add(model);
+          scenery.add(model);
           cityView.useImportedLevel();
-          void loadMapLayers(scene, canvas);
+          void loadMapLayers(scenery, canvas);
           canvas.dataset.level = "loaded";
           levelStatus.textContent =
             "Basel buildings loaded · fictional mission square";
@@ -239,7 +253,7 @@ function startGame(): void {
       const actions = input.consumeActions();
       if (actions.selection !== null)
         city.selected = cityTools[actions.selection].id;
-      const machine = cityConfig.machine;
+      const machine = levelPosition(city, cityConfig.machine);
       if (
         actions.use &&
         city.selected === "karate" &&
@@ -259,15 +273,16 @@ function startGame(): void {
       while (accumulator >= gameConfig.fixedStep) {
         updatePlayer(player, input.consume(), input.yaw, gameConfig.fixedStep);
         // The playable square has flat-ground bounds, so the mission stays in reach.
+        const origin = levelPosition(city, { x: 0, z: 0 });
         player.position.x = THREE.MathUtils.clamp(
           player.position.x,
-          cityConfig.bounds.minX,
-          cityConfig.bounds.maxX,
+          cityConfig.bounds.minX + origin.x,
+          cityConfig.bounds.maxX + origin.x,
         );
         player.position.z = THREE.MathUtils.clamp(
           player.position.z,
-          cityConfig.bounds.minZ,
-          cityConfig.bounds.maxZ,
+          cityConfig.bounds.minZ + origin.z,
+          cityConfig.bounds.maxZ + origin.z,
         );
         if (
           input.using &&
@@ -296,7 +311,7 @@ function startGame(): void {
         const previousLevel = city.campaign!.level;
         updateCity(city, gameConfig.fixedStep, player.position);
         if (city.campaign!.level !== previousLevel) {
-          player = createPlayer();
+          player = spawnPlayer();
           input.yaw = 0;
           input.pitch = 0.28;
           targetId = null;
@@ -313,6 +328,8 @@ function startGame(): void {
       }
     }
     if (!active) audio.update(false, false);
+    const origin = currentLevel(city)?.origin;
+    scenery.position.set(origin?.x ?? 0, 0, origin?.z ?? 0);
     world.update(player);
     world.character.scale.setScalar(
       city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1,

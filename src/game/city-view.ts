@@ -224,6 +224,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       bubbles = false,
     ) {
       const level = currentLevel(s);
+      const origin = level?.origin ?? { x: 0, z: 0 };
+      root.position.set(origin.x, 0, origin.z);
       const nextSignature = `${level?.id}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
       if (campaignSignature !== nextSignature) {
         campaignSignature = nextSignature;
@@ -239,8 +241,12 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           const destination = validDrain(s, p);
           if (destination && (p.kind === "roof" || p.kind === "tank")) {
             const geometry = new THREE.BufferGeometry().setFromPoints([
-              new THREE.Vector3(p.x, 0.3, p.z),
-              new THREE.Vector3(destination.x, 0.3, destination.z),
+              new THREE.Vector3(p.x - origin.x, 0.3, p.z - origin.z),
+              new THREE.Vector3(
+                destination.x - origin.x,
+                0.3,
+                destination.z - origin.z,
+              ),
             ]);
             routes.add(
               new THREE.Line(
@@ -250,13 +256,18 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
             );
           }
           if (level?.entranceIds.includes(p.id)) {
-            box(entrances, [4, 0.2, 0.3], [p.x, 0.2, p.z - 2], "accent");
+            box(
+              entrances,
+              [4, 0.2, 0.3],
+              [p.x - origin.x, 0.2, p.z - origin.z - 2],
+              "accent",
+            );
             const marker = label(
               level.id === "voltanord"
                 ? "SCHULE · KEEP DRY"
                 : "EINGANG · KEEP DRY",
             );
-            marker.position.set(p.x, 2, p.z);
+            marker.position.set(p.x - origin.x, 2, p.z - origin.z);
             entrances.add(marker);
           }
         }
@@ -267,7 +278,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         scene.fog.color.copy(scene.background);
       s.plots.forEach((p, i) => {
         const view = plotViews[i];
-        view.tile.position.set(p.x, 0, p.z);
+        view.tile.position.set(p.x - origin.x, 0, p.z - origin.z);
         const signature = `${p.kind}/${p.moisture >= c.moistureHealthy}`;
         if (view.signature !== signature) {
           plotProps(view.props, p);
@@ -292,7 +303,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       const targetPlot = s.plots.find((p) => p.id === targetId);
       border.visible = !!targetPlot;
       if (targetPlot) {
-        border.position.set(targetPlot.x, 0.15, targetPlot.z);
+        border.position.set(
+          targetPlot.x - origin.x,
+          0.15,
+          targetPlot.z - origin.z,
+        );
         (border.material as THREE.MeshBasicMaterial).color.copy(
           themeColor(
             Math.hypot(
@@ -321,10 +336,10 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           const phase = (s.elapsed * 2 + i / 8) % 1;
           const t = waterAction === "absorb" ? 1 - phase : phase;
           drop.position.set(
-            THREE.MathUtils.lerp(player.position.x, targetPlot.x, t),
+            THREE.MathUtils.lerp(player.position.x, targetPlot.x, t) - origin.x,
             THREE.MathUtils.lerp(player.position.y + 1.3, 0.4, t) +
               Math.sin(t * Math.PI) * (bubbles ? 2 : 0.6),
-            THREE.MathUtils.lerp(player.position.z, targetPlot.z, t),
+            THREE.MathUtils.lerp(player.position.z, targetPlot.z, t) - origin.z,
           );
           drop.scale.setScalar(bubbles ? 2.5 : 1);
         });

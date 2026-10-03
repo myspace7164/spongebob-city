@@ -35,7 +35,7 @@ Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **I’M R
 | V                                  | Recycle the aimed upgrade and reclaim its cost               |
 | R                                  | Retry the current level from its entry checkpoint            |
 
-All current-level achievements must be satisfied together to advance automatically. The next story pauses gameplay until you start the level. Improvements, water and purchased upgrades carry forward; each level grants a new budget allowance and resets its reuse target and weather clock. Failure retries the current entry checkpoint; the final ending offers a full campaign restart. H includes a button to reread the current story.
+All current-level achievements must be satisfied together to advance automatically. The next story pauses gameplay until you start the level. Each new neighbourhood starts fresh: plots, water, budget, upgrades and weather reset. Only completed levels carry forward. Distinct fictional origins/layouts stand in for the eventual real maps. Failure retries the current entry checkpoint; the final ending offers a full campaign restart. H includes a button to reread the current story.
 
 Aim at a plot: a green border means it is in reach, orange means move closer. Trees require unsealed soil. Other structures can be built directly on asphalt and include unsealing in their price. Sponge water above normal capacity after a power expires stays available for distribution. Yellow entrance markers must stay clear of construction. Blue connection lines show runoff routes: roofs release stored water slowly; tanks send surface overflow to the chosen receiver. Receivers can saturate, so use planted basins and keep monitoring flood danger.
 
@@ -70,9 +70,10 @@ npm run test:browser
 
 ## Extend
 
-- `config/levels.ts`: German story chapters, per-level achievements/weather and placeholder plot coordinates (stable IDs preserve improvements); replace coordinates when the actual level layouts arrive.
+- `config/levels.ts`: short German briefings, per-level achievements/weather and independent placeholder locations/layouts; replace coordinates when the actual level layouts arrive.
 - `src/game/campaign.ts`: shared achievement evaluation, automatic progression and runoff/recycling rules.
 - `src/ui/campaign.ts`: paused story screens, campaign route and ending.
+- `config/briefing.ts` and `src/ui/story-speech.ts`: 300-word/minute text reveal and original Web Audio wah-wah voice, capped at 12 seconds. Start early to skip; M/Sound mutes the voice too. Reduced motion disables mascot bobbing.
 - `config/city.ts`: fictional simulation tuning, tools, prices and standalone mission goals.
 - `src/game/city.ts`: mission actions, weather, heat, sabotage and outcome.
 - `src/game/city-water.ts`: rain, infiltration and tank irrigation.
@@ -96,4 +97,4 @@ Optional Blender exports go into `public/models/`. Set `character.url` or `level
 
 ## Limits and sources
 
-Four story levels with a shared sixteen-plot placeholder grid, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. No persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology, entrances and runoff links remain fictional; imported Basel buildings are background scenery. The map is centred on the supplied dataset rather than geographically aligned to the four story locations. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
+Four story levels with separate sixteen-plot placeholder layouts, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. No persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology, entrances and runoff links remain fictional; imported Basel buildings are background scenery. The map is centred on the supplied dataset rather than geographically aligned to the four story locations. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).

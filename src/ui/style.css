@@ -372,8 +372,8 @@ h1 {
   transform: rotate(1deg);
 }
 .mission-tab {
-  width: max-content;
-  margin: -30px auto var(--gap-md);
+  width: 100%;
+  margin: 0 0 var(--gap-md);
   padding: var(--gap-sm) var(--gap-lg);
   background: var(--tool-gradient);
   color: var(--text);
@@ -383,7 +383,9 @@ h1 {
   font-size: var(--font-sm);
   font-weight: 900;
   text-shadow: var(--shadow-text);
-  transform: rotate(-3deg);
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 #mission h2 {
   font-size: 24px;
@@ -1214,7 +1216,7 @@ body:has(#result:not([hidden])) .bubble {
   inset: var(--space);
   margin: auto;
   width: min(730px, calc(100% - var(--space) * 2));
-  height: min(740px, calc(100dvh - var(--space) * 2));
+  height: min(var(--briefing-panel-height), calc(100dvh - var(--space) * 2));
   padding: var(--space);
   z-index: 6;
   display: flex;
@@ -1277,4 +1279,53 @@ body:has(#campaign-story:not([hidden])) .bubble {
 }
 body:has(#campaign-story:not([hidden])) #target-info {
   visibility: hidden;
+}
+.story-scene {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-lg);
+  flex: 1;
+  min-height: 0;
+}
+#story-mascot {
+  width: var(--briefing-mascot-width);
+  flex-shrink: 0;
+}
+#story-mascot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: none;
+}
+#story-mascot.speaking {
+  animation: sponge-speaking var(--briefing-bob-duration) ease-in-out infinite
+    alternate;
+}
+#story-body {
+  min-height: var(--briefing-reading-height);
+  max-height: 100%;
+}
+#story-copy {
+  min-height: var(--briefing-reading-height);
+}
+#story-copy p {
+  font-size: var(--font-lg);
+}
+@keyframes sponge-speaking {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-1 * var(--briefing-bob-height)));
+  }
+}
+@media (max-width: 680px) {
+  #story-mascot {
+    width: calc(var(--briefing-mascot-width) * 0.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #story-mascot.speaking {
+    animation: none;
+  }
 }

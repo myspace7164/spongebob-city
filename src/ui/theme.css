@@ -98,3 +98,10 @@
   --shade: #ead28b;
   --skin: #e1b38b;
 }
+:root {
+  --briefing-mascot-width: 150px;
+  --briefing-bob-height: 10px;
+  --briefing-bob-duration: 320ms;
+  --briefing-reading-height: 160px;
+  --briefing-panel-height: 520px;
+}

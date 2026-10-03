@@ -8,6 +8,7 @@ import {
   createCampaign,
   currentLevel,
   levelAchievements,
+  levelPosition,
   recyclePlot,
 } from "../src/game/campaign.ts";
 import {
@@ -131,7 +132,7 @@ test("separated shaded plots do not satisfy a connected shade zone", () => {
   assert.equal(goal().done, true);
 });
 
-test("a legal four-level strategy automatically progresses, preserves improvements/water, and only wins at the ending", () => {
+test("a legal strategy completes four independent fresh locations and conserves water within each level", () => {
   const s = createCampaign();
   const construction = [
     [
@@ -141,20 +142,44 @@ test("a legal four-level strategy automatically progresses, preserves improvemen
       [6, "karate"],
     ],
     [
+      [0, "basin"],
+      [1, "basin"],
       [2, "karate"],
       [2, "tree"],
       [3, "karate"],
       [3, "tree"],
       [4, "karate"],
       [4, "tree"],
+      [5, "karate"],
+      [6, "karate"],
     ],
     [
+      [0, "basin"],
+      [1, "basin"],
+      [2, "karate"],
+      [2, "tree"],
+      [3, "karate"],
+      [3, "tree"],
+      [4, "karate"],
+      [4, "tree"],
       [7, "roof"],
       [8, "roof"],
       [9, "shade"],
       [10, "shade"],
     ],
     [
+      [0, "basin"],
+      [1, "basin"],
+      [2, "karate"],
+      [2, "tree"],
+      [3, "karate"],
+      [3, "tree"],
+      [4, "karate"],
+      [4, "tree"],
+      [7, "roof"],
+      [8, "roof"],
+      [9, "shade"],
+      [10, "shade"],
       [11, "tank"],
       [12, "tank"],
       [13, "pond"],
@@ -165,7 +190,7 @@ test("a legal four-level strategy automatically progresses, preserves improvemen
     assert.equal(s.outcome, "playing");
     const initialWater = total(s) - s.rainfall;
     for (const [id, kind] of construction[level]) act(s, kind, at(s, id), id);
-    if (level === 2) {
+    if (level >= 2) {
       connect(s, 7, 0);
       connect(s, 8, 1);
     }
@@ -173,14 +198,15 @@ test("a legal four-level strategy automatically progresses, preserves improvemen
       connect(s, 11, 0);
       connect(s, 12, 13);
     }
-    let transitionWater = 0;
+    let levelWaterBeforeCompletion = 0;
+    let rainfallBeforeCompletion = 0;
     for (
       let step = 0;
       step < 4000 && s.campaign!.level === level && s.outcome === "playing";
       step++
     ) {
       if (s.machineDisabled < 1)
-        act(s, "machine", { ...c.machine, y: 0 }, null);
+        act(s, "machine", { ...levelPosition(s, c.machine), y: 0 }, null);
       const entrance = s.plots[15];
       const source =
         entrance.surface > 0
@@ -202,7 +228,8 @@ test("a legal four-level strategy automatically progresses, preserves improvemen
           : (storage.find((p) => p.stored < 1300) ?? ground[0]);
       if (destination)
         act(s, "spray", at(s, destination.id), destination.id, 30);
-      transitionWater = total(s);
+      levelWaterBeforeCompletion = total(s);
+      rainfallBeforeCompletion = s.rainfall;
       updateCity(s, 0.1, at(s, 0));
     }
     assert.equal(
@@ -215,12 +242,29 @@ test("a legal four-level strategy automatically progresses, preserves improvemen
       level + 1,
       JSON.stringify(levelAchievements(s)),
     );
-    assert.ok(Math.abs(total(s) - s.rainfall - initialWater) < 1e-6);
-    assert.ok(total(s) >= transitionWater - 1e-6);
-    assert.equal(s.plots[0].kind, "basin");
+    assert.ok(
+      Math.abs(
+        levelWaterBeforeCompletion - rainfallBeforeCompletion - initialWater,
+      ) < 1e-6,
+    );
     if (level < 3) {
       assert.equal(s.campaign!.level, level + 1);
       assert.equal(s.elapsed, 0);
+      assert.ok(
+        s.plots.every(
+          (p) =>
+            p.kind === "asphalt" &&
+            p.moisture === 0 &&
+            p.stored === 0 &&
+            p.drainsTo === undefined,
+        ),
+      );
+      assert.equal(s.sponge, 0);
+      assert.equal(s.budget, c.budget);
+      assert.ok(
+        s.plots[0].x !== cityLevels[level].layout[0].x ||
+          s.plots[0].z !== cityLevels[level].layout[0].z,
+      );
       assert.equal(s.reused, 0);
       assert.equal(s.campaign!.stormCompleted, false);
     }
@@ -235,7 +279,7 @@ test("a legal four-level strategy automatically progresses, preserves improvemen
   assert.deepEqual(s, finished);
 });
 
-test("the last missing achievement blocks advancement; transition retains water, upgrades and funds", () => {
+test("the last missing achievement blocks advancement; next neighbourhood resets water, upgrades and funds", () => {
   const s = createCampaign();
   for (const [id, kind] of [
     [0, "basin"],
@@ -257,14 +301,14 @@ test("the last missing achievement blocks advancement; transition retains water,
   assert.equal(levelAchievements(s).filter((goal) => !goal.done).length, 1);
   assert.equal(advanceCampaign(s), false);
   s.reused = 400;
-  const before = total(s),
-    budget = s.budget;
   assert.equal(advanceCampaign(s), true);
-  assert.equal(total(s), before);
-  assert.equal(s.sponge, 275);
-  assert.equal(s.plots[0].moisture, 120);
-  assert.equal(s.upgraded, true);
-  assert.equal(s.budget, budget + c.budget);
+  assert.equal(total(s), c.plotCount * c.initialSurface);
+  assert.equal(s.sponge, 0);
+  assert.equal(s.plots[0].moisture, 0);
+  assert.equal(s.upgraded, false);
+  assert.equal(s.budget, c.budget);
+  assert.equal(s.plots[0].kind, "asphalt");
+  assert.deepEqual(s.campaign!.completed, ["riehenring"]);
   assert.equal(s.campaign!.level, 1);
   assert.equal(s.reused, 0);
 });
