@@ -12,14 +12,14 @@ test("city renders, water loop and construction work, powers and pause/reset are
     return !!gl && !gl.isContextLost();
   });
   await expect(page.locator("#hotbar .slot")).toHaveCount(9);
+  await expect(page.locator("#game")).toHaveAttribute("data-level", "loaded");
   await page.screenshot({ path: "/tmp/sponge-city-before.png" });
   await page.locator("#play").click();
   await expect(page.locator("#menu")).toBeHidden();
   await expect(page.locator("#crosshair")).toBeVisible();
-  // Look down slightly so the initial ray reaches the first row of plots.
-  await page.keyboard.down("KeyK");
-  await page.waitForTimeout(180);
-  await page.keyboard.up("KeyK");
+  // The initial camera aims at a reachable plot; fixed-duration key holds vary
+  // with software rendering and can turn past it while the model is loading.
+  await expect(page.locator("#target-info")).toContainText("Sealed asphalt");
   await page.keyboard.press("Digit3");
   await page.mouse.down();
   await page.mouse.up();
@@ -77,3 +77,41 @@ test("city renders, water loop and construction work, powers and pause/reset are
   await expect(page.locator("#budget")).toContainText(/2['’]200/);
   expect(errors).toEqual([]);
 });
+
+for (const viewport of [
+  { width: 1440, height: 900 },
+  { width: 1024, height: 640 },
+  { width: 1024, height: 600 },
+]) {
+  test(`cartoon UI fits ${viewport.width}×${viewport.height} and entry remains clickable`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await expect(page.locator("#play")).toBeEnabled();
+    const menu = await page.locator("#menu").boundingBox();
+    const dock = await page.locator("#hotbar").boundingBox();
+    expect(menu!.y + menu!.height).toBeLessThan(dock!.y);
+    const caption = await page.locator("#menu .description").boundingBox();
+    const mascot = await page.locator(".hero-sponge").boundingBox();
+    expect(mascot!.y + mascot!.height).toBeLessThanOrEqual(caption!.y + 2);
+    await page.screenshot({
+      path: `/tmp/sponge-aero-${viewport.width}-${viewport.height}.png`,
+    });
+    await page.locator("#play").click();
+    await expect(page.locator("#menu")).toBeHidden();
+    await page.keyboard.press("KeyH");
+    await expect(page.locator("#inventory-panel")).toBeVisible();
+    await page.screenshot({
+      path: `/tmp/sponge-aero-guide-${viewport.width}-${viewport.height}.png`,
+    });
+    await expect(page.locator("#close-inventory")).toBeInViewport();
+    await page.locator("#close-inventory").click();
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const animations = await page
+      .locator(".bubble")
+      .first()
+      .evaluate((el) => getComputedStyle(el).animationName);
+    expect(animations).toBe("none");
+  });
+}

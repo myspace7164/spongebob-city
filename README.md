@@ -13,7 +13,7 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **Enter the square** to capture the mouse. Escape pauses; clicking Enter resumes. Leaving the tab pauses and clears input. The field guide explains every tool.
+Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **I’M READY!** to capture the mouse. Escape pauses; click the same button to resume. Leaving the tab pauses and clears input. The field guide explains every tool.
 
 | Control | Action |
 |---|---|
@@ -73,6 +73,7 @@ npm run test:browser
 - `src/ui/city.ts`: HUD, field guide and mission report.
 - `src/interfaces.ts`: shared contracts.
 - `src/ui/theme.css`: palette and visual theme.
+- `docs/style-guide.md`: cartoon / Frutiger Aero visual direction; its local style sample is served by Vite at `/docs/design/style-sample.html`.
 - `config/game.ts`: movement, camera, renderer and optional GLB paths.
 
 The supplied Basel model loads by default. While it loads, the original scenery remains playable; if loading fails, the original buildings remain. To use only procedural scenery, clear `level.url` in `config/game.ts`.
