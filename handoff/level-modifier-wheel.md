@@ -16,6 +16,7 @@ After every successful non-final campaign level, show a weighted fortune wheel. 
 - `npm test`: 66 passing. `npm run build`: passing.
 - Browser campaign transitions test passes; failed-level browser test passes. Local test server requires permission to bind port 5173, which was granted for the test run.
 - Side-cast PBR/details, heat HUD, failed-level cleanup, Dr. Beton 3D vehicle/laser, and character equipment browser checks pass. Wheel screenshots were inspected at `/tmp/sponge-modifier-wheel.png` and `/tmp/sponge-modifier-wheel-result.png`; result content fits short screens.
+- A deterministic browser check forces both Turbo-Schwamm and Hitzewelle, verifies their positive/negative reveals and confirms spin/tick/result oscillators are created.
 - `npm test`: 66 passing after landing-angle checks. `npm run build && bash scripts/doc-check.sh`: passing.
 
 ## Next

@@ -138,6 +138,77 @@ test("actual game loop automatically enters each next story and shows the ending
   expect(errors).toEqual([]);
 });
 
+test("wheel reveals controlled positive and negative results and emits sounds", async ({
+  page,
+}) => {
+  await page.route("**/config/levels.ts*", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    await route.fulfill({
+      response,
+      body: source
+        .replace(/target:\s*\d+/g, "target: 0")
+        .replace(/maximum:\s*true/g, "maximum: false"),
+    });
+  });
+  await page.route("**/config/modifiers.ts*", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    await route.fulfill({
+      response,
+      body: source.replace("spinDurationMs: 4100", "spinDurationMs: 100"),
+    });
+  });
+  await page.addInitScript(() => {
+    const probe = window as unknown as { wheelAudioProbe: number };
+    probe.wheelAudioProbe = 0;
+    const create = AudioContext.prototype.createOscillator;
+    AudioContext.prototype.createOscillator = function (this: AudioContext) {
+      probe.wheelAudioProbe++;
+      return create.call(this);
+    };
+  });
+  await page.goto("/");
+  await page.locator("#play").click();
+  await page.locator("#story-start").click();
+  await expect(page.locator("#modifier-wheel")).toBeVisible();
+
+  await page.evaluate(() => {
+    Math.random = () => 0;
+    (window as unknown as { wheelAudioProbe: number }).wheelAudioProbe = 0;
+  });
+  await page.locator("#wheel-spin").click();
+  await expect(page.locator("#wheel-continue")).toBeVisible({ timeout: 5000 });
+  await expect(page.locator("#modifier-wheel")).toHaveClass(/power-up/);
+  await expect(page.locator("#wheel-outcome")).toContainText("TURBO-SCHWAMM");
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { wheelAudioProbe: number }).wheelAudioProbe,
+    ),
+  ).toBeGreaterThan(2);
+
+  await page.locator("#wheel-continue").click();
+  await expect(page.locator("#story-title")).toContainText("Erlenmatt");
+  await page.locator("#story-start").click();
+  await expect(page.locator("#modifier-wheel")).toBeVisible();
+  await expect(page.locator("#active-modifier")).toBeHidden();
+
+  await page.evaluate(() => {
+    Math.random = () => 0.999999;
+    (window as unknown as { wheelAudioProbe: number }).wheelAudioProbe = 0;
+  });
+  await page.locator("#wheel-spin").click();
+  await expect(page.locator("#wheel-continue")).toBeVisible({ timeout: 5000 });
+  await expect(page.locator("#modifier-wheel")).toHaveClass(/power-down/);
+  await expect(page.locator("#wheel-outcome")).toContainText("HITZEWELLE");
+  await expect(page.locator("#wheel-outcome")).toContainText("+12%");
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { wheelAudioProbe: number }).wheelAudioProbe,
+    ),
+  ).toBeGreaterThan(2);
+});
+
 test("level-two failure retries its entry checkpoint and keeps level one completed", async ({
   page,
 }) => {
