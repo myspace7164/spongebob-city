@@ -146,10 +146,40 @@
       <button id="play" class="cta">
         I'M READY! <span aria-hidden="true">➜</span>
       </button>
+      <button id="open-hat-shop" class="hat-shop-launch" type="button">
+        🎩 HAT SHOP
+      </button>
       <p id="message" role="status">
         Click to capture your mouse. Escape pauses. H opens the field guide.
       </p>
     </aside>
+    <section
+      id="hat-shop"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="hat-shop-title"
+    >
+      <div class="hat-shop-heading">
+        <div>
+          <p class="eyebrow">DRESS UP YOUR SPONGE</p>
+          <h2 id="hat-shop-title">Hat Shop 🎩</h2>
+        </div>
+        <div class="hat-shop-wallet" aria-live="polite">
+          <span aria-hidden="true">🪙</span>
+          <strong id="hat-shop-balance">0</strong>
+          <small>COINS AVAILABLE</small>
+        </div>
+      </div>
+      <p class="hat-shop-note">
+        Each hat costs 1,000 coins. It stays with you until you lose this run.
+      </p>
+      <div id="hat-cards" class="hat-cards"></div>
+      <p id="hat-shop-status" role="status" aria-live="polite"></p>
+      <button id="hat-shop-close" class="hat-shop-close" type="button">
+        Back to menu
+      </button>
+    </section>
     <div id="crosshair" hidden>+</div>
     <div id="target-info"></div>
     <section

@@ -87,7 +87,7 @@ export const cityLevels: readonly CityLevel[] = [
     origin: origins[0],
     layout: riehenringLayout,
     site: riehenringSite,
-    weather: { dryDuration: 25, rainDuration: 25, rainRate: 8 },
+    weather: { dryDuration: 35, rainDuration: 15, rainRate: 6 },
     story: [
       "„Asphalt ist kein Abfluss, Leute!“",
       "Knack den Boden. Fang die Pfützen. Gib dem Regen ein Zuhause.",
@@ -113,7 +113,7 @@ export const cityLevels: readonly CityLevel[] = [
     title: "Basel braucht Wurzeln",
     origin: origins[1],
     layout: placeholderLayout(1),
-    weather: { dryDuration: 35, rainDuration: 30, rainRate: 12 },
+    weather: { dryDuration: 45, rainDuration: 18, rainRate: 8 },
     story: [
       "„Mehr Wurzeln. Weniger Grillplatte.“",
       "Pflanz Bäume und Mulden. Wasser zuerst für die Durstigen.",
@@ -140,7 +140,7 @@ export const cityLevels: readonly CityLevel[] = [
     title: "Schatten über den Strassen",
     origin: origins[2],
     layout: placeholderLayout(2),
-    weather: { dryDuration: 45, rainDuration: 35, rainRate: 16 },
+    weather: { dryDuration: 55, rainDuration: 20, rainRate: 10 },
     story: [
       "„Dein Dach kann mehr als heiss sein.“",
       "Grün aufs Dach. Schatten auf die Strasse. Regen sicher weiterleiten.",
@@ -172,7 +172,7 @@ export const cityLevels: readonly CityLevel[] = [
     title: "Platz für den grossen Regen",
     origin: origins[3],
     layout: placeholderLayout(3),
-    weather: { dryDuration: 55, rainDuration: 45, rainRate: 20 },
+    weather: { dryDuration: 65, rainDuration: 22, rainRate: 12 },
     story: [
       "„Mein Bauch ist kein Stausee!“",
       "Tanks füllen. Teiche bauen. Regen zurückhalten. Dann: Gewitter abwehren.",

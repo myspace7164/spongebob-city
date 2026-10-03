@@ -181,9 +181,9 @@ test("empty streets alone never win; prolonged flood loses and result freezes th
   updateCity(fresh, 0, at(fresh, 0));
   assert.equal(fresh.elapsed, 0);
   assert.equal(weather(fresh).raining, false);
-  fresh.elapsed = 36;
+  fresh.elapsed = c.dryDuration + 1;
   assert.equal(weather(fresh).raining, true);
-  fresh.elapsed = 81;
+  fresh.elapsed = c.dryDuration + c.rainDuration + 1;
   assert.equal(weather(fresh).raining, false);
 });
 

@@ -163,7 +163,11 @@ export interface CampaignProgress {
   wheelPending: boolean;
   pendingModifier: LevelModifierId | null;
   activeModifier: LevelModifierId | null;
+  /** Purchased headwear is temporary and cleared on a lost run. */
+  equippedHat: HatId | null;
 }
+export type HatId =
+  "trafficCone" | "cowboy" | "newspaper" | "sailor" | "wizard" | "footballCap";
 export type LevelModifierId =
   | "speedBoost"
   | "waterBoost"

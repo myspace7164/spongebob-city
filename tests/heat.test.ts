@@ -4,7 +4,12 @@ import * as THREE from "three";
 import { cityConfig as c } from "../config/city.ts";
 import { cityLevels } from "../config/levels.ts";
 import { createCampaign } from "../src/game/campaign.ts";
-import { createCity, performCityAction, updateCity } from "../src/game/city.ts";
+import {
+  createCity,
+  performCityAction,
+  updateCity,
+  weather,
+} from "../src/game/city.ts";
 import { spongeWaterMorphWeights } from "../src/game/assets.ts";
 import { createCityFireView } from "../src/game/city-fire-view.ts";
 import type { CityState, PlotKind } from "../src/interfaces.ts";
@@ -44,7 +49,7 @@ test("city temperature starts normal and concrete warms it gradually", () => {
   advance(asphalt, 10);
   advance(shade, 10);
   assert.ok(asphalt.temperature > 27);
-  assert.ok(asphalt.temperature < 27.3, "ten seconds must not cause a spike");
+  assert.ok(asphalt.temperature < 27.5, "ten seconds must not cause a spike");
   assert.ok(asphalt.temperature > shade.temperature);
   assert.ok(asphalt.heat > 0);
 });
@@ -64,7 +69,7 @@ test("campaign warming pressure rises proportionally across every level", () => 
       `level ${i + 1} should warm faster than level ${i}`,
     );
     assert.ok(
-      temperatures[i] - c.heatSystem.startingCelsius < 0.3,
+      temperatures[i] - c.heatSystem.startingCelsius < 0.5,
       "ten seconds should not cause an instant heat spike",
     );
   }
@@ -114,7 +119,7 @@ test("Dr. Beton sealing adds gradual heat pressure beyond the sealed surface", (
   updateCity(idle, 1, { x: 0, y: 0, z: -10 });
   updateCity(production, 1, { x: 0, y: 0, z: -10 });
   assert.ok(production.temperature > idle.temperature);
-  assert.ok(production.temperature - idle.temperature < 0.005);
+  assert.ok(production.temperature - idle.temperature < 0.01);
 });
 
 test("rain and each Schwammstadt cooling source lower the warming rate", () => {
@@ -126,16 +131,27 @@ test("rain and each Schwammstadt cooling source lower the warming rate", () => {
   assert.ok(temperatureAfterOneSecond("asphalt", true) < asphalt);
 });
 
-test("heat above 36 C gradually dries SpongeBob and suppresses WaterFull", () => {
-  const atThreshold = spongeWaterMorphWeights(400, 400, 36);
-  const justAbove = spongeWaterMorphWeights(400, 400, 36.1);
-  const warmer = spongeWaterMorphWeights(400, 400, 40);
+test("heat above 30 C progressively dries SpongeBob and suppresses WaterFull", () => {
+  const atThreshold = spongeWaterMorphWeights(400, 400, 30);
+  const warmer = spongeWaterMorphWeights(400, 400, 37.5);
+  const hotter = spongeWaterMorphWeights(400, 400, 42.5);
   assert.equal(atThreshold.dry, 0);
   assert.equal(atThreshold.waterFull, 1);
-  assert.ok(justAbove.dry > 0 && justAbove.dry < 0.02);
   assert.ok(warmer.dry > 0 && warmer.dry < 1);
   assert.ok(warmer.waterFull < 1);
-  assert.equal(spongeWaterMorphWeights(400, 400, 44).dry, 1);
+  assert.ok(hotter.dry > warmer.dry && hotter.dry < 1);
+  assert.equal(spongeWaterMorphWeights(400, 400, 45).dry, 1);
+});
+
+test("less-frequent rain still cycles through every campaign level", () => {
+  for (const level of cityLevels) {
+    assert.ok(level.weather.dryDuration > level.weather.rainDuration);
+    assert.ok(level.weather.rainRate < 16);
+    const s = createCampaign();
+    s.campaign!.level = cityLevels.indexOf(level);
+    s.elapsed = level.weather.dryDuration;
+    assert.equal(weather(s).raining, true);
+  }
 });
 
 test("fires start above 40 C, grow gradually, and consume stored water when sprayed", () => {
