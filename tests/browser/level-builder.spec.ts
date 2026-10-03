@@ -261,6 +261,7 @@ test("level builder stays local and refuses to open in an online room", async ({
   await page.locator("#username").fill(username);
   await page.locator("#account-form button").click();
   await expect(page.locator("#account-name")).toContainText(username);
+  await page.locator("#online-toggle").click();
   await page.locator("#create-room").click();
   await expect(page.locator("#team-status")).toContainText("1/4");
   await page.locator("#story-start").click();

@@ -107,5 +107,5 @@ test("Patrick, maximum collection and support actions earn grants once; new leve
   campaign.campaign!.pendingModifier = "speedBoost";
   assert.equal(startNextCampaignLevel(campaign), true);
   assert.deepEqual(campaign.funding, { earned: 0, claimed: [] });
-  assert.equal(campaign.budget, c.budget);
+  assert.equal(campaign.budget, c.budget + 1000);
 });

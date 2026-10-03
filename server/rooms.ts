@@ -22,6 +22,7 @@ import {
   createCampaign,
   currentLevel,
   startNextCampaignLevel,
+  startEndless,
   levelPosition,
   connectRunoff,
   recyclePlot,
@@ -65,6 +66,7 @@ interface Member {
   seen: number;
   lastAction: number;
   source: number | null;
+  playtimeBuffer: number;
 }
 interface Room {
   code: string;
@@ -91,6 +93,7 @@ const actions = new Set([
   "connect",
   "recycle",
   "reset",
+  "endless",
 ]);
 let baselBuildingFootprints: Promise<SolidCollider[]> | undefined;
 function loadBaselBuildingFootprints(): Promise<SolidCollider[]> {
@@ -192,6 +195,7 @@ export class Rooms {
         seen: Date.now(),
         lastAction: 0,
         source: null,
+        playtimeBuffer: 0,
       });
       this.membership.set(account.id, room.code);
     }
@@ -216,12 +220,20 @@ export class Rooms {
   leave(id: string): void {
     const room = this.room(id);
     if (!room) return;
+    const member = room.members.get(id);
+    if (member) this.flushPlaytime(id, member, true);
     room.members.delete(id);
     this.membership.delete(id);
     if (room.hostId === id)
       room.hostId = room.members.keys().next().value ?? "";
     if (!room.members.size) this.rooms.delete(room.code);
     else room.revision++;
+  }
+  private flushPlaytime(id: string, member: Member, final = false): void {
+    const seconds = Math.floor(member.playtimeBuffer + (final ? 0.5 : 0));
+    if (seconds <= 0) return;
+    member.playtimeBuffer -= seconds;
+    this.store.recordPlaytime(id, seconds);
   }
   command(id: string, command: OnlineCommand): void {
     const room = this.room(id),
@@ -238,6 +250,7 @@ export class Rooms {
       if (!command.ready) {
         m.input.movement = idle();
         m.source = null;
+        this.flushPlaytime(id, m, true);
       }
     }
     if (command.movement) {
@@ -291,6 +304,14 @@ export class Rooms {
     }
     if (!command.action) return;
     if (!actions.has(command.action)) throw new Error("Unknown action.");
+    if (command.action === "endless") {
+      if (room.hostId !== id)
+        throw new Error("Only the room leader can start endless mode.");
+      if (!startEndless(room.city))
+        throw new Error("Finish the normal campaign before endless mode.");
+      this.newLevel(room);
+      return;
+    }
     if (command.action === "reset") {
       if (room.hostId !== id)
         throw new Error("Only the room leader can retry.");
@@ -389,6 +410,10 @@ export class Rooms {
           m.public.ready = false;
         }
         if (!m.public.ready) continue;
+        if (room.city.outcome === "playing") {
+          m.playtimeBuffer += dt;
+          this.flushPlaytime(id, m);
+        }
         active = true;
         collisionWorld.setDynamic([
           ...gameplayColliders(room.city, ground, this.buildings.length === 0),
@@ -432,6 +457,7 @@ export class Rooms {
       }
       if (active && room.city.outcome === "playing") {
         const level = room.city.campaign!.level;
+        const endlessRound = room.city.campaign!.endlessRound;
         collisionWorld.setDynamic([
           ...gameplayColliders(room.city, ground, this.buildings.length === 0),
           ...[...room.members.values()].map((member) => {
@@ -462,11 +488,18 @@ export class Rooms {
           room.city.campaign!.pendingModifier = chooseLevelModifier();
           startNextCampaignLevel(room.city);
         }
-        if (room.city.campaign!.level !== level) this.newLevel(room);
+        if (
+          room.city.campaign!.level !== level ||
+          room.city.campaign!.endlessRound !== endlessRound
+        )
+          this.newLevel(room);
         if ((room.city.outcome as string) === "won")
           for (const id of room.members.keys())
             this.store.reward(id, `${room.run}:win:${id}`, 0, 1);
       }
+      if (room.city.outcome !== "playing")
+        for (const [id, member] of room.members)
+          this.flushPlaytime(id, member, true);
       room.revision++;
     }
   }

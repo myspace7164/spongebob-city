@@ -2,7 +2,7 @@ import { Mesh, MeshStandardMaterial, type Group } from "three";
 import { cityConfig } from "../../config/city.ts";
 import type { ModelConfig } from "../interfaces.ts";
 
-export const spongeEyeBlue = 0x4b39ff;
+export const spongeEyeBlue = 0x639bff;
 
 /** Slightly lighten only the imported SpongeBob iris material. */
 export function applySpongeEyeTint(model: Group): number {

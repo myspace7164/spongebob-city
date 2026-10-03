@@ -153,7 +153,7 @@ test("separated shaded plots do not satisfy a connected shade zone", () => {
   assert.equal(goal().done, true);
 });
 
-test("Level 4 removes both runoff objectives and keeps its other goals", () => {
+test("Level 4 removes runoff and connected-shade objectives and keeps its other goals", () => {
   const s = createCampaign();
   onPlaceholderLevel(s, 2);
   assert.deepEqual(
@@ -180,7 +180,6 @@ test("Level 4 removes both runoff objectives and keeps its other goals", () => {
       "tanks",
       "ponds",
       "basins",
-      "shadeConnected",
       "healthyTrees",
       "retained",
       "reused",
@@ -189,7 +188,11 @@ test("Level 4 removes both runoff objectives and keeps its other goals", () => {
       "stormCompleted",
     ],
   );
-  assert.equal(level.goals.length, 10);
+  assert.equal(level.goals.length, 9);
+  assert.equal(
+    level.goals.some((goal) => goal.metric === "shadeConnected"),
+    false,
+  );
   assert.equal(
     level.goals.some((goal) => /tank overflows|roof inflows/i.test(goal.label)),
     false,
@@ -338,7 +341,7 @@ function playLegalStrategy(
         ),
       );
       assert.equal(s.sponge, 0);
-      assert.equal(s.budget, c.budget);
+      assert.equal(s.budget, c.budget + 1000);
       assert.ok(
         s.plots[0].x !== cityLevels[level].layout[0].x ||
           s.plots[0].z !== cityLevels[level].layout[0].z,
@@ -412,7 +415,7 @@ test("the last missing achievement blocks advancement; next neighbourhood resets
   assert.equal(s.sponge, 0);
   assert.equal(s.plots[0].moisture, 0);
   assert.equal(s.upgraded, false);
-  assert.equal(s.budget, c.budget);
+  assert.equal(s.budget, c.budget + 1000);
   assert.equal(s.plots[0].kind, "asphalt");
   assert.deepEqual(s.campaign!.completed, ["riehenring"]);
   assert.equal(s.campaign!.level, 1);
@@ -448,4 +451,17 @@ test("Level 3 shade plots across the wider street gap connect and permit Level 4
   assert.equal(startNextCampaignLevel(s), true);
   assert.equal(s.campaign!.level, 3);
   assert.equal(currentLevel(s)!.id, "voltanord");
+});
+
+test("entering levels two through four grants 1,000 coins once per level", () => {
+  const s = createCampaign();
+  for (let nextLevel = 1; nextLevel < cityLevels.length; nextLevel++) {
+    s.campaign!.wheelPending = true;
+    s.campaign!.pendingModifier = "speedBoost";
+    assert.equal(startNextCampaignLevel(s), true);
+    assert.equal(s.campaign!.level, nextLevel);
+    assert.equal(s.budget, c.budget + 1000);
+    assert.equal(startNextCampaignLevel(s), false);
+    assert.equal(s.budget, c.budget + 1000);
+  }
 });

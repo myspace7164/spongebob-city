@@ -101,3 +101,7 @@ The main menu's Hats shop offers six procedural 3D wearables for 1,000 coins eac
 ## Ambient riverside buddy
 
 A procedural cartoon passerby uses the supplied visual reference for outfit proportions: tan hoodie, loose pale-blue jeans, large dark sneakers, dark cropped hair and a beer can. The photo stays outside the repository. This ambient character adds no quests, rewards or interactions. He follows a shared simulation-time stroll and pauses for drink, cigarette rolling, smoking and cheering poses. Short English encouragement rotates in a cartoon speech bubble, mixing environmental praise with everyday optimism. A softly synthesized nearby voice follows the existing distance, mute and pause rules. Procedural limbs and props match the game's existing visual style; this is an outfit-inspired cartoon rather than a photographic asset.
+
+## Credits and endless mode
+
+After the normal campaign victory, skippable credits introduce four placeholder authors and thank the host. Credits lead to endless play: each completed round selects a random existing level with fresh plots and all tools unlocked. Rain and heat use the final campaign baseline, increasing by 20% each round. Retries preserve the round and location; co-op transitions remain authoritative and the leader starts endless mode.

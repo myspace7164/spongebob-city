@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-test("username cookie, duplicate rejection, two-browser co-op and persisted ranking", async ({
+test("username cookie, duplicate rejection, two-browser co-op and persisted playtime ranking", async ({
   browser,
 }) => {
   test.setTimeout(150000);
@@ -34,6 +34,8 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted rank
     await b.locator("#username").fill(`${username}_B`);
     await b.locator("#account-form button").click();
     await expect(b.locator("#account-name")).toContainText(`${username}_B`);
+    await a.locator("#online-toggle").click();
+    await b.locator("#online-toggle").click();
     await a.locator("#create-room").click();
     await expect(a.locator("#team-status")).toContainText("1/4");
     const code = (await a.locator("#team-status").textContent())!.match(
@@ -91,10 +93,15 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted rank
         ).player.emote?.id;
       })
       .toBe("dab");
+    // Give the authoritative simulation at least one full second to record
+    // playtime; the leaderboard intentionally stores whole seconds.
+    await a.waitForTimeout(1200);
     await a.keyboard.press("Escape");
     await a.locator("#online-toggle").click();
     await expect(a.locator("#leaderboard-rows")).toContainText(username);
-    await expect(a.locator("#leaderboard-rows")).toContainText("40");
+    await expect(a.locator("#leaderboard-rows")).toContainText(
+      /\d+(?:h \d+m|m \d+s|s)/,
+    );
     await a.screenshot({ path: "/tmp/sponge-online-leaderboard.png" });
     await a.reload();
     await expect(a.locator("#online-toggle")).toContainText(username);
@@ -125,7 +132,7 @@ test("an empty account API response reports a useful message instead of JSON.par
   await page.locator("#online-toggle").click();
   await page.locator("#username").fill("EmptyResponseHero");
   await page.locator("#account-form button").click();
-  await expect(page.locator("#online-status")).toContainText(
+  await expect(page.locator("#name-status")).toContainText(
     "Online server unavailable",
   );
 });

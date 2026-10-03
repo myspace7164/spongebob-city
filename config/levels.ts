@@ -67,6 +67,7 @@ const riehenringLayout = [
   spot(9, -40, "facade"),
 ];
 export const campaignConfig = {
+  laterLevelCoinGrant: 1000,
   roofReleaseRate: 8,
   overflowRate: 60,
   basinInfiltrationRate: 90,
@@ -188,12 +189,11 @@ const storyLevels: readonly CityLevel[] = [
       "“My belly is no reservoir!”",
       "Fill tanks. Build ponds. Hold the rain. Bring on the storm.",
     ],
-    objective: "2 tanks. 1 pond. 2 rain gardens. Add shade and hold rain.",
+    objective: "2 tanks. 1 pond. 2 rain gardens. Hold the stormwater.",
     goals: [
       { metric: "tanks", target: 2, label: "Rain tanks" },
       { metric: "ponds", target: 1, label: "Pond" },
       { metric: "basins", target: 2, label: "Rain gardens" },
-      { metric: "shadeConnected", target: 2, label: "Connected shade" },
       { metric: "healthyTrees", target: 3, label: "Healthy trees" },
       { metric: "retained", target: 2000, label: "Litres retained" },
       { metric: "reused", target: 1500, label: "Litres reused" },

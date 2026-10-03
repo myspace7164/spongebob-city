@@ -170,6 +170,8 @@ export interface CityFire {
   size: 0 | 1 | 2;
 }
 export interface CampaignProgress {
+  /** Post-campaign round, starting at 1; absent during the normal campaign. */
+  endlessRound?: number;
   /** Server/solo-selected route, retained for retries; omitted only in legacy fixtures. */
   locations?: string[];
   level: number;
@@ -180,12 +182,18 @@ export interface CampaignProgress {
   wheelPending: boolean;
   pendingModifier: LevelModifierId | null;
   activeModifier: LevelModifierId | null;
-  /** Purchased hats remain available across levels and retries. */
+  /** Run-purchased hats persist through levels and clear after a loss. */
   ownedHats?: HatId[];
   equippedHat: HatId | null;
 }
 export type HatId =
-  "trafficCone" | "cowboy" | "newspaper" | "sailor" | "wizard" | "footballCap";
+  | "trafficCone"
+  | "cowboy"
+  | "newspaper"
+  | "sailor"
+  | "wizard"
+  | "footballCap"
+  | "diamondKingCrown";
 export type LevelModifierId =
   | "speedBoost"
   | "waterBoost"
@@ -281,8 +289,7 @@ export interface Account {
 }
 export interface LeaderboardEntry {
   username: string;
-  funding: number;
-  campaigns: number;
+  playSeconds: number;
 }
 export interface OnlinePlayer extends Account {
   player: PlayerState;
@@ -303,7 +310,7 @@ export interface OnlineCommand {
   yaw?: number;
   selected?: CityTool;
   ready?: boolean;
-  action?: CityAction | "connect" | "recycle" | "reset";
+  action?: CityAction | "connect" | "recycle" | "reset" | "endless";
   target?: number | null;
   bubbles?: boolean;
   powerup?: boolean;

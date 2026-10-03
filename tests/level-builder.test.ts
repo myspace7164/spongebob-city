@@ -76,10 +76,13 @@ test("the layout check reports missing spots, overlaps and unreachable goals", (
   const overlapping = grid("swale");
   overlapping[1] = { ...overlapping[0], x: overlapping[0].x + 1 };
   assert.ok(checkLayout(overlapping, []).some((p) => p.includes("overlap")));
-  // Parking only: no tanks, ponds, roofs or shade for level 4.
+  // Parking only: no tanks, ponds, roofs or other required Level 4 builds.
   const parking = checkLayout(grid("parking"), level4);
   assert.ok(parking.some((p) => p.includes("tank")));
-  assert.ok(parking.some((p) => p.includes("shade")));
+  assert.equal(
+    parking.some((p) => p.includes("shade")),
+    false,
+  );
   // Every technique on every spot: level 4 is reachable.
   const all = grid(undefined, [
     "tree",

@@ -132,6 +132,26 @@
         Too hot? Too wet? Too much boring asphalt?<br />One very absorbent hero.
         One greener Basel.
       </p>
+      <section id="menu-player-name" aria-labelledby="account-name">
+        <details id="player-name-details">
+          <summary id="account-name">NAME YOUR CHARACTER</summary>
+          <form id="account-form">
+            <label for="username">Character name · shown online</label>
+            <input
+              id="username"
+              name="username"
+              required
+              minlength="3"
+              maxlength="20"
+              pattern="[A-Za-z0-9_]+"
+              autocomplete="nickname"
+              placeholder="Enter a name"
+            />
+            <button class="cta">SAVE CHARACTER NAME</button>
+          </form>
+          <p id="name-status" role="status"></p>
+        </details>
+      </section>
       <ol class="quick-start">
         <li>
           <span><b>3</b> open asphalt. <b>4</b> build rain gardens.</span>
@@ -164,24 +184,7 @@
     >
       <p class="eyebrow">BETTER TOGETHER</p>
       <h2 id="online-title">SPONGE SQUAD!</h2>
-      <h3 id="account-name">PICK YOUR SPONGE NAME</h3>
-      <form id="account-form">
-        <label for="username">Unique username</label
-        ><input
-          id="username"
-          name="username"
-          required
-          minlength="3"
-          maxlength="20"
-          pattern="[A-Za-z0-9_]+"
-          autocomplete="off"
-          placeholder="Your sponge name"
-        /><button class="cta">CLAIM MY NAME ➜</button>
-        <p>
-          Your browser remembers you with a cookie. Keep it to keep your
-          account.
-        </p>
-      </form>
+      <h3 id="online-account-name">PICK YOUR SPONGE NAME</h3>
       <div id="online-controls" hidden>
         <div id="room-actions">
           <button id="create-room" class="cta">CREATE A CO-OP ROOM ➜</button>
@@ -209,17 +212,13 @@
       <p id="online-status" role="status"></p>
       <p id="connection-status" class="sr-only"></p>
       <h3>🏆 CITY HEROES</h3>
-      <p>
-        Completed campaigns first. Personal funding breaks ties. Earn it through
-        useful actions in online rooms.
-      </p>
+      <p>Top 5 players by active time spent in online game sessions.</p>
       <table id="leaderboard">
         <thead>
           <tr>
             <th>Rank</th>
             <th>Hero</th>
-            <th>Wins</th>
-            <th>Funding</th>
+            <th>Time played</th>
           </tr>
         </thead>
         <tbody id="leaderboard-rows"></tbody>
@@ -249,8 +248,7 @@
         </div>
       </div>
       <p class="hat-shop-note">
-        Each hat costs 1,000 coins once. Keep your collection and equip owned
-        hats for free.
+        Buy hats for this run. A loss clears them; spent coins are not refunded.
       </p>
       <div id="hat-cards" class="hat-cards"></div>
       <p id="hat-shop-status" role="status" aria-live="polite"></p>
@@ -347,8 +345,9 @@
       <p class="small">
         Q: activate your collected power-up once. A new pickup replaces the old
         boost. B: hold for distant bubble irrigation during a bubble boost or
-        after Sandy’s upgrade. E: workshop / machine. C: connect runoff. V:
-        recycle an upgrade. T: open the hat shop during a run.
+        after Sandy’s upgrade. E: workshop / machine.
+        <span id="runoff-guide-shortcut">C: connect runoff.</span> V: recycle an
+        upgrade. T: open the hat shop during a run.
       </p>
       <p class="small">
         Emotes: hold G + 1 for 67, 2 Macarena, 3 teabag, 4 dab, 5 floss. Move or
@@ -358,6 +357,26 @@
       <div id="powerup-guide"></div>
       <button id="close-inventory">Back to mission</button>
     </section>
+    <section
+      id="credits"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="credits-title"
+    >
+      <h1 id="credits-title">Basel goes sponge city!</h1>
+      <p class="eyebrow">CREDITS</p>
+      <div class="credits-window">
+        <div class="credits-roll">
+          <div id="credits-authors"></div>
+          <h2 id="credits-thanks"></h2>
+          <p>The adventure continues in endless mode.</p>
+        </div>
+      </div>
+      <button id="credits-skip" class="cta">
+        SKIP CREDITS · START ENDLESS ➜
+      </button>
+    </section>
     <section id="result" hidden aria-label="Mission result">
       <p class="eyebrow">MISSION REPORT</p>
       <h1 id="result-title"></h1>
@@ -366,6 +385,24 @@
       <div id="result-metrics"></div>
       <p class="small">Illustrative gameplay values · not a climate forecast</p>
       <button id="restart">Try the mission again ↻</button>
+      <button id="start-endless" hidden>Start endless mode ➜</button>
+    </section>
+    <section
+      id="campaign-celebration"
+      hidden
+      aria-labelledby="celebration-title"
+    >
+      <div class="celebration-confetti" aria-hidden="true"></div>
+      <button
+        id="celebration-dismiss"
+        type="button"
+        aria-label="Dismiss celebration and view your stats"
+      >
+        <span aria-hidden="true">🏆 ✨ 🎉 ✨ 🏆</span>
+        <strong id="celebration-title">CONGRATULATIONS!</strong>
+        <span>YOU SAVED THE CITY!</span>
+        <small>Click to view your stats</small>
+      </button>
     </section>
     <aside id="powerup-panel" aria-label="Collected power-ups">
       <h3>
@@ -389,7 +426,8 @@
         ><span><kbd>1–9</kbd> tool</span><span><kbd>CLICK</kbd> use</span
         ><span><kbd>Q</kbd> activate boost</span
         ><span><kbd>E</kbd> workshop / machine</span
-        ><span><kbd>C</kbd> runoff</span><span><kbd>V</kbd> recycle</span
+        ><span id="runoff-footer-shortcut"><kbd>C</kbd> runoff</span
+        ><span><kbd>V</kbd> recycle</span
         ><span><kbd>G + 1–5</kbd> emotes · <kbd>H</kbd> guide</span
         ><span><kbd>R</kbd> retry level</span><span><kbd>T</kbd> hats</span>
       </div>

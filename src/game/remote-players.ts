@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { makeCharacter } from "./characters.ts";
 import { createLocomotion } from "./locomotion.ts";
 import { createHeldTools } from "./held-tools.ts";
-import { createHatModel, disposeHatModel } from "./hats.ts";
+import { createHatModel, disposeHatModel, updateHatSparkles } from "./hats.ts";
 import { updateSpongeWaterState } from "./assets.ts";
 import type { HatId, OnlinePlayer } from "../interfaces.ts";
 
@@ -204,6 +204,7 @@ export function createRemotePlayers(scene: THREE.Scene) {
             }
           }
         }
+        updateHatSparkles(avatar.hat, elapsed);
       }
       return avatars.size;
     },

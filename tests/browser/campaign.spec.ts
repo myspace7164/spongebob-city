@@ -146,10 +146,25 @@ test("actual game loop automatically enters each next story and shows the ending
   await expect(page.locator("#campaign-ending")).toContainText("Small fixes");
   await expect(page.locator("#campaign-route .complete")).toHaveCount(4);
   await page.screenshot({ path: "/tmp/sponge-campaign-ending.png" });
-  await page.locator("#restart").click();
+  await expect(page.locator("#credits")).toBeVisible();
+  await expect(page.locator("#credits-authors h2")).toHaveText([
+    "author1",
+    "author2",
+    "author3",
+    "author4",
+  ]);
+  await expect(page.locator("#credits-thanks")).toHaveText(
+    "Special thanks to ton, our gracious host",
+  );
+  await page.locator("#credits-skip").click();
+  await expect(page.locator("#credits")).toBeHidden();
   await expect(page.locator("#result")).toBeHidden();
-  await expect(page.locator("#mission-level")).toContainText("LEVEL 1/4");
-  await expect(page.locator("#campaign-route .complete")).toHaveCount(0);
+  await expect(page.locator("#mission-level")).toContainText("ENDLESS ROUND 1");
+  await expect(page.locator("#story-objective")).toContainText("+20%");
+  await page.locator("#story-start").click();
+  await expect(page.locator("#mission-level")).toContainText("ENDLESS ROUND 2");
+  await expect(page.locator("#story-objective")).toContainText("+40%");
+  await expect(page.locator("#credits")).toBeHidden();
   expect(errors).toEqual([]);
 });
 
@@ -316,6 +331,19 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
 test("briefing reveals briskly with a bounded wah-wah voice; mute and early start silence it", async ({
   page,
 }) => {
+  // Count only narration: ambient character voices intentionally continue in gameplay.
+  await page.route("**/src/game/audio.ts*", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    const marker = "updateCharacters(";
+    expect(source).toContain(marker);
+    const body = source.replace(
+      /(updateCharacters\([^)]*\)\s*\{)/,
+      "$1 return;",
+    );
+    expect(body).not.toBe(source);
+    await route.fulfill({ response, body });
+  });
   // Isolate the short audio lifecycle from software rendering of the Blender
   // character. Other browser checks exercise the real character model.
   await page.route("**/models/spongebob.glb", (route) =>
@@ -485,4 +513,8 @@ test("Level 3 wider-gap shade neighbors advance to the Level 4 briefing", async 
   await page.locator("#wheel-continue").click();
   await expect(page.locator("#story-title")).toContainText("Riehenring");
   await expect(page.locator("#mission-level")).toContainText("LEVEL 4/4");
+  await expect(page.locator("#mission-level")).not.toContainText(
+    /connect.*shade|shade.*connect/i,
+  );
+  await expect(page.locator("#runoff-footer-shortcut")).toBeHidden();
 });
