@@ -39,7 +39,7 @@ export const riehenringSite: LevelSite = {
   bounds: { minX: -11.5, maxX: 11.5, minZ: -100, maxZ: 12 },
 };
 const spot = (x: number, z: number, site: SiteType) => ({ x, z, site });
-/** Index = stable plot ID; 15 is the Messe entrance by the footbridge. */
+/** Stable plot order follows the street's parking, verge and facade locations. */
 const riehenringLayout = [
   spot(-8, -20, "swale"),
   spot(-8, -26, "swale"),
@@ -60,7 +60,6 @@ const riehenringLayout = [
   spot(9, -40, "facade"),
 ];
 export const campaignConfig = {
-  entranceSurfaceLimit: 20,
   roofReleaseRate: 8,
   overflowRate: 60,
   basinInfiltrationRate: 90,
@@ -88,19 +87,16 @@ export const cityLevels: readonly CityLevel[] = [
     origin: origins[0],
     layout: riehenringLayout,
     site: riehenringSite,
-    entranceIds: [15],
     weather: { dryDuration: 25, rainDuration: 25, rainRate: 8 },
     story: [
       "“Asphalt is no drain, people!”",
       "Crack the ground. Catch puddles. Give rain a home.",
     ],
-    objective:
-      "Open 4 plots. Build 2 rain gardens. Reuse 400 L. Keep the entrance dry.",
+    objective: "Open 4 plots. Build 2 rain gardens. Reuse 400 L.",
     goals: [
       { metric: "permeable", target: 4, label: "Open plots" },
       { metric: "basins", target: 2, label: "Rain gardens" },
       { metric: "reused", target: 400, label: "Litres reused" },
-      { metric: "entrancesDry", target: 1, label: "Entrance dry" },
       { metric: "heat", target: 82, label: "Heat below", maximum: true },
       {
         metric: "flood",
@@ -117,7 +113,6 @@ export const cityLevels: readonly CityLevel[] = [
     title: "ROOTS BEAT HEAT",
     origin: origins[1],
     layout: placeholderLayout(1),
-    entranceIds: [15],
     weather: { dryDuration: 35, rainDuration: 30, rainRate: 12 },
     story: [
       "“More roots. Less barbecue.”",
@@ -145,25 +140,18 @@ export const cityLevels: readonly CityLevel[] = [
     title: "SHADE THE STREETS",
     origin: origins[2],
     layout: placeholderLayout(2),
-    entranceIds: [15],
     weather: { dryDuration: 45, rainDuration: 35, rainRate: 16 },
     story: [
       "“Your roof can do more than roast!”",
       "Green roofs. Cool streets. Route rain somewhere safe.",
     ],
-    objective:
-      "2 green roofs. 2 linked shade plazas. Connect drains. Water 3 trees.",
+    objective: "2 green roofs. 2 linked shade plazas. Water 3 trees.",
     goals: [
       { metric: "roofs", target: 2, label: "Green roofs" },
       {
         metric: "shadeConnected",
         target: 2,
         label: "Linked shade plazas",
-      },
-      {
-        metric: "roofRoutes",
-        target: 2,
-        label: "Roof drains (C → C)",
       },
       { metric: "healthyTrees", target: 3, label: "Healthy trees" },
       { metric: "reused", target: 1000, label: "Litres reused" },
@@ -183,14 +171,12 @@ export const cityLevels: readonly CityLevel[] = [
     title: "MAKE ROOM FOR THE STORM",
     origin: origins[3],
     layout: placeholderLayout(3),
-    entranceIds: [15],
     weather: { dryDuration: 55, rainDuration: 45, rainRate: 20 },
     story: [
       "“My belly is no reservoir!”",
       "Fill tanks. Build ponds. Connect overflows. Bring on the storm.",
     ],
-    objective:
-      "2 tanks. 1 pond. 2 rain gardens. Connect roofs and overflows. Keep school dry.",
+    objective: "2 tanks. 1 pond. 2 rain gardens. Connect roofs and overflows.",
     goals: [
       { metric: "tanks", target: 2, label: "Rain tanks" },
       { metric: "ponds", target: 1, label: "Pond" },
@@ -205,7 +191,6 @@ export const cityLevels: readonly CityLevel[] = [
       { metric: "healthyTrees", target: 3, label: "Healthy trees" },
       { metric: "retained", target: 2000, label: "Litres retained" },
       { metric: "reused", target: 1500, label: "Litres reused" },
-      { metric: "entrancesDry", target: 1, label: "School entrance dry" },
       { metric: "heat", target: 48, label: "Heat below", maximum: true },
       {
         metric: "flood",

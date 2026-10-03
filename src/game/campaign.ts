@@ -61,8 +61,7 @@ export function validDrain(
     !target ||
     target.id === source.id ||
     target.kind === "asphalt" ||
-    target.kind === "roof" ||
-    currentLevel(s)?.entranceIds.includes(target.id)
+    target.kind === "roof"
   )
     return undefined;
   const seen = new Set([source.id]);
@@ -106,7 +105,7 @@ export function connectRunoff(
   if (!validDrain(s, source)) {
     source.drainsTo = previous;
     s.feedback =
-      "Choose a permeable destination away from entrances. Runoff connections cannot loop.";
+      "Choose a permeable receiving plot or storage. Runoff connections cannot loop.";
     return;
   }
   progress.connectFrom = null;
@@ -182,12 +181,6 @@ export function levelAchievements(s: CityState): LevelAchievement[] {
     shadeConnected: shadeCluster(s),
     roofRoutes: routes("roof"),
     tankRoutes: routes("tank"),
-    entrancesDry: level.entranceIds.every((id) => {
-      const p = s.plots.find((p) => p.id === id);
-      return p && p.surface <= c.entranceSurfaceLimit;
-    })
-      ? 1
-      : 0,
     stormCompleted: s.campaign!.stormCompleted ? 1 : 0,
   };
   return level.goals.map((goal) => ({

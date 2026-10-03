@@ -147,8 +147,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   sign.position.set(0, 6, -27);
   root.add(sign);
   const routes = new THREE.Group();
-  const entrances = new THREE.Group();
-  root.add(routes, entrances);
+  root.add(routes);
   let campaignSignature = "";
   let importedLevel = false;
   // World height of the terrain; flat until the Basel terrain has loaded.
@@ -285,7 +284,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       if (campaignSignature !== nextSignature) {
         campaignSignature = nextSignature;
         dispose(routes);
-        dispose(entrances);
         root.remove(sign);
         sign.material.map?.dispose();
         sign.material.dispose();
@@ -324,25 +322,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
                 new THREE.LineBasicMaterial({ color: themeColor("water") }),
               ),
             );
-          }
-          if (level?.entranceIds.includes(p.id)) {
-            box(
-              entrances,
-              [4, 0.2, 0.3],
-              [p.x - origin.x, ground(p.x, p.z - 2) + 0.2, p.z - origin.z - 2],
-              "accent",
-            );
-            const marker = label(
-              level.id === "voltanord"
-                ? "SCHOOL · KEEP DRY"
-                : "ENTRANCE · KEEP DRY",
-            );
-            marker.position.set(
-              p.x - origin.x,
-              ground(p.x, p.z) + 2,
-              p.z - origin.z,
-            );
-            entrances.add(marker);
           }
         }
       }

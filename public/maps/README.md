@@ -44,3 +44,22 @@ python3 tests/test_basel_terrain.py
 ```
 
 Source credits and licences are recorded in `docs/SOURCES.md` and the field guide.
+
+## Drawn ground and trees
+
+`basel-ground-0..3.png` hold Basel's land cover (Bodenbedeckung, dataset
+100477) as 0.4 m category texels in four tiles (each ≤ 4096 px, split on 100 m
+terrain tiles); codes and tile extents are in `basel-ground.json` and must
+match `config/ground.ts`. On terrain the game draws roads, curbs, paving,
+grass, water and rail areas from them instead of the aerial photo and road
+ribbons; the photo and ribbons remain the fallback. `basel-trees.json` lists
+the inventory trees inside the map as `[x, z, conifer, height]`; heights are
+estimated from tree age, not measured. Both need the PROJ `cs2cs` command;
+downloads are cached in `.cache/` and not committed:
+
+```sh
+python3 scripts/convert-basel-ground.py
+python3 scripts/convert-basel-trees.py
+python3 tests/test_basel_ground.py
+python3 tests/test_basel_trees.py
+```

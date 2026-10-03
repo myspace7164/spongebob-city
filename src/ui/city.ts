@@ -184,9 +184,7 @@ export class CityUI {
             goal.done,
             goal.metric === "stormCompleted"
               ? "Survive a full storm"
-              : goal.metric === "entrancesDry"
-                ? "Keep the entrance dry"
-                : `${goal.label}: ${number(goal.value)} / ${number(goal.target)}`,
+              : `${goal.label}: ${number(goal.value)} / ${number(goal.target)}`,
           ])
       : [
           [

@@ -8,9 +8,9 @@ Short, punchy English briefings adapt the supplied arrival, four neighbourhood c
 
 Riehenring is played on the real street: a straight stretch south of the footbridge, with the Basel scenery moved and turned so the street runs along the play area. Its sixteen spots sit on real street situations (parking lane, sidewalk verge, corner, building edge) and each offers the matching technique: permeable paving, tree pit (Baumrigole), swale (Versickerungsmulde), or green roof/shade/tank. Walking is limited to the street corridor because buildings have no collisions. Levels 2–4 keep placeholder grids until their areas have map data. Later idea: a heat map overlay from Basel-Stadt's published urban climate data, showing which parts of the city collect the most heat.
 
-Riehenring teaches unsealing, water reuse, rain gardens and a dry marked entrance. Erlenmatt adds healthy trees and planted basins. St. Johann adds green roofs, contiguous shade and roof runoff connections. VoltaNord combines tanks, ponds and safe overflow connections through a complete strongest storm. All current-level achievements must be satisfied together. Progression automatically selects the next level and pauses for its story; only the fourth completion shows the ending.
+Riehenring teaches unsealing, water reuse and rain gardens. Erlenmatt adds healthy trees and planted basins. St. Johann adds green roofs and contiguous shade. VoltaNord combines tanks, ponds and safe overflow connections through a complete strongest storm. All current-level achievements must be satisfied together. Progression automatically selects the next level and pauses for its story; only the fourth completion shows the ending.
 
-Each level starts a fresh city: plots, water, budget, upgrades, weather and hazards reset. Only completed level IDs carry forward. The real Riehenring street and three independent fictional locations replace the shared square; scenery follows the active location. Entry checkpoints allow retrying the current level; campaign restart returns to arrival. Press C at a roof/tank, then C at a receiving plot to connect runoff. Finite-capacity transfers conserve water. Each location has sixteen plots. Drainage and entrance goals remain illustrative; levels 2–4 use placeholder layouts. Entrance achievements check current surface water after a complete storm, rather than continuous surveyed inundation. Recycling with V reclaims an upgrade’s cost and preserves its water, so accidental building choices cannot exhaust the required plots.
+Each level starts a fresh city: plots, water, budget, upgrades, weather and hazards reset. Only completed level IDs carry forward. The real Riehenring street and three independent fictional locations replace the shared square; scenery follows the active location. Entry checkpoints allow retrying the current level; campaign restart returns to arrival. Press C at a roof/tank, then C at a receiving plot to connect runoff. Finite-capacity transfers conserve water. Each location has sixteen plots. Drainage goals remain illustrative; levels 2–4 use placeholder layouts. Recycling with V reclaims an upgrade’s cost and preserves its water, so accidental building choices cannot exhaust the required plots.
 
 ## Playable mission
 
@@ -60,6 +60,12 @@ building from a stable seed, not surveyed. Bridges (Basel's `Bru_` objects and
 unlabelled spans that float above the terrain) have no windows: asphalt deck,
 concrete sides and a darker underside. Hand-picked landmarks get their own look;
 the Messe Basel hall on Riehenring shows its aluminium band facade.
+
+The ground is drawn from Basel's land-cover map instead of the blurry photo:
+asphalt roads with curbs, paved sidewalks and squares, grass, forest, the Rhine
+with cartoon ripples and rail/tram areas, all lit so slopes show. About 6,100
+real inventory trees stand at their positions as cartoon trees; trees next to a
+level's unsealing spots are left out so they never block play.
 
 The ground is real swissALTI3D terrain (4 m grid): the photo is draped over it,
 roads follow it, and buildings keep their surveyed heights on top. Each level's

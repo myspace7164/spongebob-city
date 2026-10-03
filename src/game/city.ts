@@ -208,10 +208,7 @@ function act(
     if (s.patrickCooldown > 0 && !isPowerupActive(s, "patrick"))
       return `Patrick is resting: ${Math.ceil(s.patrickCooldown)}s.`;
     const plots = s.plots.filter(
-      (p) =>
-        p.kind === "asphalt" &&
-        distance(p, position) <= c.reach &&
-        !currentLevel(s)?.entranceIds.includes(p.id),
+      (p) => p.kind === "asphalt" && distance(p, position) <= c.reach,
     );
     if (!plots.length)
       return "Patrick: Bring me close to those boring asphalt stones!";
@@ -247,8 +244,6 @@ function act(
         ? "Your sponge is empty. Use 1 to collect surface water."
         : "This plot cannot take more water. Unseal asphalt or choose another green plot/tank.";
   }
-  if (currentLevel(s)?.entranceIds.includes(p.id))
-    return "Keep this marked entrance clear. Absorb its puddle and deliver the water elsewhere.";
   const site = p.site && siteTechniques[p.site];
   if (site && action !== "karate" && !site.builds.includes(action)) {
     const fits = site.builds.map(
