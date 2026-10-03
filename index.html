@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#171b22" />
+    <title>Sponge City · Basel</title>
+  </head>
+  <body>
+    <canvas
+      id="game"
+      aria-label="SpongeBob sponge city mission in a stylised Basel square"
+    ></canvas>
+    <header>
+      <span class="brand">🧽 SPONGE CITY <small>BASEL</small></span
+      ><span id="weather" class="badge"></span>
+    </header>
+    <section id="city-hud" aria-label="City danger and water capacity">
+      <div class="meter heat">
+        <div>🌡️ HEAT <strong id="heat-value"></strong></div>
+        <progress id="heat-meter" max="100" aria-label="Heat danger"></progress>
+      </div>
+      <div class="meter flood">
+        <div>🌊 FLOOD <strong id="flood-value"></strong></div>
+        <progress
+          id="flood-meter"
+          max="100"
+          aria-label="Flood danger"
+        ></progress>
+      </div>
+      <div class="meter sponge">
+        <div>🧽 SPONGE <strong id="sponge-value"></strong></div>
+        <progress
+          id="sponge-meter"
+          aria-label="Sponge water capacity"
+        ></progress>
+      </div>
+    </section>
+    <aside id="mission">
+      <p class="eyebrow">MISSION 01 · BARFÜSSERPLATZ</p>
+      <h2>From grey to green.</h2>
+      <p id="budget"></p>
+      <div id="goals"></div>
+      <p id="city-change"></p>
+      <p class="small">Cool the square AND reuse the rain.</p>
+    </aside>
+    <aside id="menu">
+      <p class="eyebrow">HEAT BATTLE AT BARFÜSSERPLATZ</p>
+      <h1>Maximum<br />sponge. 🌳</h1>
+      <p class="description">
+        37 °C. Too much asphalt. A storm on its way.<br />Help SpongeBob turn
+        Basel into a sponge city.
+      </p>
+      <ol class="quick-start">
+        <li><b>3 / P</b> break asphalt. <b>4</b> plant trees.</li>
+        <li><b>1 + hold click</b> absorb blue puddles.</li>
+        <li><b>2 + hold click</b> water plants and fill tanks.</li>
+      </ol>
+      <button id="play">Enter the square <span>↗</span></button>
+      <p id="message" role="status">
+        Click to capture your mouse. Escape pauses. H opens the field guide.
+      </p>
+    </aside>
+    <div id="crosshair" hidden>+</div>
+    <div id="target-info"></div>
+    <section id="inventory-panel" hidden aria-label="Sponge city field guide">
+      <h2>Sponge city field guide</h2>
+      <p class="description">
+        Rain → absorb → store & distribute → greenery → cooling
+      </p>
+      <div id="inventory-list"></div>
+      <p class="small">
+        Q: Poren-Power · P: Patrick clears nearby asphalt · X: MAXIMUM SCHWAMM
+        (unlock at 800 L reused) · B: hold for distant bubble irrigation after
+        Sandy's upgrade. Visit Sandy or Dr. Beton and press E.
+      </p>
+      <button id="close-inventory">Back to mission</button>
+    </section>
+    <section id="result" hidden aria-label="Mission result">
+      <p class="eyebrow">MISSION REPORT</p>
+      <h1 id="result-title"></h1>
+      <p id="result-reason"></p>
+      <div id="result-metrics"></div>
+      <p class="small">Illustrative gameplay values · not a climate forecast</p>
+      <button id="restart">Try the mission again ↻</button>
+    </section>
+    <div id="inventory-hud">
+      <p id="item-status" role="status"></p>
+      <div id="hotbar" aria-label="Climate tools"></div>
+      <p id="tool-description"></p>
+      <div id="abilities"></div>
+    </div>
+    <footer>
+      <div class="controls">
+        <span><kbd>WASD</kbd> move</span
+        ><span><kbd>MOUSE / IJKL</kbd> look</span
+        ><span><kbd>1–9</kbd> tool</span><span><kbd>CLICK</kbd> use</span
+        ><span><kbd>Q / P / X</kbd> powers</span
+        ><span><kbd>E</kbd> workshop / machine</span
+        ><span><kbd>H</kbd> guide</span><span><kbd>R</kbd> restart</span>
+      </div>
+      <span class="world-label">FICTIONAL CITY SIMULATION</span>
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

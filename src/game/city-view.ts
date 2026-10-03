@@ -1,0 +1,296 @@
+import * as THREE from "three";
+import { cityConfig as c } from "../../config/city";
+import type { CityPlot, CityState, CityTool, PlayerState } from "../interfaces";
+import { cityMetrics, spongeCapacity, weather } from "./city";
+import { ball, box, label, makeCharacter, themeColor } from "./characters";
+
+function dispose(group: THREE.Group): void {
+  group.traverse((object) => {
+    if (object instanceof THREE.Mesh) {
+      object.geometry.dispose();
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+      materials.forEach((m) => m.dispose());
+    }
+  });
+  group.clear();
+}
+
+function plotProps(group: THREE.Group, plot: CityPlot): void {
+  dispose(group);
+  const kind = plot.kind;
+  if (kind === "asphalt" || kind === "soil") return;
+  if (kind === "tree") {
+    box(group, [0.35, 2.8, 0.35], [0, 1.4, 0], "wood");
+    for (const [x, y, z] of [
+      [0, 3.5, 0],
+      [-0.7, 2.9, 0],
+      [0.7, 3, 0.3],
+    ])
+      ball(
+        group,
+        1.1,
+        [x, y, z],
+        plot.moisture >= c.moistureHealthy ? "leaf" : "dry-leaf",
+      );
+  } else if (kind === "basin") {
+    for (const x of [-1, 0, 1])
+      for (const z of [-1, 1]) {
+        box(group, [0.08, 0.5, 0.08], [x, 0.25, z], "leaf");
+        ball(group, 0.17, [x, 0.6, z], "pink");
+      }
+  } else if (kind === "roof") {
+    box(group, [2.9, 2.3, 2.9], [0, 1.15, 0], "building");
+    box(group, [3.1, 0.25, 3.1], [0, 2.42, 0], "grass");
+    for (const x of [-0.9, 0, 0.9]) {
+      box(group, [0.28, 2.3, 0.12], [x, 1.3, 1.51], "leaf");
+      ball(group, 0.35, [x, 2.8, 0], "leaf");
+    }
+  } else if (kind === "pond") {
+    const pond = ball(group, 1.8, [0, 0.1, 0], "water");
+    pond.scale.y = 0.12;
+    ball(group, 0.25, [0.4, 0.35, 0.4], "white");
+    ball(group, 0.14, [0.4, 0.58, 0.6], "white");
+  } else if (kind === "shade") {
+    for (const x of [-1.5, 1.5])
+      box(group, [0.14, 2.6, 0.14], [x, 1.3, 0], "wood");
+    box(group, [3.6, 0.2, 3.6], [0, 2.7, 0], "shade");
+    box(group, [2.2, 0.18, 0.7], [0, 0.55, 0], "wood");
+    for (const x of [-0.8, 0.8])
+      box(group, [0.15, 0.5, 0.5], [x, 0.25, 0], "ink");
+  } else if (kind === "tank") {
+    const tank = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.9, 0.9, 1.9, 12),
+      new THREE.MeshLambertMaterial({ color: themeColor("water") }),
+    );
+    tank.position.y = 0.95;
+    group.add(tank);
+    box(group, [1.9, 0.18, 1.9], [0, 1.96, 0], "white");
+    box(group, [0.16, 0.16, 2.2], [0, 0.3, 1], "water");
+  }
+}
+
+/** Bounded procedural city; only rebuild props when plot kind or tree health changes. */
+export function createCityView(scene: THREE.Scene, state: CityState) {
+  const root = new THREE.Group();
+  scene.add(root);
+  const plotViews = state.plots.map((p) => {
+    const tile = new THREE.Group();
+    tile.position.set(p.x, 0, p.z);
+    root.add(tile);
+    const ground = box(tile, [4.7, 0.12, 4.7], [0, 0.01, 0], "asphalt");
+    const props = new THREE.Group();
+    tile.add(props);
+    const water = box(tile, [4.4, 0.05, 4.4], [0, 0.13, 0], "water");
+    const material = water.material as THREE.MeshLambertMaterial;
+    material.transparent = true;
+    material.opacity = 0.5;
+    return { ground, props, water, signature: "" };
+  });
+  const border = new THREE.Mesh(
+    new THREE.BoxGeometry(4.9, 0.2, 4.9),
+    new THREE.MeshBasicMaterial({
+      color: themeColor("accent"),
+      wireframe: true,
+    }),
+  );
+  root.add(border);
+  // Architecture is a stage set inspired by a Basel square, not a surveyed map.
+  for (let i = 0; i < 7; i++) {
+    const x = (i - 3) * 5;
+    box(
+      root,
+      [4.6, 5 + (i % 3), 4],
+      [x, (5 + (i % 3)) / 2, -30],
+      i % 2 ? "building" : "building-alt",
+    );
+    box(root, [4.9, 0.45, 4.4], [x, 5.2 + (i % 3), -30], "roof");
+    for (const y of [1.5, 3.5])
+      for (const dx of [-1, 1])
+        box(root, [0.7, 1, 0.05], [x + dx, y, -27.96], "window");
+  }
+  for (const x of [-18, 18])
+    for (const z of [-3, -10, -17]) {
+      box(root, [5, 5, 6], [x, 2.5, z], "building");
+      box(root, [5.4, 0.4, 6.4], [x, 5.2, z], "roof");
+    }
+  for (const x of [-3, 3]) {
+    box(root, [2, 9, 2], [x, 4.5, -32], "church");
+    const spire = new THREE.Mesh(
+      new THREE.ConeGeometry(1.6, 3.4, 4),
+      new THREE.MeshLambertMaterial({ color: themeColor("roof") }),
+    );
+    spire.position.set(x, 10.6, -32);
+    root.add(spire);
+  }
+  const sign = label("BARFÜSSERPLATZ · BASEL");
+  sign.position.set(0, 6, -27);
+  root.add(sign);
+  for (const [kind, text, x, z] of [
+    ["patrick", "Patrick · P: unseal", -11, -3],
+    ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
+    ["squid", "Thaddäus · more shade!", 12, -5],
+    ["krabs", "Mr. Krabs · budget", -11, 2],
+    ["beton", "Dr. Beton · E: sabotage off", c.machine.x, c.machine.z],
+  ] as const) {
+    const npc = makeCharacter(kind);
+    npc.position.set(x, 0, z);
+    root.add(npc);
+    const name = label(text);
+    name.position.set(x, 3, z);
+    root.add(name);
+  }
+  const machine = new THREE.Group();
+  machine.position.set(c.machine.x, 0, c.machine.z + 2);
+  root.add(machine);
+  box(machine, [2.5, 1.4, 2], [0, 0.85, 0], "concrete");
+  const roller = box(machine, [3.3, 0.7, 1], [0, 0.4, 1.2], "ink");
+  const warning = ball(machine, 0.22, [0, 1.7, 0], "coral");
+  const residents = new THREE.Group();
+  root.add(residents);
+  for (let i = 0; i < 8; i++) {
+    const person = new THREE.Group();
+    box(person, [0.3, 0.65, 0.3], [0, 0.65, 0], i % 2 ? "coral" : "water");
+    ball(person, 0.18, [0, 1.13, 0], "skin");
+    person.position.set(((i % 4) - 1.5) * 5, 0, 1 + Math.floor(i / 4) * 2);
+    residents.add(person);
+  }
+  const birds = new THREE.Group();
+  root.add(birds);
+  for (let i = 0; i < 6; i++) {
+    const bird = box(
+      birds,
+      [0.5, 0.08, 0.15],
+      [(i - 3) * 3, 5 + (i % 2), -12],
+      "white",
+    );
+    bird.rotation.z = i % 2 ? 0.3 : -0.3;
+  }
+  const rainGeometry = new THREE.BufferGeometry();
+  const rainPositions = new Float32Array(180 * 3);
+  for (let i = 0; i < 180; i++) {
+    rainPositions[i * 3] = ((i * 13) % 37) - 18;
+    rainPositions[i * 3 + 1] = (i * 7) % 14;
+    rainPositions[i * 3 + 2] = -((i * 17) % 30);
+  }
+  rainGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(rainPositions, 3),
+  );
+  const rain = new THREE.Points(
+    rainGeometry,
+    new THREE.PointsMaterial({ color: themeColor("water"), size: 0.12 }),
+  );
+  root.add(rain);
+  const ray = new THREE.Raycaster();
+  const droplets = new THREE.Group();
+  for (let i = 0; i < 8; i++) ball(droplets, 0.12, [0, 0, 0], "water");
+  root.add(droplets);
+  const point = new THREE.Vector3();
+  const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  return {
+    target(s: CityState, camera: THREE.Camera): number | null {
+      ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+      if (!ray.ray.intersectPlane(floor, point)) return null;
+      const nearest = [...s.plots].sort(
+        (a, b) =>
+          Math.hypot(a.x - point.x, a.z - point.z) -
+          Math.hypot(b.x - point.x, b.z - point.z),
+      )[0];
+      return Math.hypot(nearest.x - point.x, nearest.z - point.z) < 4.5
+        ? nearest.id
+        : null;
+    },
+    update(
+      s: CityState,
+      player: PlayerState,
+      targetId: number | null,
+      reach: number,
+      waterAction: CityTool | null = null,
+      bubbles = false,
+    ) {
+      const rainy = weather(s).raining;
+      scene.background = themeColor(rainy ? "rain-sky" : "sky");
+      if (scene.fog instanceof THREE.Fog)
+        scene.fog.color.copy(scene.background);
+      s.plots.forEach((p, i) => {
+        const view = plotViews[i];
+        const signature = `${p.kind}/${p.moisture >= c.moistureHealthy}`;
+        if (view.signature !== signature) {
+          plotProps(view.props, p);
+          view.signature = signature;
+        }
+        (view.ground.material as THREE.MeshLambertMaterial).color.copy(
+          themeColor(
+            p.kind === "asphalt"
+              ? "asphalt"
+              : p.kind === "soil"
+                ? "soil"
+                : "grass",
+          ),
+        );
+        view.water.visible = p.surface > 10;
+        view.water.scale.y = Math.max(1, Math.min(8, p.surface / 120));
+        (view.water.material as THREE.MeshLambertMaterial).opacity = Math.min(
+          0.65,
+          0.2 + p.surface / 1500,
+        );
+      });
+      const targetPlot = s.plots.find((p) => p.id === targetId);
+      border.visible = !!targetPlot;
+      if (targetPlot) {
+        border.position.set(targetPlot.x, 0.15, targetPlot.z);
+        (border.material as THREE.MeshBasicMaterial).color.copy(
+          themeColor(
+            Math.hypot(
+              targetPlot.x - player.position.x,
+              targetPlot.z - player.position.z,
+            ) <= reach
+              ? "accent"
+              : "coral",
+          ),
+        );
+      }
+      const canFlow =
+        targetPlot &&
+        Math.hypot(
+          targetPlot.x - player.position.x,
+          targetPlot.z - player.position.z,
+        ) <= reach &&
+        (waterAction === "absorb"
+          ? targetPlot.surface > 0 && s.sponge < spongeCapacity(s)
+          : waterAction === "spray" &&
+            s.sponge > 0 &&
+            targetPlot.kind !== "asphalt");
+      droplets.visible = !!canFlow;
+      if (canFlow && targetPlot)
+        droplets.children.forEach((drop, i) => {
+          const phase = (s.elapsed * 2 + i / 8) % 1;
+          const t = waterAction === "absorb" ? 1 - phase : phase;
+          drop.position.set(
+            THREE.MathUtils.lerp(player.position.x, targetPlot.x, t),
+            THREE.MathUtils.lerp(player.position.y + 1.3, 0.4, t) +
+              Math.sin(t * Math.PI) * (bubbles ? 2 : 0.6),
+            THREE.MathUtils.lerp(player.position.z, targetPlot.z, t),
+          );
+          drop.scale.setScalar(bubbles ? 2.5 : 1);
+        });
+      const healthy = cityMetrics(s).healthyTrees;
+      residents.children.forEach(
+        (child, i) => (child.visible = i < healthy * 2),
+      );
+      birds.visible = healthy >= 2;
+      birds.position.x = Math.sin(s.elapsed * 0.4) * 2;
+      rain.visible = rainy;
+      const attribute = rainGeometry.getAttribute("position");
+      for (let i = 0; i < 180; i++)
+        attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);
+      attribute.needsUpdate = true;
+      roller.rotation.x = s.machineDisabled > 0 ? 0 : s.elapsed * 2;
+      (warning.material as THREE.MeshLambertMaterial).color.copy(
+        themeColor(s.machineDisabled > 0 ? "leaf" : "coral"),
+      );
+    },
+  };
+}
