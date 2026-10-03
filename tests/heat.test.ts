@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import * as THREE from "three";
 import { cityConfig as c } from "../config/city.ts";
+import { cityLevels } from "../config/levels.ts";
+import { createCampaign } from "../src/game/campaign.ts";
 import { createCity, performCityAction, updateCity } from "../src/game/city.ts";
 import { spongeWaterMorphWeights } from "../src/game/assets.ts";
 import { createCityFireView } from "../src/game/city-fire-view.ts";
@@ -13,14 +15,22 @@ function advance(s: CityState, seconds: number) {
   const dt = seconds / steps;
   for (let i = 0; i < steps; i++) updateCity(s, dt, { x: 0, y: 0, z: -10 });
 }
-function temperatureAfterOneSecond(kind: PlotKind, raining = false): number {
-  const s = createCity();
+function temperatureAfterOneSecond(
+  kind: PlotKind,
+  raining = false,
+  level?: number,
+): number {
+  const s = level === undefined ? createCity() : createCampaign();
+  if (level !== undefined) {
+    s.campaign!.level = level;
+    if (raining) s.elapsed = cityLevels[level].weather.dryDuration - 1;
+  }
   s.plots.forEach((plot) => {
     plot.kind = kind;
     if (kind === "tree") plot.moisture = c.moistureHealthy;
   });
   s.machineDisabled = 20;
-  if (raining) s.elapsed = c.dryDuration - 1;
+  if (raining && level === undefined) s.elapsed = c.dryDuration - 1;
   updateCity(s, 1, { x: 0, y: 0, z: -10 });
   return s.temperature;
 }
@@ -37,6 +47,59 @@ test("city temperature starts normal and concrete warms it gradually", () => {
   assert.ok(asphalt.temperature < 27.3, "ten seconds must not cause a spike");
   assert.ok(asphalt.temperature > shade.temperature);
   assert.ok(asphalt.heat > 0);
+});
+
+test("campaign warming pressure rises proportionally across every level", () => {
+  const temperatures = cityLevels.map((_, level) => {
+    const s = createCampaign();
+    s.campaign!.level = level;
+    s.machineDisabled = 100;
+    advance(s, 10);
+    return s.temperature;
+  });
+  assert.equal(temperatures.length, cityLevels.length);
+  for (let i = 1; i < temperatures.length; i++) {
+    assert.ok(
+      temperatures[i] > temperatures[i - 1],
+      `level ${i + 1} should warm faster than level ${i}`,
+    );
+    assert.ok(
+      temperatures[i] - c.heatSystem.startingCelsius < 0.3,
+      "ten seconds should not cause an instant heat spike",
+    );
+  }
+  const firstRise = temperatures[0] - c.heatSystem.startingCelsius;
+  const lastRise = temperatures.at(-1)! - c.heatSystem.startingCelsius;
+  assert.ok(lastRise > firstRise * 1.5);
+});
+
+test("concrete production heat also scales while every cooling source still works", () => {
+  const productionPressure = cityLevels.map((_, level) => {
+    const idle = createCampaign();
+    const production = createCampaign();
+    idle.campaign!.level = production.campaign!.level = level;
+    idle.machineDisabled = 100;
+    for (const state of [idle, production])
+      state.plots.forEach((plot) => (plot.kind = "soil"));
+    production.saboteur.phase = "sealing";
+    production.saboteur.targetId = 0;
+    production.saboteur.sealTime = 100;
+    updateCity(idle, 1, { x: 0, y: 0, z: 0 });
+    updateCity(production, 1, { x: 0, y: 0, z: 0 });
+    return production.temperature - idle.temperature;
+  });
+  for (let i = 1; i < productionPressure.length; i++)
+    assert.ok(productionPressure[i] > productionPressure[i - 1]);
+
+  for (let level = 0; level < cityLevels.length; level++) {
+    const asphalt = temperatureAfterOneSecond("asphalt", false, level);
+    assert.ok(temperatureAfterOneSecond("asphalt", true, level) < asphalt);
+    for (const kind of ["tree", "soil", "pond", "shade"] as const)
+      assert.ok(
+        temperatureAfterOneSecond(kind, false, level) < asphalt,
+        `${kind} should cool level ${level + 1}`,
+      );
+  }
 });
 
 test("Dr. Beton sealing adds gradual heat pressure beyond the sealed surface", () => {

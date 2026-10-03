@@ -1,3 +1,7 @@
+import {
+  chooseLevelModifier,
+  modifierMultiplier,
+} from "../src/game/level-modifiers";
 import { isEmoteId, startEmote } from "../src/game/emotes";
 import { isToolAvailable } from "../src/game/progression";
 import {
@@ -11,6 +15,7 @@ import { readFileSync } from "node:fs";
 import {
   createCampaign,
   currentLevel,
+  startNextCampaignLevel,
   levelPosition,
   connectRunoff,
   recyclePlot,
@@ -313,7 +318,10 @@ export class Rooms {
           m.input.yaw ?? 0,
           dt,
           ground,
-          powerupMultiplier(room.city, "laeckerli"),
+          modifierMultiplier(room.city, "playerSpeed") *
+            (m.input.movement?.run
+              ? powerupMultiplier(room.city, "laeckerli")
+              : 1),
         );
         m.input.movement!.jump = false;
         const origin = levelPosition(room.city, { x: 0, z: 0 });
@@ -334,6 +342,10 @@ export class Rooms {
           (m) => m.public.ready,
         )!;
         updateCity(room.city, dt, collector.public.player.position);
+        if (room.city.campaign!.wheelPending) {
+          room.city.campaign!.pendingModifier = chooseLevelModifier();
+          startNextCampaignLevel(room.city);
+        }
         if (room.city.campaign!.level !== level) this.newLevel(room);
         if ((room.city.outcome as string) === "won")
           for (const id of room.members.keys())

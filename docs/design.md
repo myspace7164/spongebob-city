@@ -20,7 +20,7 @@ Dry periods alternate with thunderstorms. Each plot holds surface water, soil mo
 
 Patrick can remove several nearby asphalt slabs. Sandy sells a capacity/bubble upgrade. Squidward comments on shade and Mr. Krabs tracks the construction budget. Dr. Beton's Asphaltinator reseals an exposed green plot periodically; nearby karate disables it temporarily.
 
-The HUD shows city temperature and heat risk, flood danger, sponge capacity, weather, budget and mission progress. Asphalt and Dr. Beton's sealing slowly increase temperature; rain, watered trees, green plots, ponds and shade cool it. SpongeBob's Dry morph starts blending above 36°C, fires begin above 40°C, and temperatures over 60°C lose the mission; prolonged critical flooding also causes a loss. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
+The HUD shows city temperature and heat risk, flood danger, sponge capacity, weather, budget and mission progress. Asphalt and Dr. Beton's sealing slowly increase temperature, with campaign warming pressure scaling from 0.75× on the first level to 1.35× on the last; rain, watered trees, green plots, ponds and shade cool it at full strength. SpongeBob's Dry morph starts blending above 36°C, fires begin above 40°C, and temperatures over 60°C lose the mission; prolonged critical flooding also causes a loss. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
 
 ## Structure and limits
 
@@ -90,3 +90,7 @@ Six Basel-themed boosts and the four existing powers form a ten-type collectible
 Tools unlock alongside missions: water, karate and rain gardens in level 1; trees in 2; roofs/shade in 3; ponds/tanks in 4. Locked gray tiles show remaining levels, and UI/keyboard/server actions enforce availability. The mission checklist is short; heat/flood targets remain visible as safety readings.
 
 Emotes stay behind G+1–5: 67, Macarena, teabag, dab and floss. Original procedural arm/leg and body motion uses existing character pivots on both the Blender and fallback characters. Timed poses cancel on movement/jump and restore the walking/idle rig. Co-op relays validated emote identity/timing; no reward or gameplay advantage. The field guide lists shortcuts without adding an always-visible emote panel.
+
+After each successful non-final level, a full-screen weighted fortune wheel presents all eight temporary modifiers and their per-outcome odds, including the 60/40 overall power-up/power-down split. The player spins and confirms before the next briefing. A compact HUD chip names the one active modifier for that level; it expires on any level end.
+
+Dr. Beton is a separate procedural 3D concrete villain with a tracked construction vehicle, a mixer, two eye-origin laser beams, and an attack charge/recovery cycle. His level appearance ramps with campaign progress; the wheel's angry modifier adds a temporary intensity layer. The four recurring side characters keep their rounded cartoon silhouettes and use restrained procedural PBR grain and recognizable gear/details.

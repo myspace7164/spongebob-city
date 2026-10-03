@@ -12,8 +12,10 @@ import { advanceCampaign, currentLevel, levelPosition } from "./campaign";
 import { cityConfig as c, cityTools } from "../../config/city";
 import { siteTechniques } from "../../config/sites";
 import { fundingConfig as funding } from "../../config/funding";
+import { cityLevels } from "../../config/levels";
 import { grantFunding } from "./funding";
 import { updateSaboteur } from "./sabotage";
+import { modifierMultiplier } from "./level-modifiers";
 import type {
   CityAction,
   CityMetrics,
@@ -87,13 +89,18 @@ export function weather(state: CityState) {
   };
 }
 export function spongeCapacity(s: CityState): number {
-  return s.maximumTime > 0
-    ? c.maximumCapacity
-    : s.powerTime > 0
-      ? c.poweredCapacity
-      : s.upgraded
-        ? c.upgradedCapacity
-        : c.capacity;
+  const base =
+    s.maximumTime > 0
+      ? c.maximumCapacity
+      : s.powerTime > 0
+        ? c.poweredCapacity
+        : s.upgraded
+          ? c.upgradedCapacity
+          : c.capacity;
+  return base * modifierMultiplier(s, "waterCapacity");
+}
+export function spongeAbsorptionRate(s: CityState): number {
+  return modifierMultiplier(s, "absorptionSpeed");
 }
 export function cityMetrics(s: CityState): CityMetrics {
   const permeable = s.plots.filter((p) => p.kind !== "asphalt").length;
@@ -252,7 +259,7 @@ function act(
   )
     return "Aim at a plot and move closer (highlighted plots are in reach).";
   if (action === "absorb") {
-    const litres = absorb(s, p, amount);
+    const litres = absorb(s, p, amount * spongeAbsorptionRate(s));
     return litres > 0
       ? `Absorbing rainwater · ${Math.round(s.sponge)} L in sponge. Use 2 to distribute it.`
       : s.sponge >= spongeCapacity(s)
@@ -305,6 +312,17 @@ function act(
 
 function updateTemperature(s: CityState, dt: number, raining: boolean): void {
   const heat = c.heatSystem;
+  const levelIndex = s.campaign?.level;
+  const levelProgress =
+    levelIndex === undefined || cityLevels.length < 2
+      ? 0
+      : Math.min(1, Math.max(0, levelIndex) / (cityLevels.length - 1));
+  const levelWarmingMultiplier = s.campaign
+    ? heat.levelWarmingMultiplier.first +
+      (heat.levelWarmingMultiplier.last - heat.levelWarmingMultiplier.first) *
+        levelProgress
+    : 1;
+  const modifierHeatMultiplier = modifierMultiplier(s, "heatWarming");
   const sealedPlots = s.plots.filter((p) => p.kind === "asphalt").length;
   const trees = s.plots
     .filter((p) => p.kind === "tree")
@@ -319,11 +337,12 @@ function updateTemperature(s: CityState, dt: number, raining: boolean): void {
   const ponds = s.plots.filter((p) => p.kind === "pond").length;
   const shadePlaces = s.plots.filter((p) => p.kind === "shade").length;
   const warming =
-    heat.passiveWarmingPerSecond +
-    sealedPlots * heat.sealedPlotWarmingPerSecond +
-    (s.saboteur.phase === "sealing"
-      ? heat.concreteProductionWarmingPerSecond
-      : 0);
+    modifierHeatMultiplier *
+    (heat.passiveWarmingPerSecond +
+      sealedPlots * heat.sealedPlotWarmingPerSecond +
+      (s.saboteur.phase === "sealing"
+        ? heat.concreteProductionWarmingPerSecond
+        : 0));
   const cooling =
     (raining ? heat.rainCoolingPerSecond : 0) +
     trees * heat.treeCoolingPerSecond +
@@ -333,7 +352,10 @@ function updateTemperature(s: CityState, dt: number, raining: boolean): void {
     (isPowerupActive(s, "lantern") ? powerupConfig.lanternCooling : 0);
   const changePerSecond = Math.max(
     -heat.maximumChangePerSecond,
-    Math.min(heat.maximumChangePerSecond, warming - cooling),
+    Math.min(
+      heat.maximumChangePerSecond,
+      warming * levelWarmingMultiplier - cooling,
+    ),
   );
   s.temperature = Math.max(
     heat.minimumCelsius,
@@ -421,7 +443,14 @@ export function updateCity(
   if (s.maximumTime > 0) {
     for (const p of s.plots)
       if (distance(p, position) <= c.maximumReach)
-        absorb(s, p, c.absorbRate * dt * powerupMultiplier(s, "rhine"));
+        absorb(
+          s,
+          p,
+          c.absorbRate *
+            spongeAbsorptionRate(s) *
+            powerupMultiplier(s, "rhine") *
+            dt,
+        );
   }
   for (const field of [
     "powerTime",
@@ -430,8 +459,8 @@ export function updateCity(
     "maximumCooldown",
     "patrickCooldown",
   ] as const)
-    s[field] = Math.max(0, s[field] - dt * 1);
-  updateSaboteur(s, dt);
+    s[field] = Math.max(0, s[field] - dt);
+  updateSaboteur(s, dt, modifierMultiplier(s, "betonSpeed"));
   updateTemperature(s, dt, raining);
   updateFires(s, dt);
   s.flood = Math.min(
@@ -456,4 +485,9 @@ export function updateCity(
     s.flood <= goals.flood
   )
     s.outcome = "won";
+  if (s.outcome === "lost" && s.campaign) {
+    s.campaign.activeModifier = null;
+    s.campaign.pendingModifier = null;
+    s.campaign.wheelPending = false;
+  }
 }

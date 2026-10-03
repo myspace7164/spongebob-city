@@ -24,6 +24,9 @@ export function createCampaign(): CityState {
     completed: [],
     stormCompleted: false,
     connectFrom: null,
+    wheelPending: false,
+    pendingModifier: null,
+    activeModifier: null,
   };
   applyLayout(s, cityLevels[0]);
   return s;
@@ -198,6 +201,7 @@ export function advanceCampaign(s: CityState): boolean {
   const progress = s.campaign;
   if (
     !progress ||
+    progress.wheelPending ||
     s.outcome !== "playing" ||
     !levelAchievements(s).every((goal) => goal.done)
   )
@@ -205,18 +209,38 @@ export function advanceCampaign(s: CityState): boolean {
   const level = currentLevel(s)!;
   progress.completed.push(level.id);
   progress.connectFrom = null;
+  progress.activeModifier = null;
   if (progress.level === cityLevels.length - 1) {
+    progress.pendingModifier = null;
     s.outcome = "won";
     return true;
   }
-  Object.assign(s, createCity(), {
-    campaign: {
-      level: progress.level + 1,
-      completed: [...progress.completed],
-      stormCompleted: false,
-      connectFrom: null,
-    },
-  });
+  progress.wheelPending = true;
+  progress.pendingModifier = null;
+  s.feedback = "Level complete! Spin for the next level.";
+  return true;
+}
+
+/** Begin the next level only after the player spins and confirms one modifier. */
+export function startNextCampaignLevel(s: CityState): boolean {
+  const progress = s.campaign;
+  if (
+    !progress ||
+    !progress.wheelPending ||
+    !progress.pendingModifier ||
+    progress.level >= cityLevels.length - 1
+  )
+    return false;
+  const next = {
+    level: progress.level + 1,
+    completed: [...progress.completed],
+    stormCompleted: false,
+    connectFrom: null,
+    wheelPending: false,
+    pendingModifier: null,
+    activeModifier: progress.pendingModifier,
+  };
+  Object.assign(s, createCity(), { campaign: next });
   applyLayout(s, currentLevel(s)!);
   return true;
 }

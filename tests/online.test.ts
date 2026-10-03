@@ -197,3 +197,31 @@ test("authoritative cooperative movement honors Shift sprint", () => {
     store.close();
   }
 });
+
+test("co-op applies one server-chosen modifier and advances every player together", () => {
+  const store = new AccountStore(":memory:");
+  try {
+    const rooms = new Rooms(store);
+    const a = store.create("ModifierAlpha").account;
+    const b = store.create("ModifierBeta").account;
+    const first = rooms.create(a);
+    rooms.join(b, first.code);
+    const internal = (
+      rooms as unknown as {
+        rooms: Map<string, { city: import("../src/interfaces").CityState }>;
+      }
+    ).rooms.get(first.code)!;
+    internal.city.campaign!.wheelPending = true;
+    internal.city.campaign!.completed = ["riehenring"];
+    rooms.command(a.id, { ready: true });
+    rooms.tick();
+    const state = rooms.current(a.id)!;
+    assert.equal(state.city.campaign!.level, 1);
+    assert.equal(state.city.campaign!.wheelPending, false);
+    assert.ok(state.city.campaign!.activeModifier);
+    assert.deepEqual(state.city, rooms.current(b.id)!.city);
+    assert.ok(state.players.every((p) => !p.ready));
+  } finally {
+    store.close();
+  }
+});

@@ -12,6 +12,7 @@ import {
   recyclePlot,
   connectRunoff,
   advanceCampaign,
+  startNextCampaignLevel,
 } from "../src/game/campaign.ts";
 import type { CityState } from "../src/interfaces.ts";
 const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
@@ -94,6 +95,8 @@ test("Patrick, maximum collection and support actions earn grants once; new leve
   campaign.campaign!.stormCompleted = true;
   assert.ok(campaign.funding.earned > 0);
   assert.equal(advanceCampaign(campaign), true);
+  campaign.campaign!.pendingModifier = "speedBoost";
+  assert.equal(startNextCampaignLevel(campaign), true);
   assert.deepEqual(campaign.funding, { earned: 0, claimed: [] });
   assert.equal(campaign.budget, c.budget);
 });

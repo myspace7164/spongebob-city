@@ -10,6 +10,7 @@ import {
   advanceCampaign,
   currentLevel,
   levelPosition,
+  startNextCampaignLevel,
 } from "../src/game/campaign.ts";
 import { updateSaboteur } from "../src/game/sabotage.ts";
 import { cityConfig as c } from "../config/city.ts";
@@ -91,6 +92,8 @@ test("changed targets cancel attacks and fresh levels reposition the villain", (
   Object.assign(campaign, { heat: 50, flood: 0, reused: 400 });
   campaign.campaign!.stormCompleted = true;
   assert.equal(advanceCampaign(campaign), true);
+  campaign.campaign!.pendingModifier = "speedBoost";
+  assert.equal(startNextCampaignLevel(campaign), true);
   assert.equal(currentLevel(campaign)!.id, "erlenmatt");
   assert.deepEqual(
     { x: campaign.saboteur.x, z: campaign.saboteur.z },
