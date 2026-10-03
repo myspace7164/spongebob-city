@@ -144,9 +144,10 @@ try:
             duplicate.matrix_world = normalize @ obj.matrix_world
             temporary_scene.collection.objects.link(duplicate)
             copies.append(duplicate)
-            duplicate.data.materials.clear()
-            for material in obj.data.materials:
-                duplicate.data.materials.append(portable_material(material))
+            while len(duplicate.data.materials) < len(obj.data.materials):
+                duplicate.data.materials.append(None)
+            for index, material in enumerate(obj.data.materials):
+                duplicate.data.materials[index] = portable_material(material)
 
             if obj.data.shape_keys:
                 basis = duplicate.shape_key_add(name="Basis", from_mix=False)
