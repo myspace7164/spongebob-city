@@ -45,9 +45,22 @@ Degenerate geometry remains unchanged. It did not prevent this controlled
 binding, but should be reviewed during shape-key verification. Strong arm
 folds toward the wide body can intersect its surface; there is no collision
 constraint or IK system. This binding does not claim collision-free arbitrary
-poses. WaterFull verification is documented in water-states.md; Dry is pending.
+poses. WaterFull and Dry verification is documented in water-states.md.
 
 Run the binding/verification scripts inside Blender using the same script
 execution pattern documented in public/models/README.md. The backup and pose
 diagnostics stay local in .hack/. The GLB is a static evaluated snapshot;
 skeletal export is a separate task.
+
+
+## Locomotion Actions
+
+The Blender source includes looping `Idle` (frames 1-60) and in-place `Walk`
+(frames 1-30), both at 30 FPS. Idle uses a relaxed arms-down pose and subtle
+body motion. Walk alternates the legs with opposite arm swing and small in-place
+foot travel. Both Actions were checked at Normal, Dry and WaterFull values; no
+severe deformation was observed. The project is saved at frame 1 with Idle
+active and both water keys at zero. The current GLB remains a static morph-target
+asset without a rig or animation clips. `scripts/create-locomotion-actions.py`
+creates and checks these Actions in Blender; local pose screenshots/reports and
+the pre-animation backup stay under `.hack/`.
