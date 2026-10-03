@@ -9,4 +9,16 @@ export const betonConfig = {
   laserRecoverySeconds: 0.36,
   laserRange: 17,
   waypointSpread: 1.4,
+  /** Appearance only: the same villain grows visibly heavier at each stage. */
+  appearance: {
+    finalScale: 1.58,
+    maxConcreteDarkening: 0.26,
+    finalBumpScale: 0.075,
+    finalBrowAngle: 0.9,
+    finalBrowHeight: 1.26,
+    eyeNarrowing: 0.28,
+    finalEyeEmissive: 1.8,
+    finalCrackEmissive: 1.8,
+    finalFlameScale: 1.25,
+  },
 };

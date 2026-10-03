@@ -70,3 +70,4 @@ Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or area
 - Co-op chooses the shared next-level modifier on the authoritative server and advances together; solo retains the spin intermission. Both modifier and collectible multipliers compose, and all modifier copy is English.
 
 - Irrigation rejects any destination with standing surface water; fire extinguishing remains exempt. Placeholder shade connectivity spans its actual 7 m neighboring street gap, fixing Level 3-to-4 progression for adjacent plazas.
+- 2026-10-03 · Increase Dr. Beton’s size, anger, concrete darkening, eye glow, cracks and flames across the actual campaign levels, up to 1.58× at the finale · @bikinipowerbottom · Affects: villain visuals · Why: make each level’s escalation obvious while preserving his identity and gameplay behavior · Instead of: swapping characters or changing difficulty.
