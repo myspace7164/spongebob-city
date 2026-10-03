@@ -18,15 +18,21 @@ script = Path(bpy.data.filepath).parents[2] / "scripts/export-blender-character.
 exec(compile(script.read_text(), str(script), "exec"), {"__file__": str(script)})
 ```
 
-The export uses copies of the meshes and solid-view material colors;
+The export uses evaluated copies of the meshes and solid-view material colors;
 original scene objects and transforms are preserved. The shader split is
 represented by the existing shirt face assignments for glTF compatibility.
 
-The Blender source also contains `Character Rig`, an unbound 19-bone armature
-with torso, arm, leg, eye and jaw bones. Anatomical left is +X. No mesh is
-parented or weighted to it, and the GLB remains a static mesh export.
+The Blender source contains `Character Rig`, a bound 19-bone armature
+with torso, arm, leg, eye and jaw bones. Anatomical left is +X. The body and arms
+are skinned; eyes have rigid unit weights, and other accessories are bone-parented.
+The GLB remains a static evaluated snapshot; the editable skinning is in the Blender source.
 `scripts/create-character-armature.py` records the initial bone placement;
 it refuses to add a second armature.
+
+`scripts/bind-character.py` records the non-destructive binding and refuses to
+overwrite an existing binding. `scripts/verify-character-binding.py` runs
+temporary pose tests, writes local diagnostics in `.hack/rig-tests`, and restores
+every bone's previous transform without Actions or keyframes. See `docs/rigging.md`.
 
 `basel-city.glb` is derived from the supplied `3D_Stadtmodell.obj`. Its full
 remaining building geometry is split into 100 m tiles, with one grey material

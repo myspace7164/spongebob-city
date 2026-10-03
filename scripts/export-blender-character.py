@@ -45,7 +45,12 @@ materials = {}
 try:
     for obj in parts:
         duplicate = obj.copy()
-        duplicate.data = obj.data.copy()
+        duplicate.data = bpy.data.meshes.new_from_object(
+            obj.evaluated_get(depsgraph),
+            preserve_all_data_layers=True,
+            depsgraph=depsgraph,
+        )
+        duplicate.modifiers.clear()
         duplicate.parent = None
         duplicate.matrix_world = normalize @ obj.matrix_world
         temporary_scene.collection.objects.link(duplicate)
