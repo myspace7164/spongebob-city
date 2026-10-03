@@ -94,6 +94,9 @@ export interface CityState {
 }
 export type CityAction =
   CityTool | "power" | "maximum" | "patrick" | "upgrade" | "machine";
+/** Contexts for the team-supplied sound clips. */
+export type CitySound =
+  "absorb" | "spray" | "tree" | "build" | "pond" | "rain" | "asphalt" | "tank";
 export interface CityMetrics {
   permeable: number;
   trees: number;

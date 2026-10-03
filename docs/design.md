@@ -14,6 +14,8 @@ The HUD shows heat, flood danger, sponge capacity, weather, budget and mission p
 
 ## Structure and limits
 
+Contextual team-supplied audio accompanies successful construction and water transfers. Absorption, spraying and rain use loops; continuous sounds stop when their action or weather stops. Pause, hidden tabs and mission outcomes silence all clips. A Sound button and M key toggle mute.
+
 Shared contracts: `src/interfaces.ts`. Rules: `src/game/city.ts`. Tuning: `config/city.ts`. Scene: `src/game/city-view.ts` and `src/game/characters.ts`. HUD: `src/ui/city.ts`. Input and movement retain their existing modules. Old sandbox modules remain available as reusable foundation code but are not mounted in the mission.
 
 All coefficients, litres, area and temperatures are fictional gameplay values, not a validated hydrology/climate model or a surveyed Basel map. No persistence, multiplayer, mobile controls, building collision or campaign. Characters and city are procedural meshes, not imported/licensed assets. Named cartoon characters come from the user's concept. Boss representation is a sabotage machine; additional boss encounters and neighbourhoods are future work.

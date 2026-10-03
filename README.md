@@ -30,6 +30,7 @@ Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **I’M R
 | E near Sandy / Dr. Beton | Buy capacity and bubbles / disable sabotage |
 | Hold B after upgrade | Bubble irrigation at extended range |
 | H | Pause and open the field guide |
+| M / Sound button | Mute or unmute game audio |
 | R | Restart the mission |
 
 Aim at a plot: a green border means it is in reach, orange means move closer. Trees require unsealed soil. Other structures can be built directly on asphalt and include unsealing in their price. Sponge water above normal capacity after a power expires stays available for distribution.
@@ -75,6 +76,10 @@ npm run test:browser
 - `src/ui/theme.css`: palette and visual theme.
 - `docs/style-guide.md`: cartoon / Frutiger Aero visual direction; its local style sample is served by Vite at `/docs/design/style-sample.html`.
 - `config/game.ts`: movement, camera, renderer and optional GLB paths.
+- `config/audio.ts`: contextual sound files and volume levels.
+- `src/game/audio.ts`: action sounds, transfer/weather loops and pause/mute handling.
+
+Static assets live under `public/`: team sound clips in `public/audio/`, optional Blender exports in `public/models/`, and UI artwork in `public/ui/`. Source code stays in `src/`, domain settings in `config/`, checks in `tests/` and `scripts/`, and project documentation in `docs/` and `handoff/`. Root files are project/tooling entry points and team guides.
 
 Optional Blender exports go into `public/models/`. Set `character.url` or `level.url` in `config/game.ts`, with scale and rotation. Use a feet-centred origin, Y up and front facing +Z. An empty URL retains procedural visuals; failed loads report an error and keep the fallback. Imported models and buildings are visual only; movement uses the flat ground with mission bounds.
 

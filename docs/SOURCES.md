@@ -10,3 +10,4 @@ Every dataset, API, notable library and AI tool used, with licence. Feeds the so
 | Basel stage set | Procedural geometry inspired by the supplied Barfüsserplatz setting | Original project geometry; no survey/map data or imported art | Mission environment |
 | Three.js | https://github.com/mrdoob/three.js | MIT | 3D renderer and glTF loader |
 | UI mascot, flower motifs and bubble/glass textures | Original inline SVG, public/ui/sea-flower.svg and CSS | Project-authored vector/CSS artwork; no external images or fonts | Cartoon / Frutiger Aero UI |
+| Eight WAV sound clips | Uploaded by @aureaphi in commit efc672b; organised in public/audio/ | Team-supplied for the prototype; original provenance and licence not recorded | Absorption, spraying, planting, construction, pond, rain, asphalt removal and water storage |
