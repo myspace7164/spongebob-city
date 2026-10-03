@@ -29,6 +29,13 @@ assignments. Their shader split now reads a point attribute containing original
 fabric X coordinates, so the split follows skinning instead of sliding across
 the deformed cloth. No new material was created.
 
+Sock surfaces and stripes are material regions of `Body Cube`, weighted to
+their same-side shin with a short blend onto the foot at the ankle. The inner
+shoulder seam vertices in `Cube` blend Chest with the matching upper arm, while
+the sleeve and arm surfaces remain in connected mesh components. The targeted
+repair is checked in Normal, Dry and WaterFull with the existing Idle and Walk
+Actions; see `handoff/fix-sock-sleeve-rig-attachments.md`.
+
 ## Verification
 
 All vertices in the three weighted meshes have normalized usable weights.
@@ -60,10 +67,12 @@ The Blender source includes looping `Idle` (frames 1-60) and in-place `Walk`
 body motion. Walk alternates the legs with opposite arm swing and small in-place
 foot travel. Both Actions were checked at Normal, Dry and WaterFull values; no
 severe deformation was observed. The project is saved at frame 1 with Idle
-active and both water keys at zero. The current GLB remains a static morph-target
-asset without a rig or animation clips. `scripts/create-locomotion-actions.py`
-creates and checks these Actions in Blender; local pose screenshots/reports and
-the pre-animation backup stay under `.hack/`.
+active and both water keys at zero. The game GLB is static morph-target geometry
+without an armature or Blender clips; the game adds motion through runtime pivots
+in `src/game/locomotion.ts`. Export bakes neutral-pose geometry and leaves the
+Blender Actions intact. `scripts/create-locomotion-actions.py` creates and checks
+those Actions in Blender; local pose screenshots/reports and the pre-animation
+backup stay under `.hack/`.
 
 ## Runtime locomotion
 

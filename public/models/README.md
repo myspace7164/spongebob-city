@@ -26,9 +26,10 @@ represented by the existing shirt face assignments for glTF compatibility.
 The Blender source contains `Character Rig`, a bound 19-bone armature
 with torso, arm, leg, eye and jaw bones. Anatomical left is +X. The body and arms
 are skinned; eyes have rigid unit weights, and other accessories are bone-parented.
-The GLB contains evaluated static geometry plus Dry and WaterFull morph targets.
-It has no armature or animation clips yet; movement animation can be added later
-from the Blender source.
+The game GLB contains evaluated neutral-pose geometry plus Dry and WaterFull
+morph targets, with no armature or Blender animation clips. The game adds Idle
+and Walk motion through runtime pivots in `src/game/locomotion.ts`. Export ignores
+the Blender `Idle` and `Walk` Actions and restores them in the editable source.
 `scripts/create-character-armature.py` records the initial bone placement;
 it refuses to add a second armature.
 
@@ -38,19 +39,28 @@ temporary pose tests, writes local diagnostics in `.hack/rig-tests`, and restore
 every bone's previous transform without Actions or keyframes. See `docs/rigging.md`.
 
 `basel-city.glb` is derived from the supplied `3D_Stadtmodell.obj`. Its full
-remaining building geometry is split into 100 m tiles, with one grey material
-matching the source MTL. Coordinates are converted from source east/north/height
+remaining building geometry is split into 100 m tiles. Each vertex carries a
+`_BUILDING` attribute (stable style seed, building base height, bridge flag for
+`Bru_` materials and for unlabelled objects with no vertex within 1.5 m of the
+swissALTI3D terrain, such as the span over Riehenring; kind 2 marks hand-picked
+landmarks in the converter's `LANDMARKS`, e.g. the Messe Basel hall), which the game's procedural facade shader reads
+(`src/game/building-style.ts`, values in `config/buildings.ts`). Coordinates are converted from source east/north/height
 to local east/up/south in metres before storing float32 positions.
 The origin is the dataset's horizontal bounding-box centre, with the median
 nearby building-base elevation as ground. This is not a surveyed Barfüsserplatz
 alignment. Ten buildings touching the fictional mission clearance rectangle
 were omitted; original terrain, textures and building collisions are absent.
+Facade colours, window types and roof materials are illustrative, not surveyed.
 
 Regenerate using Python 3 (standard library only):
 
 ```sh
 python3 scripts/convert-basel-map.py /path/to/3D_Stadtmodell.obj public/models/basel-city.glb
+python3 tests/test_basel_map.py
 ```
+
+The terrain grid (`public/maps/basel-terrain.*`) must exist for floating-span
+detection; without it only `Bru_` bridges are flagged.
 
 The converter targets this supplied model, whose materials are all the same grey.
 The source OBJ stays outside the repository. See `docs/SOURCES.md` for provenance,

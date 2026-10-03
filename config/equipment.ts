@@ -1,6 +1,12 @@
 /** Attachment points measured on the current 1.9 m Blender export. */
 export const equipmentConfig = {
   importedShoulderX: 0.82,
+  // The exported arm/sleeve centers sit slightly outside the shirt silhouette.
+  // Pull each complete animated shoulder assembly into the torso edge.
+  importedShoulderInset: 0.24,
+  // The red sleeve's exported local center sits 0.056 m closer to the torso
+  // than its blue/right counterpart, so its full pivot needs this mirror fix.
+  importedLeftShoulderOutset: 0.056,
   importedShoulderY: 0.88,
   importedShoulderZ: -0.11,
   importedHipY: 0.44,

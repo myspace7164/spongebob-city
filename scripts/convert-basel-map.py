@@ -12,11 +12,24 @@ from pathlib import Path
 import struct
 
 TILE_SIZE = 100
+# Unlabelled objects with no vertex this close to the terrain float (walkways, canopies).
+FLOATING_CLEARANCE = 1.5
+# Style kinds in _BUILDING.z: 0 building, 1 bridge, 2 metal-band facade.
+# Landmarks the dataset does not label, keyed by OBJ object name in 3D_Stadtmodell.obj.
+LANDMARKS = {
+    "mesh-5335": 2,  # Messe Basel Halle 1 (2013): aluminium band facade, floats over Messeplatz
+}
 MISSION_CLEARANCE = (-20, 20, -32, 12)  # X/Z bounds including NPCs and camera.
 
 
+def building_seed(index):
+    """Stable 0-1 value per building, so colours survive regeneration."""
+    return (index * 2654435761 % 2**32) / 2**32
+
+
 def read_objects(source):
-    vertices, objects, faces = [], [], []
+    """Vertices, per-object triangles, bridge flags and object names."""
+    vertices, objects, bridges, names, faces, bridge, name = [], [], [], [], [], False, ""
     with source.open() as stream:
         for line in stream:
             fields = line.split()
@@ -24,10 +37,16 @@ def read_objects(source):
                 continue
             if fields[0] == "v":
                 vertices.append(tuple(map(float, fields[1:4])))
+            elif fields[0] == "usemtl":
+                # The Basel model names bridge materials "Bru_<id>".
+                bridge = bridge or fields[1].startswith("Bru_")
             elif fields[0] == "o":
                 if faces:
                     objects.append(faces)
+                    bridges.append(bridge)
+                    names.append(name)
                     faces = []
+                bridge, name = False, fields[1] if len(fields) > 1 else ""
             elif fields[0] == "f":
                 indices = [int(field.split("/")[0]) for field in fields[1:]]
                 indices = [i - 1 if i > 0 else len(vertices) + i for i in indices]
@@ -35,11 +54,34 @@ def read_objects(source):
                     faces.append((indices[0], indices[i], indices[i + 1]))
     if faces:
         objects.append(faces)
-    return vertices, objects
+        bridges.append(bridge)
+        names.append(name)
+    return vertices, objects, bridges, names
 
 
-def convert(source, output):
-    vertices, objects = read_objects(source)
+def load_terrain(prefix):
+    """Nearest-cell terrain height (local metres) from convert-basel-terrain.py output."""
+    meta = json.loads(prefix.with_suffix(".json").read_text())
+    heights = array("h", prefix.with_suffix(".bin").read_bytes())
+    left, back = meta["bounds"][0], meta["bounds"][1]
+
+    def ground(x, z):
+        c = round((x - left) / meta["spacing"])
+        r = round((z - back) / meta["spacing"])
+        if 0 <= c < meta["columns"] and 0 <= r < meta["rows"]:
+            return heights[r * meta["columns"] + c] / 100
+        return None
+    return ground
+
+
+def floats(points, ground):
+    """True when no point of an object comes near the terrain beneath it."""
+    gaps = [p[1] - g for p in points for g in [ground(p[0], p[2])] if g is not None]
+    return bool(gaps) and min(gaps) > FLOATING_CLEARANCE
+
+
+def convert(source, output, ground=None):
+    vertices, objects, bridges, names = read_objects(source)
     if not vertices or not objects:
         raise ValueError("The OBJ contains no building geometry")
     east = (min(v[0] for v in vertices) + max(v[0] for v in vertices)) / 2
@@ -54,10 +96,18 @@ def convert(source, output):
         raise ValueError("No nearby building bases found")
     height = sorted(bases)[len(bases) // 2]
     local = [(e - east, h - height, north - n) for e, n, h in vertices]
-    tiles, omitted = {}, 0
-    for faces in objects:
+    tiles, omitted, buildings, floating = {}, 0, {}, 0
+    for number, faces in enumerate(objects):
         indices = {i for face in faces for i in face}
         points = [local[i] for i in indices]
+        # Floors count from the lowest valid vertex; zero-height outliers are skipped.
+        valid = [local[i][1] for i in indices if vertices[i][2] > 0]
+        base = min(valid) if valid else min(p[1] for p in points)
+        # Basel labels most bridges ("Bru_"); unlabelled spans over streets only float.
+        bridge = bridges[number] or (ground is not None and floats(points, ground))
+        floating += bridge and not bridges[number]
+        kind = LANDMARKS.get(names[number], 1.0 if bridge else 0.0)
+        buildings[number] = (building_seed(number), base, float(kind))
         min_x, max_x = min(v[0] for v in points), max(v[0] for v in points)
         min_z, max_z = min(v[2] for v in points), max(v[2] for v in points)
         left, right, back, front = MISSION_CLEARANCE
@@ -66,7 +116,7 @@ def convert(source, output):
             continue
         key = (math.floor((min_x + max_x) / 2 / TILE_SIZE),
                math.floor((min_z + max_z) / 2 / TILE_SIZE))
-        tiles.setdefault(key, []).extend(faces)
+        tiles.setdefault(key, []).extend((number, face) for face in faces)
 
     binary = bytearray()
     views, accessors, meshes, nodes = [], [], [], []
@@ -89,16 +139,20 @@ def convert(source, output):
         return len(accessors) - 1
 
     for key, faces in sorted(tiles.items()):
-        used = sorted({i for face in faces for i in face})
-        remap = {index: i for i, index in enumerate(used)}
-        points = [local[i] for i in used]
+        # Each building keeps its own vertices so it can carry its own style data.
+        used = sorted({(number, i) for number, face in faces for i in face})
+        remap = {vertex: i for i, vertex in enumerate(used)}
+        points = [local[i] for _, i in used]
         bounds = ([min(p[i] for p in points) for i in range(3)],
                   [max(p[i] for p in points) for i in range(3)])
         positions = attribute(array("f", (c for p in points for c in p)),
                               5126, "VEC3", 34962, bounds)
-        triangles = attribute(array("I", (remap[i] for f in faces for i in f)),
+        style = attribute(array("f", (c for number, _ in used for c in buildings[number])),
+                          5126, "VEC3", 34962)
+        triangles = attribute(array("I", (remap[(n, i)] for n, f in faces for i in f)),
                               5125, "SCALAR", 34963)
-        meshes.append({"primitives": [{"attributes": {"POSITION": positions},
+        meshes.append({"primitives": [{"attributes": {"POSITION": positions,
+                                                      "_BUILDING": style},
                                        "indices": triangles, "material": 0}]})
         nodes.append({"name": f"Basel tile {key[0]},{key[1]}", "mesh": len(meshes) - 1})
     if not nodes:
@@ -115,7 +169,8 @@ def convert(source, output):
         "extras": {"source": source.name, "origin": [east, north, height],
                    "sourceUrl": "https://shop.geo.bs.ch/geodaten-katalog/",
                    "license": "https://creativecommons.org/licenses/by/4.0/",
-                   "modifications": "Tiled GLB, local Y-up coordinates, mission-area buildings omitted",
+                   "modifications": "Tiled GLB, local Y-up coordinates, mission-area buildings omitted, "
+                                    "_BUILDING attribute (style seed, base height, bridge flag)",
                    "omittedBuildings": omitted, "missionClearanceXZ": MISSION_CLEARANCE},
     }
     encoded = json.dumps(document, separators=(",", ":")).encode()
@@ -127,7 +182,8 @@ def convert(source, output):
                        + struct.pack("<II", len(encoded), 0x4E4F534A) + encoded
                        + struct.pack("<II", len(binary), 0x004E4942) + binary)
     print(f"Wrote {output}: {total / 1024 / 1024:.1f} MiB, {len(nodes)} tiles, "
-          f"{sum(len(f) for f in tiles.values())} triangles; {omitted} buildings omitted.")
+          f"{sum(len(f) for f in tiles.values())} triangles; {omitted} buildings omitted; "
+          f"{floating} unlabelled floating objects styled as bridges.")
     print(f"Source origin: {east}, {north}, {height}")
 
 
@@ -135,5 +191,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("source", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--terrain", type=Path, default=Path("public/maps/basel-terrain"),
+                        help="terrain grid prefix; skipped if missing")
     args = parser.parse_args()
-    convert(args.source, args.output)
+    terrain = args.terrain.with_suffix(".bin").exists() and load_terrain(args.terrain)
+    convert(args.source, args.output, terrain or None)

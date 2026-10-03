@@ -37,11 +37,71 @@ test("real GLB has relaxed moving limbs, white teeth, preserved water morphs and
     const right = model.getObjectByName("right-arm")!,
       left = model.getObjectByName("left-arm")!,
       leg = model.getObjectByName("right-leg")!;
+    const sleeveMeshes: THREE.Mesh[] = [];
+    model.traverse((object) => {
+      if (
+        object instanceof THREE.Mesh &&
+        object.userData.attachedToLimb &&
+        (Array.isArray(object.material)
+          ? object.material
+          : [object.material]
+        ).some((material) => material.name.startsWith("Sleeve "))
+      )
+        sleeveMeshes.push(object);
+    });
+    assert.equal(sleeveMeshes.length, 2);
+    for (const sleeve of sleeveMeshes) {
+      const isRight = sleeve.userData.attachedToLimb === "right-arm";
+      const arm = isRight ? right : left;
+      assert.ok(arm.getObjectById(sleeve.id), "sleeve shares its arm pivot");
+    }
+    for (const side of ["right", "left"] as const) {
+      const leg = model.getObjectByName(`${side}-leg`)!;
+      const sock = model.getObjectByName(
+        `${side}-sock-export-mesh`,
+      ) as THREE.Mesh;
+      const redCuff = model.getObjectByName(`${side}-red-ring-export-mesh`)!;
+      const blueCuff = model.getObjectByName(`${side}-blue-ring-export-mesh`)!;
+      assert.ok(leg.getObjectById(sock.id), `${side} sock follows its leg`);
+      assert.ok(
+        leg.getObjectById(redCuff.id),
+        `${side} red cuff follows its leg`,
+      );
+      assert.ok(
+        leg.getObjectById(blueCuff.id),
+        `${side} blue cuff follows its leg`,
+      );
+      assert.ok(
+        sock.morphTargetDictionary?.WaterFull !== undefined,
+        `${side} sock keeps the water-state morph targets`,
+      );
+    }
+    assert.ok(
+      right.rotation.z > 0 && left.rotation.z < 0,
+      "both arms rest down",
+    );
+
+    const rightSock = model.getObjectByName("right-sock-export-mesh")!;
+    const leftSock = model.getObjectByName("left-sock-export-mesh")!;
+    const sockCenters = [rightSock, leftSock].map((sock) =>
+      new THREE.Box3().setFromObject(sock).getCenter(new THREE.Vector3()),
+    );
     rig.update(0.2, 5, true);
     model.updateMatrixWorld(true);
     assert.ok(Math.abs(right.rotation.x) > 0.1);
     assert.equal(right.rotation.x, -left.rotation.x);
     assert.equal(leg.rotation.x, -right.rotation.x);
+    assert.ok(
+      sockCenters.some(
+        (center, index) =>
+          center.distanceTo(
+            new THREE.Box3()
+              .setFromObject(index === 0 ? rightSock : leftSock)
+              .getCenter(new THREE.Vector3()),
+          ) > 0.005,
+      ),
+      "socks move with their leg pivots during the walk cycle",
+    );
     assert.ok(
       rig.rightHand.getWorldPosition(new THREE.Vector3()).distanceTo(idleHand) >
         0.1,

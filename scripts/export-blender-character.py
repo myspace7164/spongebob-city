@@ -16,9 +16,6 @@ if bpy.context.mode != "OBJECT":
 parts = [obj for obj in original_scene.objects if obj.type == "MESH"]
 if not parts or original_scene.objects.get("Body Cube") is None:
     raise RuntimeError("Expected assembled sponge character not found")
-if bpy.data.actions:
-    raise RuntimeError("Export the character without animation Actions")
-
 shape_objects = [obj for obj in parts if obj.data.shape_keys]
 if not shape_objects:
     raise RuntimeError("Expected Basis, Dry and WaterFull shape keys")
@@ -35,13 +32,36 @@ original_values = {
     for obj in shape_objects
 }
 rig = next((obj for obj in original_scene.objects if obj.type == "ARMATURE"), None)
-if rig and any(
-    abs(p.matrix_basis[i][j] - (1 if i == j else 0)) > 1e-5
-    for p in rig.pose.bones
-    for i in range(4)
-    for j in range(4)
-):
-    raise RuntimeError("Return the Blender rig to neutral before exporting")
+original_action = rig.animation_data.action if rig and rig.animation_data else None
+original_slot = rig.animation_data.action_slot if rig and rig.animation_data else None
+original_pose = {p.name: p.matrix_basis.copy() for p in rig.pose.bones} if rig else {}
+original_frame = original_scene.frame_current
+
+
+def use_neutral_export_pose():
+    """Bake unanimated rest geometry; runtime pivots add the relaxed game pose."""
+    if not rig:
+        return
+    rig.animation_data_create()
+    rig.animation_data.action = None
+    for pose_bone in rig.pose.bones:
+        pose_bone.matrix_basis = Matrix.Identity(4)
+    original_scene.frame_set(1)
+    bpy.context.view_layer.update()
+
+
+def restore_rig_pose():
+    if not rig:
+        return
+    rig.animation_data_create()
+    rig.animation_data.action = original_action
+    if original_action and original_slot:
+        rig.animation_data.action_slot = original_slot
+    original_scene.frame_set(original_frame)
+    if original_action is None:
+        for pose_bone in rig.pose.bones:
+            pose_bone.matrix_basis = original_pose[pose_bone.name]
+    bpy.context.view_layer.update()
 
 def set_state(obj, dry, water):
     if not obj.data.shape_keys:
@@ -64,6 +84,9 @@ def evaluated_mesh(obj):
 # Determine normalization from the evaluated normal-state character.
 normal_meshes = []
 try:
+    # Blender Idle/Walk remain in the source file; the game animates the static
+    # GLB with runtime pivots, so export geometry in the rig's neutral pose.
+    use_neutral_export_pose()
     for obj in parts:
         set_state(obj, 0, 0)
         normal_meshes.append((obj, evaluated_mesh(obj)))
@@ -185,6 +208,7 @@ try:
     )
 finally:
     bpy.context.window.scene = original_scene
+    restore_rig_pose()
     for obj in shape_objects:
         for name, value in original_values[obj.name].items():
             obj.data.shape_keys.key_blocks[name].value = value
