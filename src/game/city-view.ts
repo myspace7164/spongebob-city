@@ -2,7 +2,8 @@ import { createRiversideBuddy } from "./riverside-buddy-view.ts";
 import { cast } from "../../config/characters.ts";
 import { castPosition } from "./cast.ts";
 import * as THREE from "three";
-import { cityConfig as c } from "../../config/city.ts";
+import { cityConfig as c, cityTools } from "../../config/city.ts";
+import { groundStyle } from "../../config/ground.ts";
 import { cityLevels } from "../../config/levels.ts";
 import type {
   CityPlot,
@@ -13,6 +14,8 @@ import type {
 import { cityMetrics, spongeCapacity, weather } from "./city.ts";
 import { activeModifier } from "./level-modifiers.ts";
 import { currentLevel, validDrain } from "./campaign.ts";
+import { isToolAvailable } from "./progression.ts";
+import { siteTechniques } from "../../config/sites.ts";
 import {
   ball,
   box,
@@ -25,6 +28,113 @@ import { betonConfig as betonTuning } from "../../config/beton.ts";
 import { createCityFireView } from "./city-fire-view.ts";
 import { gameplayColliders } from "./world-colliders.ts";
 import type { SolidCollider } from "./collisions.ts";
+
+const BUILD_KIND: Partial<Record<CityTool, CityPlot["kind"]>> = {
+  tree: "tree",
+  basin: "basin",
+  roof: "roof",
+  pond: "pond",
+  shade: "shade",
+  tank: "tank",
+};
+
+const SITE_GROUND: Record<NonNullable<CityPlot["site"]>, string> = {
+  parking: groundStyle.colours.road,
+  verge: groundStyle.colours.island,
+  swale: groundStyle.colours.green,
+  facade: groundStyle.colours.sidewalk,
+};
+
+function zoneGround(plot: CityPlot): THREE.Color {
+  if (plot.site) return new THREE.Color(SITE_GROUND[plot.site]);
+  return new THREE.Color(
+    plot.kind === "soil" ? groundStyle.colours.green : groundStyle.colours.road,
+  );
+}
+
+/** Thin conforming ground mesh; it marks a plot without creating a raised tile. */
+function zoneSurfaceGeometry(size: number, segments = 4): THREE.BufferGeometry {
+  const positions: number[] = [];
+  const indices: number[] = [];
+  for (let row = 0; row <= segments; row++)
+    for (let column = 0; column <= segments; column++)
+      positions.push(
+        (column / segments - 0.5) * size,
+        0,
+        (row / segments - 0.5) * size,
+      );
+  for (let row = 0; row < segments; row++)
+    for (let column = 0; column < segments; column++) {
+      const a = row * (segments + 1) + column;
+      const b = a + 1;
+      const c = a + segments + 1;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function perimeterGeometry(
+  size: number,
+  segmentsPerSide = 8,
+): THREE.BufferGeometry {
+  const half = size / 2;
+  const points: THREE.Vector3[] = [];
+  for (let side = 0; side < 4; side++)
+    for (let i = 0; i < segmentsPerSide; i++) {
+      const t = i / segmentsPerSide;
+      if (side === 0)
+        points.push(new THREE.Vector3(-half + size * t, 0, -half));
+      else if (side === 1)
+        points.push(new THREE.Vector3(half, 0, -half + size * t));
+      else if (side === 2)
+        points.push(new THREE.Vector3(half - size * t, 0, half));
+      else points.push(new THREE.Vector3(-half, 0, half - size * t));
+    }
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  return geometry;
+}
+
+function cornerMarkGeometry(size: number, length = 0.42): THREE.BufferGeometry {
+  const h = size / 2;
+  const points: THREE.Vector3[] = [];
+  for (const x of [-1, 1])
+    for (const z of [-1, 1]) {
+      points.push(
+        new THREE.Vector3(x * h, 0, z * h),
+        new THREE.Vector3(x * (h - length), 0, z * h),
+        new THREE.Vector3(x * h, 0, z * h),
+        new THREE.Vector3(x * h, 0, z * (h - length)),
+      );
+    }
+  return new THREE.BufferGeometry().setFromPoints(points);
+}
+
+function conformToGround(
+  geometry: THREE.BufferGeometry,
+  plot: CityPlot,
+  baseHeight: number,
+  ground: (x: number, z: number) => number,
+  lift: number,
+): void {
+  const positions = geometry.getAttribute("position");
+  for (let i = 0; i < positions.count; i++)
+    positions.setY(
+      i,
+      ground(plot.x + positions.getX(i), plot.z + positions.getZ(i)) -
+        baseHeight +
+        lift,
+    );
+  positions.needsUpdate = true;
+  geometry.computeVertexNormals();
+}
 
 function dispose(group: THREE.Group): void {
   group.traverse((object) => {
@@ -73,8 +183,10 @@ function plotProps(group: THREE.Group, plot: CityPlot): void {
       ball(group, 0.35, [x, 2.8, 0], "leaf");
     }
   } else if (kind === "pond") {
-    const pond = ball(group, 1.8, [0, 0.1, 0], "water");
-    pond.scale.y = 0.12;
+    const bank = ball(group, 1.82, [0, 0.018, 0], "soil");
+    bank.scale.y = 0.035;
+    const pond = ball(group, 1.66, [0, 0.035, 0], "water");
+    pond.scale.y = 0.045;
     ball(group, 0.25, [0.4, 0.35, 0.4], "white");
     ball(group, 0.14, [0.4, 0.58, 0.6], "white");
   } else if (kind === "shade") {
@@ -475,36 +587,83 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     const tile = new THREE.Group();
     tile.position.set(p.x, 0, p.z);
     root.add(tile);
-    // A skirt below the surface keeps tiles from floating on slopes.
-    const ground = box(tile, [4.7, 0.5, 4.7], [0, -0.18, 0], "asphalt");
+    const zoneMaterial = new THREE.MeshBasicMaterial({
+      color: zoneGround(p),
+      transparent: true,
+      opacity: 0.045,
+      depthWrite: false,
+    });
+    const ground = new THREE.Mesh(zoneSurfaceGeometry(4.7), zoneMaterial);
+    ground.name = "build-zone-ground-blend";
+    ground.renderOrder = 1;
+    tile.add(ground);
     const markings = new THREE.Group();
     markings.name = "sealed-markings";
     tile.add(markings);
-    for (const x of [-1.65, 1.65])
-      box(markings, [0.13, 0.025, 3.8], [x, 0.08, 0], "sealed-line");
+    const parkingLines = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-1.65, 0, -1.9),
+        new THREE.Vector3(-1.65, 0, 1.9),
+        new THREE.Vector3(1.65, 0, -1.9),
+        new THREE.Vector3(1.65, 0, 1.9),
+      ]),
+      new THREE.LineBasicMaterial({
+        color: groundStyle.colours.sidewalk,
+        transparent: true,
+        opacity: 0.34,
+      }),
+    );
+    markings.add(parkingLines);
     const openEdge = new THREE.Group();
-    openEdge.name = "unsealed-edge";
+    openEdge.name = "unsealed-corner-marks";
     tile.add(openEdge);
-    for (const x of [-2.25, 2.25])
-      box(openEdge, [0.15, 0.035, 4.5], [x, 0.09, 0], "open-edge");
-    for (const z of [-2.25, 2.25])
-      box(openEdge, [4.5, 0.035, 0.15], [0, 0.09, z], "open-edge");
+    openEdge.add(
+      new THREE.LineSegments(
+        cornerMarkGeometry(4.35),
+        new THREE.LineBasicMaterial({
+          color: themeColor("open-edge"),
+          transparent: true,
+          opacity: 0.2,
+        }),
+      ),
+    );
     const props = new THREE.Group();
     tile.add(props);
     const water = box(tile, [4.4, 0.05, 4.4], [0, 0.13, 0], "water");
     const material = water.material as THREE.MeshLambertMaterial;
     material.transparent = true;
     material.opacity = 0.5;
-    return { tile, ground, props, water, markings, openEdge, signature: "" };
+    return {
+      tile,
+      ground,
+      groundMaterial: zoneMaterial,
+      baseGroundColor: zoneGround(p),
+      groundSignature: `${p.site ?? "plaza"}/${p.kind === "soil"}`,
+      conformedSignature: "",
+      props,
+      water,
+      markings,
+      openEdge,
+      signature: "",
+    };
   });
-  const border = new THREE.Mesh(
-    new THREE.BoxGeometry(4.9, 0.2, 4.9),
-    new THREE.MeshBasicMaterial({
+  const border = new THREE.LineLoop(
+    perimeterGeometry(4.55),
+    new THREE.LineBasicMaterial({
       color: themeColor("accent"),
-      wireframe: true,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
     }),
   );
+  border.name = "build-zone-hover-outline";
+  border.renderOrder = 2;
   root.add(border);
+  const buildPreview = new THREE.Group();
+  buildPreview.name = "build-structure-preview";
+  buildPreview.visible = false;
+  root.add(buildPreview);
+  let buildPreviewSignature = "";
   const architecture = new THREE.Group();
   root.add(architecture);
   // Keep the stage set until the surveyed model finishes loading.
@@ -651,6 +810,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   );
   root.add(rain);
   const ray = new THREE.Raycaster();
+  const screenCenter = new THREE.Vector2();
   const droplets = new THREE.Group();
   for (let i = 0; i < 8; i++) ball(droplets, 0.12, [0, 0, 0], "water");
   root.add(droplets);
@@ -671,18 +831,22 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       return gameplayColliders(s, groundAt, architecture.visible);
     },
     target(s: CityState, camera: THREE.Camera): number | null {
-      ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+      ray.setFromCamera(screenCenter, camera);
       // Aim at the ground level around the player; nearby slopes are gentle.
       floor.constant = -playerGround;
       if (!ray.ray.intersectPlane(floor, point)) return null;
-      const nearest = [...s.plots].sort(
-        (a, b) =>
-          Math.hypot(a.x - point.x, a.z - point.z) -
-          Math.hypot(b.x - point.x, b.z - point.z),
-      )[0];
-      return Math.hypot(nearest.x - point.x, nearest.z - point.z) < 4.5
-        ? nearest.id
-        : null;
+      let nearestId: number | null = null;
+      let nearestDistanceSquared = Infinity;
+      for (const plot of s.plots) {
+        const dx = plot.x - point.x;
+        const dz = plot.z - point.z;
+        const distanceSquared = dx * dx + dz * dz;
+        if (distanceSquared < nearestDistanceSquared) {
+          nearestDistanceSquared = distanceSquared;
+          nearestId = plot.id;
+        }
+      }
+      return nearestDistanceSquared < 4.5 * 4.5 ? nearestId : null;
     },
     update(
       s: CityState,
@@ -698,6 +862,27 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       root.updateWorldMatrix(true, false);
       const ground = (x: number, z: number) => groundAt(x, z);
       playerGround = ground(player.position.x, player.position.z);
+      const targetPlot = s.plots.find((p) => p.id === targetId);
+      const buildKind = BUILD_KIND[s.selected];
+      const chosenTool = cityTools.find((tool) => tool.id === s.selected);
+      const inReach =
+        !!targetPlot &&
+        Math.hypot(
+          targetPlot.x - player.position.x,
+          targetPlot.z - player.position.z,
+        ) <= reach;
+      const siteAllowsBuild =
+        !targetPlot?.site ||
+        siteTechniques[targetPlot.site].builds.includes(s.selected);
+      const validBuild =
+        !!targetPlot &&
+        !!buildKind &&
+        targetPlot.kind === "soil" &&
+        siteAllowsBuild &&
+        inReach &&
+        isToolAvailable(s, s.selected) &&
+        !!chosenTool &&
+        s.budget >= chosenTool.cost;
       buddy.update(s, ground);
       buddy.root.position.x -= origin.x;
       buddy.root.position.z -= origin.z;
@@ -767,27 +952,40 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         scene.fog.color.copy(scene.background);
       s.plots.forEach((p, i) => {
         const view = plotViews[i];
-        view.tile.position.set(
-          p.x - origin.x,
-          p.elevation ?? ground(p.x, p.z),
-          p.z - origin.z,
-        );
+        const baseHeight = p.elevation ?? ground(p.x, p.z);
+        const groundSignature = `${p.site ?? "plaza"}/${p.kind === "soil"}`;
+        if (view.groundSignature !== groundSignature) {
+          view.groundSignature = groundSignature;
+          view.baseGroundColor.copy(zoneGround(p));
+        }
+        view.tile.position.set(p.x - origin.x, baseHeight, p.z - origin.z);
+        const conformedSignature = `${p.x}/${p.z}/${baseHeight}/${groundVersion}`;
+        if (view.conformedSignature !== conformedSignature) {
+          view.conformedSignature = conformedSignature;
+          conformToGround(view.ground.geometry, p, baseHeight, ground, 0.018);
+          const parkingLines = view.markings.children[0] as THREE.LineSegments;
+          conformToGround(parkingLines.geometry, p, baseHeight, ground, 0.028);
+          const soilCorners = view.openEdge.children[0] as THREE.LineSegments;
+          conformToGround(soilCorners.geometry, p, baseHeight, ground, 0.032);
+        }
         const signature = `${p.kind}/${p.moisture >= c.moistureHealthy}`;
         if (view.signature !== signature) {
           plotProps(view.props, p);
           view.signature = signature;
         }
-        (view.ground.material as THREE.MeshLambertMaterial).color.copy(
-          themeColor(
-            p.kind === "asphalt"
-              ? "asphalt"
-              : p.kind === "soil"
-                ? "soil"
-                : "grass",
-          ),
-        );
-        view.markings.visible = p.kind === "asphalt";
-        view.openEdge.visible = p.kind !== "asphalt";
+        const selectedBuild = buildKind !== undefined;
+        const buildHover = targetId === p.id && selectedBuild;
+        view.ground.visible =
+          buildHover && (p.kind === "asphalt" || p.kind === "soil");
+        view.groundMaterial.opacity = 0.045;
+        view.groundMaterial.color.copy(view.baseGroundColor);
+        if (buildHover)
+          view.groundMaterial.color.lerp(
+            themeColor(validBuild ? "open-edge" : "coral"),
+            0.1,
+          );
+        view.markings.visible = p.kind === "asphalt" && p.site === "parking";
+        view.openEdge.visible = p.kind === "soil";
         view.water.visible = p.surface > 10;
         view.water.scale.y = Math.max(1, Math.min(8, p.surface / 120));
         (view.water.material as THREE.MeshLambertMaterial).opacity = Math.min(
@@ -796,24 +994,64 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         );
       });
       updateFireView(s.fires, s.plots, origin, ground, s.elapsed);
-      const targetPlot = s.plots.find((p) => p.id === targetId);
       border.visible = !!targetPlot;
       if (targetPlot) {
+        const baseHeight =
+          targetPlot.elevation ?? ground(targetPlot.x, targetPlot.z);
         border.position.set(
           targetPlot.x - origin.x,
-          ground(targetPlot.x, targetPlot.z) + 0.15,
+          baseHeight,
           targetPlot.z - origin.z,
         );
-        (border.material as THREE.MeshBasicMaterial).color.copy(
+        conformToGround(border.geometry, targetPlot, baseHeight, ground, 0.04);
+        const nextPreviewSignature = buildKind
+          ? `${targetPlot.id}/${s.selected}/${validBuild ? "valid" : "invalid"}`
+          : "";
+        if (nextPreviewSignature !== buildPreviewSignature) {
+          buildPreviewSignature = nextPreviewSignature;
+          dispose(buildPreview);
+          if (buildKind && chosenTool) {
+            plotProps(buildPreview, { ...targetPlot, kind: buildKind });
+            const previewMaterial = new THREE.MeshBasicMaterial({
+              color: themeColor(validBuild ? "open-edge" : "coral"),
+              transparent: true,
+              opacity: 0.4,
+              depthWrite: false,
+            });
+            buildPreview.traverse((object) => {
+              if (!(object instanceof THREE.Mesh)) return;
+              const previous = Array.isArray(object.material)
+                ? object.material
+                : [object.material];
+              previous.forEach((material) => material.dispose());
+              object.material = previewMaterial;
+              object.renderOrder = 3;
+            });
+          }
+        }
+        buildPreview.visible =
+          !!buildKind &&
+          (targetPlot.kind === "soil" || targetPlot.kind === "asphalt");
+        if (buildPreview.visible)
+          buildPreview.position.set(
+            targetPlot.x - origin.x,
+            baseHeight + 0.035,
+            targetPlot.z - origin.z,
+          );
+        (border.material as THREE.LineBasicMaterial).color.copy(
           themeColor(
-            Math.hypot(
-              targetPlot.x - player.position.x,
-              targetPlot.z - player.position.z,
-            ) <= reach
-              ? "accent"
-              : "coral",
+            buildKind
+              ? validBuild
+                ? "open-edge"
+                : "coral"
+              : inReach
+                ? "accent"
+                : "coral",
           ),
         );
+      } else {
+        buildPreview.visible = false;
+        buildPreviewSignature = "";
       }
       const canFlow =
         targetPlot &&
