@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type * as THREE from "three";
+import { cityLevels } from "../../config/levels.ts";
 
 test("Dr. Beton and the Asphaltinator render as linked independent 3D boss assets with laser states", async ({
   page,
@@ -14,7 +15,7 @@ test("Dr. Beton and the Asphaltinator render as linked independent 3D boss asset
   await page.addStyleTag({
     content: "body > :not(canvas) { display: none !important; }",
   });
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(async (levelCount) => {
     const worldSource = await (await fetch("/src/game/world.ts")).text();
     const threePath = worldSource.match(/from\s+"([^"]*three[^"]+)"/)![1];
     const cityViewPath = "/src/game/city-view.ts";
@@ -54,6 +55,32 @@ test("Dr. Beton and the Asphaltinator render as linked independent 3D boss asset
     const actor = scene.getObjectByName("dr-beton") as THREE.Group;
     const output = scene.getObjectByName("FX_ConcreteOutput");
     const driver = scene.getObjectByName("DrBeton_DriverPoint");
+    render();
+    const levelAppearance = [];
+    for (let level = 0; level < levelCount; level += 1) {
+      state.campaign!.level = level;
+      render();
+      levelAppearance.push({
+        scale: actor.scale.x,
+        browAngle: Math.abs(
+          (actor.userData.brows as THREE.Mesh[])[0].rotation.z,
+        ),
+        eyeGlow: (
+          (actor.userData.eyeMeshes as THREE.Mesh[])[0]
+            .material as THREE.MeshStandardMaterial
+        ).emissiveIntensity,
+        darkCracks: (actor.userData.darkCracks as THREE.Mesh[]).filter(
+          (crack) => crack.visible,
+        ).length,
+        glowingCracks: (actor.userData.glowCracks as THREE.Mesh[]).filter(
+          (crack) => crack.visible,
+        ).length,
+        flames: (actor.userData.flameGroups as THREE.Group[]).filter(
+          (flame) => flame.visible,
+        ).length,
+      });
+    }
+    state.campaign!.level = 0;
     render();
     const eyeMeshes = actor.userData.eyeMeshes as THREE.Mesh[];
     const baselineEyeIntensity = (
@@ -150,8 +177,9 @@ test("Dr. Beton and the Asphaltinator render as linked independent 3D boss asset
       output: output?.name,
       driver: driver?.name,
       vehicleKind: vehicle.userData.assetKind,
+      levelAppearance,
     };
-  });
+  }, cityLevels.length);
   expect(result.anchored).toBe(true);
   expect(result.meshes).toBeGreaterThan(35);
   expect(result.independentRoots).toBe(true);
@@ -164,5 +192,29 @@ test("Dr. Beton and the Asphaltinator render as linked independent 3D boss asset
   expect(result.output).toBe("FX_ConcreteOutput");
   expect(result.driver).toBe("DrBeton_DriverPoint");
   expect(result.vehicleKind).toBe("procedural-three-dimensional-boss-vehicle");
+  for (let level = 1; level < result.levelAppearance.length; level += 1) {
+    expect(
+      result.levelAppearance[level].scale -
+        result.levelAppearance[level - 1].scale,
+    ).toBeGreaterThanOrEqual(0.15);
+    expect(result.levelAppearance[level].browAngle).toBeGreaterThan(
+      result.levelAppearance[level - 1].browAngle,
+    );
+    expect(result.levelAppearance[level].eyeGlow).toBeGreaterThan(
+      result.levelAppearance[level - 1].eyeGlow,
+    );
+    expect(result.levelAppearance[level].darkCracks).toBeGreaterThan(
+      result.levelAppearance[level - 1].darkCracks,
+    );
+    expect(result.levelAppearance[level].glowingCracks).toBeGreaterThan(
+      result.levelAppearance[level - 1].glowingCracks,
+    );
+    expect(result.levelAppearance[level].flames).toBeGreaterThanOrEqual(
+      result.levelAppearance[level - 1].flames,
+    );
+  }
+  expect(result.levelAppearance.at(-1)!.flames).toBeGreaterThan(
+    result.levelAppearance[0].flames,
+  );
   await page.screenshot({ path: "/tmp/dr-beton-boss.png" });
 });

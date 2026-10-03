@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { betonConfig } from "../../config/beton";
 import { finishSideCharacter } from "./side-character-details";
 
 export function themeColor(name: string): THREE.Color {
@@ -654,7 +655,6 @@ function makeBeton(): THREE.Group {
     glowCracks.push(glow);
   }
   const flameGroups: THREE.Group[] = [];
-  const flameThresholds = [0.16, 0.16, 0.48, 0.48, 0.78];
   const flameAnchors: [THREE.Object3D, [number, number, number]][] = [
     [head, [-0.37, 0.36, 0.06]],
     [head, [0.37, 0.36, 0.06]],
@@ -666,7 +666,6 @@ function makeBeton(): THREE.Group {
     const flame = new THREE.Group();
     flame.name = `BetonFlame_${index + 1}`;
     flame.position.set(...at);
-    flame.userData.levelThreshold = flameThresholds[index];
     const outer = new THREE.Mesh(
       new THREE.ConeGeometry(
         0.12 + (index > 1 ? 0.035 : 0),
@@ -750,34 +749,47 @@ export function updateBetonLevelAppearance(
 ): void {
   const menace = THREE.MathUtils.clamp(progress, 0, 1);
   const charge = THREE.MathUtils.clamp(attackCharge, 0, 1);
+  const appearance = betonConfig.appearance;
   root.userData.levelProgress = menace;
-  root.scale.setScalar(1 + menace * 0.22 + (temporaryAnger ? 0.1 : 0));
+  root.scale.setScalar(
+    1 + menace * (appearance.finalScale - 1) + (temporaryAnger ? 0.1 : 0),
+  );
 
   const materials = root.userData
     .concreteMaterials as THREE.MeshStandardMaterial[];
   const baseColors = root.userData.baseConcreteColors as THREE.Color[];
   materials.forEach((material, i) => {
-    material.color.copy(baseColors[i]).multiplyScalar(1 - menace * 0.18);
+    material.color
+      .copy(baseColors[i])
+      .multiplyScalar(1 - menace * appearance.maxConcreteDarkening);
     material.roughness = 0.96 - menace * 0.04;
-    material.bumpScale = 0.045 + menace * 0.025;
+    material.bumpScale = 0.045 + menace * (appearance.finalBumpScale - 0.045);
   });
 
   const brows = root.userData.brows as THREE.Mesh[];
   brows.forEach((brow) => {
     brow.rotation.z =
       (brow.userData.side as number) *
-      (0.36 + menace * 0.24 + (temporaryAnger ? 0.16 : 0));
-    brow.scale.y = 1 + menace * 0.14 + (temporaryAnger ? 0.08 : 0);
+      (0.36 +
+        menace * (appearance.finalBrowAngle - 0.36) +
+        (temporaryAnger ? 0.16 : 0));
+    brow.scale.y =
+      1 +
+      menace * (appearance.finalBrowHeight - 1) +
+      (temporaryAnger ? 0.08 : 0);
   });
   const whites = root.userData.eyeWhites as THREE.Mesh[];
   whites.forEach((white) => {
-    white.scale.y = 0.135 * (1 - menace * 0.16);
+    white.scale.y = 0.135 * (1 - menace * appearance.eyeNarrowing);
   });
   const eyeMeshes = root.userData.eyeMeshes as THREE.Mesh[];
   eyeMeshes.forEach((eye) => {
     const material = eye.material as THREE.MeshStandardMaterial;
     material.emissiveIntensity =
-      0.1 + menace * 0.72 + (temporaryAnger ? 0.9 : 0) + charge * 2.8;
+      0.1 +
+      menace * appearance.finalEyeEmissive +
+      (temporaryAnger ? 0.9 : 0) +
+      charge * 2.8;
   });
   const darkCracks = root.userData.darkCracks as THREE.Mesh[];
   darkCracks.forEach((crackMesh) => {
@@ -795,20 +807,24 @@ export function updateBetonLevelAppearance(
     const pulse = menace > 0.92 ? 0.12 * (0.5 + 0.5 * Math.sin(time * 5)) : 0;
     material.emissiveIntensity =
       (levelGlow
-        ? 0.35 + menace * 1.35 + (temporaryAnger ? 0.8 : 0) + pulse
+        ? 0.45 +
+          menace * appearance.finalCrackEmissive +
+          (temporaryAnger ? 0.8 : 0) +
+          pulse
         : 0) +
       charge * (eyeCrack ? 3.5 : 1.8);
   });
   const flames = root.userData.flameGroups as THREE.Group[];
+  const visibleFlames = Math.round(menace * flames.length);
   flames.forEach((flame, index) => {
-    const threshold = flame.userData.levelThreshold as number;
-    flame.visible = menace >= threshold;
+    flame.visible = index < visibleFlames;
     if (!flame.visible) return;
     const pulse = 1 + Math.sin(time * 7 + index * 1.8) * (0.04 + menace * 0.05);
+    const flameScale = 0.7 + menace * (appearance.finalFlameScale - 0.7);
     flame.scale.set(
-      0.7 + menace * 0.3,
-      pulse * (0.74 + menace * 0.26),
-      0.7 + menace * 0.3,
+      flameScale,
+      pulse * (0.74 + menace * (appearance.finalFlameScale - 0.74)),
+      flameScale,
     );
   });
   const chips = root.userData.chips as THREE.Mesh[];
