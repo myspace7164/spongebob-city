@@ -1,10 +1,16 @@
 import * as THREE from "three";
 import { cityConfig as c } from "../../config/city";
 import { cityLevels } from "../../config/levels";
-import type { CityPlot, CityState, CityTool, PlayerState } from "../interfaces";
+import type {
+  CityPlot,
+  CityState,
+  CityTool,
+  NpcId,
+  PlayerState,
+} from "../interfaces";
 import { cityMetrics, spongeCapacity, weather } from "./city";
 import { activeModifier } from "./level-modifiers";
-import { currentLevel, validDrain } from "./campaign";
+import { currentLevel, npcPosition, validDrain } from "./campaign";
 import {
   ball,
   box,
@@ -540,12 +546,15 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   const grounded: { object: THREE.Object3D; base: number }[] = [];
   const keepOnGround = (object: THREE.Object3D) =>
     grounded.push({ object, base: object.position.y });
-  for (const [kind, text, x, z] of [
-    ["patrick", "Patrick · P: unseal", -11, -3],
-    ["sandy", "Sandy · E: upgrade", c.sandy.x, c.sandy.z],
-    ["squid", "Squidward · more shade!", 12, -5],
-    ["krabs", "Mr. Krabs · budget", -11, 2],
+  // Characters stand where the level puts them (npcPosition); re-placed per level.
+  const npcs: { id: NpcId; body: THREE.Object3D; name: THREE.Object3D }[] = [];
+  for (const [id, kind, text] of [
+    ["patrick", "patrick", "Patrick · P: unseal"],
+    ["sandy", "sandy", "Sandy · E: upgrade"],
+    ["squidward", "squid", "Squidward · more shade!"],
+    ["krabs", "krabs", "Mr. Krabs · budget"],
   ] as const) {
+    const { x, z } = c.npcDefaults[id];
     const npc = makeCharacter(kind);
     npc.position.set(x, 0, z);
     root.add(npc);
@@ -554,6 +563,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     root.add(name);
     keepOnGround(npc);
     keepOnGround(name);
+    npcs.push({ id, body: npc, name });
   }
   const machine = new THREE.Group();
   machine.name = "roaming-asphaltinator";
@@ -655,6 +665,10 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       groundAt = ground;
       groundVersion++;
     },
+    /** Hide the mission's own plots and characters (the level builder draws its own). */
+    setVisible(visible: boolean) {
+      root.visible = visible;
+    },
     useImportedLevel() {
       importedLevel = true;
       architecture.visible = false;
@@ -703,6 +717,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         architecture.visible = !importedLevel && !level?.site;
         sign.position.set(0, 6 + ground(origin.x, origin.z - 27), -27);
         root.add(sign);
+        for (const { id, body, name } of npcs) {
+          const at = npcPosition(s, id);
+          body.position.set(at.x - origin.x, body.position.y, at.z - origin.z);
+          name.position.set(at.x - origin.x, name.position.y, at.z - origin.z);
+        }
         for (const { object, base } of grounded)
           object.position.y =
             base +
