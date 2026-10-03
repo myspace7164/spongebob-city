@@ -1,6 +1,6 @@
 # Blender character source and export
 
-State: done; assets and scripts verified and integrated with shared main.
+State: done locally on main; GitHub push pending authentication.
 
 Goal: keep the edited Blender project and its GLB output in the repository.
 
@@ -18,6 +18,9 @@ match before and after armature creation. Local setup is now complete.
 
 Next: bind and weight the meshes only when requested. The existing topology
 issues identified in the read-only inspection still need review before deformation.
+First finish sharing: sign in to GitHub using a local Git client, then run
+`git push origin main`. The attempted push failed because HTTPS credentials
+were unavailable; no repository changes were uploaded. All work is committed.
 
 Notes: Sphere.001 has a distant origin but geometry beside the face; the export
 now includes it. Camera, light and the unbound armature are excluded from GLB.
