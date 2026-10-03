@@ -146,18 +146,13 @@ export const cityLevels: readonly CityLevel[] = [
       "Grün aufs Dach. Schatten auf die Strasse. Regen sicher weiterleiten.",
     ],
     objective:
-      "2 grüne Dächer. 2 benachbarte Schattenplätze. Abläufe verbinden. 3 Bäume bewässern.",
+      "2 grüne Dächer. 2 benachbarte Schattenplätze. 3 Bäume bewässern.",
     goals: [
       { metric: "roofs", target: 2, label: "Green Roofs bauen" },
       {
         metric: "shadeConnected",
         target: 2,
         label: "Benachbarte Shade Plazas",
-      },
-      {
-        metric: "roofRoutes",
-        target: 2,
-        label: "Dachabläufe verbinden (C → C)",
       },
       { metric: "healthyTrees", target: 3, label: "Gesunde Bäume" },
       { metric: "reused", target: 1000, label: "Liter gezielt verteilen" },

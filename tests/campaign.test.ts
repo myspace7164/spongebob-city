@@ -138,6 +138,18 @@ test("separated shaded plots do not satisfy a connected shade zone", () => {
   assert.equal(goal().done, true);
 });
 
+test("St. Johann has no rooftop connection objective and keeps its other goals", () => {
+  const s = createCampaign();
+  onPlaceholderLevel(s, 2);
+  assert.deepEqual(
+    currentLevel(s)?.goals.map((goal) => goal.metric),
+    ["roofs", "shadeConnected", "healthyTrees", "reused", "heat", "flood", "stormCompleted"],
+  );
+  assert.equal(levelAchievements(s).some((goal) => goal.metric === "roofRoutes"), false);
+  s.campaign!.level = 3;
+  assert.equal(currentLevel(s)?.goals.some((goal) => goal.metric === "roofRoutes"), true);
+});
+
 /** Same legal play on flat ground, or with real terrain heights so water runs downhill. */
 function playLegalStrategy(elevate?: (s: CityState) => void) {
   const s = createCampaign();
@@ -198,11 +210,9 @@ function playLegalStrategy(elevate?: (s: CityState) => void) {
     elevate?.(s);
     const initialWater = total(s) - s.rainfall;
     for (const [id, kind] of construction[level]) act(s, kind, at(s, id), id);
-    if (level >= 2) {
+    if (level === 3) {
       connect(s, 7, 0);
       connect(s, 8, 1);
-    }
-    if (level === 3) {
       connect(s, 11, 0);
       connect(s, 12, 13);
     }
