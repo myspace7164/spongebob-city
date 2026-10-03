@@ -141,7 +141,7 @@ function spray(s: CityState, p: CityPlot, amount: number): number {
     }
     return used;
   }
-  if (p.kind === "asphalt") return 0;
+  if (p.kind === "asphalt" || p.surface > 0) return 0;
   const field = storagePlot(p) ? "stored" : "moisture";
   const limit = field === "stored" ? c.storageCapacity : c.soilCapacity;
   const transferred = Math.max(0, Math.min(s.sponge, amount, limit - p[field]));
@@ -279,7 +279,9 @@ function act(
       ? `${bubbles ? "Bubble irrigation" : "Water delivered"} · ${Math.round(s.reused)} L reused. Every drop counts!`
       : s.sponge <= 0
         ? "Your sponge is empty. Use 1 to collect surface water."
-        : "This plot cannot take more water. Unseal asphalt or choose another green plot/tank.";
+        : p.surface > 0
+          ? "This plot is flooded. Absorb its surface water before watering it."
+          : "This plot cannot take more water. Unseal asphalt or choose another green plot/tank.";
   }
   const site = p.site && siteTechniques[p.site];
   if (site && action !== "karate" && !site.builds.includes(action)) {

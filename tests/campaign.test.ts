@@ -399,3 +399,34 @@ test("the last missing achievement blocks advancement; next neighbourhood resets
   assert.equal(s.campaign!.level, 1);
   assert.equal(s.reused, 0);
 });
+
+test("Level 3 shade plots across the wider street gap connect and permit Level 4", () => {
+  const s = createCampaign();
+  onPlaceholderLevel(s, 2);
+  act(s, "shade", at(s, 4), 4);
+  act(s, "shade", at(s, 8), 8);
+  assert.equal(
+    Math.hypot(s.plots[4].x - s.plots[8].x, s.plots[4].z - s.plots[8].z),
+    7,
+  );
+  assert.equal(
+    levelAchievements(s).find((g) => g.metric === "shadeConnected")!.done,
+    true,
+  );
+  for (const id of [0, 1]) act(s, "roof", at(s, id), id);
+  for (const id of [2, 3, 5]) {
+    act(s, "karate", at(s, id), id);
+    act(s, "tree", at(s, id), id);
+    s.plots[id].moisture = c.moistureHealthy;
+  }
+  s.reused = 1000;
+  s.heat = 0;
+  s.flood = 0;
+  s.campaign!.stormCompleted = true;
+  assert.ok(levelAchievements(s).every((g) => g.done));
+  assert.equal(advanceCampaign(s), true);
+  s.campaign!.pendingModifier = "speedBoost";
+  assert.equal(startNextCampaignLevel(s), true);
+  assert.equal(s.campaign!.level, 3);
+  assert.equal(currentLevel(s)!.id, "voltanord");
+});

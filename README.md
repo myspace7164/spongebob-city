@@ -134,3 +134,5 @@ The ten-drop pool includes six Basel boosts: Läckerli Rush (50% faster sprint, 
 Capacity expiry preserves collected water. Sandy's permanent upgrade remains available. Pickups reset with each level/retry; co-op collection and activation are server-authoritative. Original miniature props and durations live in config/powerups.ts and src/game/powerup-view.ts.
 
 Emotes use the existing imported/fallback limb rig and replicate to co-op teammates. Hold G and press 1–5; they expire automatically without affecting city resources or player collision. Movement or jumping cancels them; reduced motion shows a still pose.
+
+Watering rejects flooded plots and full soil/storage without spending sponge water or granting coins. Absorb standing surface water first; spraying a fire remains available. Shade plazas connect across neighboring placeholder street gaps up to 7 m.

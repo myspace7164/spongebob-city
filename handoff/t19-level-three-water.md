@@ -1,0 +1,7 @@
+# T19 Level 3 progression and saturated watering
+Status: done
+Fixed: neighboring Level 3 shade plots across its wider street gap are 7 m apart, while connectivity allowed only 5.25 m. Connection reach now matches the placeholder layout's 7 m gap. Distant plazas still fail. Level 3-to-4 progression with these neighboring plazas passes in the actual browser loop.
+Fixed: irrigation rejects destinations with standing surface water and still caps soil/storage capacity. Rejected watering spends no water, increases no reused counter and awards no grant. Feedback directs the player to absorb standing water. Fire extinguishing remains available.
+Checks: production build, strict docs and all 85 unit/API tests pass, including full legal four-level strategies on flat/real terrain, conservation, flooded/full destination rejection and the wider-gap progression regression. Targeted browser transition reaches VoltaNord Level 4. Existing irrigation fixtures now use cleared destinations.
+Git: fix/level-three-water; verified fixes ready for guard/commit/merge/push. Previous emotes/integration are committed eb4201b; main pushes were safely rejected due concurrent teammate updates. Latest known origin/main d8d52da adds only Dr. Beton test coverage. Preserve remote updates, never force-push. No deployment performed; provider remains unspecified.
+Next: privacy guard, commit fixes, preserve latest main, integrate and push.

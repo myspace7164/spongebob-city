@@ -68,3 +68,5 @@ Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or area
 - 2026-10-03: Add optional timed emote state to PlayerState and validated emote commands to co-op. G+1–5 activates 67/Macarena/teabag/dab/floss; motion is visual only, cancels on movement/jump, and uses the existing imported/fallback rig. Reduced motion shows a still pose.
 
 - Co-op chooses the shared next-level modifier on the authoritative server and advances together; solo retains the spin intermission. Both modifier and collectible multipliers compose, and all modifier copy is English.
+
+- Irrigation rejects any destination with standing surface water; fire extinguishing remains exempt. Placeholder shade connectivity spans its actual 7 m neighboring street gap, fixing Level 3-to-4 progression for adjacent plazas.

@@ -189,3 +189,8 @@ Owner: @myspace7164
 Needs: T17
 Files: config/emotes.ts, src/interfaces.ts, src/game/emotes.ts, src/game/player.ts, src/game/locomotion.ts, src/game/world.ts, src/game/remote-players.ts, server/rooms.ts, src/main.ts, index.html, tests/emotes.test.ts, tests/browser/emotes.spec.ts
 Done when: G+1–5 triggers 67, Macarena, teabag, dab and floss on both character versions; poses animate briefly and cancel on movement/jump; the guide explains chords without extra HUD panels; co-op teammates see server-validated emotes.
+
+#### T19 Level 3 progression and saturated watering
+Owner: Codex. Needs: T18.
+Scope: reproduce the reported Level 3 block, verify its remaining achievements and next-level transition; reject irrigation of flooded or saturated destinations without spending water or awarding coins. Preserve fire extinguishing.
+Done when: Level 3 can complete its achievable goals and enter Level 4; flooded/full plots cannot accept extra irrigation; regression checks cover water conservation and progression.

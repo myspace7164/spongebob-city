@@ -24,6 +24,7 @@ function advance(s: CityState, seconds: number) {
 test("limited sponge transfers water into useful finite capacity; asphalt cannot receive it", () => {
   const s = createCity();
   const initial = totalWater(s);
+  s.plots[1].surface = 0;
   s.plots[0].surface = 1000;
   const before = totalWater(s);
   act(s, "absorb", at(s, 0), 0, 1000);
@@ -95,6 +96,8 @@ test("temporary capacity expires without deleting water; cooldown and unlock are
 
 test("Sandy upgrade enables distant bubbles, is charged once and requires visiting workshop", () => {
   const s = createCity();
+  s.plots[0].surface += s.plots[3].surface;
+  s.plots[3].surface = 0;
   s.sponge = 400;
   s.plots[3].kind = "tree";
   const position = { x: -4, y: 0, z: -5 };
@@ -224,4 +227,39 @@ test("a complete legal collect/distribute/build strategy wins the mission", () =
     }),
   );
   assert.ok(s.budget >= 0);
+});
+
+test("flooded and full plots reject irrigation without spending water or paying grants", () => {
+  for (const kind of [
+    "soil",
+    "tree",
+    "basin",
+    "roof",
+    "tank",
+    "pond",
+    "shade",
+  ] as const) {
+    const s = createCity(),
+      p = s.plots[0];
+    p.kind = kind;
+    p.surface = 20;
+    s.sponge = 100;
+    const before = structuredClone(s);
+    assert.match(act(s, "spray", at(s, 0), 0, 50), /flooded/);
+    assert.equal(s.sponge, before.sponge);
+    assert.equal(s.reused, before.reused);
+    assert.deepEqual(s.funding, before.funding);
+    assert.deepEqual(p, before.plots[0]);
+    p.surface = 0;
+    p.moisture = c.soilCapacity;
+    p.stored = c.storageCapacity;
+    act(s, "spray", at(s, 0), 0, 50);
+    assert.equal(s.sponge, 100);
+    assert.equal(s.reused, 0);
+    p.moisture = 0;
+    p.stored = 0;
+    act(s, "spray", at(s, 0), 0, 50);
+    assert.equal(s.sponge, 50);
+    assert.equal(s.reused, 50);
+  }
 });

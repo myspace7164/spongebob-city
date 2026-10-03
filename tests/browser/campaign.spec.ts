@@ -403,3 +403,55 @@ test("briefing reveals briskly with a bounded wah-wah voice; mute and early star
   await page.locator("#read-story").click();
   await expect(mascot).toHaveCSS("animation-name", "none");
 });
+
+test("Level 3 wider-gap shade neighbors advance to the Level 4 briefing", async ({
+  page,
+}) => {
+  for (const name of ["spongebob", "basel-city"])
+    await page.route(`**/models/${name}.glb`, (route) =>
+      route.fulfill({
+        status: 404,
+        body: "Progression fixture uses fallback geometry",
+      }),
+    );
+  await page.route("**/src/game/campaign.ts*", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    const marker = "applyLayout(s, cityLevels[0]);";
+    expect(source).toContain(marker);
+    await route.fulfill({
+      response,
+      body: source.replace(
+        marker,
+        `${marker}
+      s.campaign.level = 2;
+      s.campaign.completed = ["riehenring", "erlenmatt"];
+      applyLayout(s, cityLevels[2]);
+      s.plots[4].kind = "shade"; s.plots[8].kind = "shade";
+      s.plots[0].kind = "roof"; s.plots[1].kind = "roof";
+      for (const id of [2, 3, 5]) { s.plots[id].kind = "tree"; s.plots[id].moisture = 100; }
+      s.reused = 1000; s.campaign.stormCompleted = true;
+    `,
+      ),
+    });
+  });
+  await page.route("**/config/modifiers.ts*", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      body: (await response.text()).replace(
+        "spinDurationMs: 4100",
+        "spinDurationMs: 100",
+      ),
+    });
+  });
+  await page.goto("/");
+  await page.locator("#play").click();
+  await expect(page.locator("#story-title")).toContainText("St. Johann");
+  await page.locator("#story-start").click();
+  await expect(page.locator("#modifier-wheel")).toBeVisible();
+  await page.locator("#wheel-spin").click();
+  await page.locator("#wheel-continue").click();
+  await expect(page.locator("#story-title")).toContainText("VoltaNord");
+  await expect(page.locator("#mission-level")).toContainText("LEVEL 4/4");
+});

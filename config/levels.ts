@@ -64,7 +64,8 @@ export const campaignConfig = {
   overflowRate: 60,
   basinInfiltrationRate: 90,
   basinDrainRate: 75,
-  shadeNeighbourDistance: cityConfig.plotSpacing * 1.05,
+  // Placeholder streets include a 2 m wider gap between neighboring rows.
+  shadeNeighbourDistance: cityConfig.plotSpacing + 2,
 };
 export const arrivalStory = {
   title: "Basel burns. Sponge to the rescue.",

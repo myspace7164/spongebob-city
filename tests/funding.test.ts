@@ -24,7 +24,7 @@ test("useful transfers and builds award spendable grants; failed and repeated ac
   act(s, "absorb", at(s, 0), 0, 0);
   assert.equal(s.funding.earned, 0);
   act(s, "absorb", at(s, 0), 0, 50);
-  act(s, "absorb", at(s, 0), 0, 50);
+  act(s, "absorb", at(s, 0), 0, 100);
   assert.equal(s.funding.earned, f.collect);
   act(s, "karate", at(s, 0), 0);
   act(s, "tree", at(s, 0), 0);
