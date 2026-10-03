@@ -32,6 +32,10 @@ All coefficients, litres, area and temperatures are fictional gameplay values, n
 
 ## Visual direction
 
+## City funding rewards
+
+Keep available coins in a large gold wallet beside the weather and sound controls, outside the scrollable mission list. Useful player actions earn fictional government grants: first water collection and delivery per plot, each new construction type per plot, a safe runoff route per source, disabling sabotage and installing the sponge upgrade. Patrick and automatic maximum absorption use the same rules. Each grant is claimed once per level; rebuilding, repeated inputs and refunds cannot farm funding. Levels and retries reset the grant ledger with the city. A short rising coin chime, wallet bounce, flying coin burst and visible `+coins · City funding` receipt celebrate actual grants, including builds whose cost exceeds the grant. Mute, pause and reduced motion remain respected. Reward amounts live in config.
+
 Basel street centrelines become batched translucent road/path surfaces over a
 local SWISSIMAGE orthophoto. Both share the building model's LV95 origin and
 bounds. The fictional mission rectangle remains clear. This is visual scenery:
