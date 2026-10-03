@@ -1,6 +1,6 @@
 # Blender character source and export
 
-State: assets saved and verified; committing and syncing with main.
+State: done; assets and scripts verified and integrated with shared main.
 
 Goal: keep the edited Blender project and its GLB output in the repository.
 
@@ -16,8 +16,8 @@ Checks: build, 19 tests, formatting, doc-check and git diff --check passed.
 GLB loads with Three.js at 1.9 units tall with feet at the origin. Mesh snapshots
 match before and after armature creation. Local setup is now complete.
 
-Next: run the staged privacy guard, commit, integrate remote main, run checks
-on the merged result and push. Preserve teammate changes from remote main.
+Next: bind and weight the meshes only when requested. The existing topology
+issues identified in the read-only inspection still need review before deformation.
 
 Notes: Sphere.001 has a distant origin but geometry beside the face; the export
 now includes it. Camera, light and the unbound armature are excluded from GLB.
