@@ -27,6 +27,7 @@ import {
   connectRunoff,
   createCampaign,
   currentLevel,
+  startCampaignAt,
   levelPosition,
   recyclePlot,
   startNextCampaignLevel,
@@ -34,6 +35,8 @@ import {
 import { clampToLevel, worldToMap } from "./game/streets.ts";
 import { assignElevations, levelScenery } from "./game/terrain.ts";
 import { CampaignUI } from "./ui/campaign.ts";
+import { applyBuiltLevel } from "../config/levels.ts";
+import type { createLevelBuilder } from "./ui/level-builder.ts";
 import { CityAudio } from "./game/audio.ts";
 import { createCityView } from "./game/city-view.ts";
 import { CityUI } from "./ui/city.ts";
@@ -58,6 +61,10 @@ import {
   effectivePlayerVisualScale,
   modifierMultiplier,
 } from "./game/level-modifiers.ts";
+import {
+  restoreHatCollection,
+  saveHatCollection,
+} from "./game/hat-collection.ts";
 import { purchaseHat } from "./game/hats.ts";
 import { HatShopUI } from "./ui/hat-shop.ts";
 import { CollisionDebugView } from "./game/collision-debug.ts";
@@ -79,7 +86,7 @@ function startGame(): void {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
-    powerPreference: "low-power",
+    powerPreference: "high-performance",
   });
   renderer.setPixelRatio(Math.min(devicePixelRatio, gameConfig.maxPixelRatio));
   const scene = new THREE.Scene();
@@ -108,9 +115,16 @@ function startGame(): void {
     if (document.hidden) audio.update(false, false);
   });
   let city = createCampaign();
+  restoreHatCollection(city, localStorage);
+  world.equipHat(city.campaign?.equippedHat ?? null);
+  canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";
   const spawnPlayer = () => {
     const player = createPlayer();
-    Object.assign(player.position, levelPosition(city, player.position));
+    // Built levels may set their own spawn point and facing.
+    const site = currentLevel(city)?.site;
+    const [x, z] = site?.start ?? [0, 0];
+    Object.assign(player.position, levelPosition(city, { x, z }));
+    input.yaw = site?.startYaw ?? 0;
     return player;
   };
   let player = spawnPlayer();
@@ -125,7 +139,6 @@ function startGame(): void {
     () => {
       if (!startNextCampaignLevel(city)) return;
       player = spawnPlayer();
-      input.yaw = 0;
       input.pitch = 0.28;
       targetId = null;
       accumulator = 0;
@@ -207,6 +220,9 @@ function startGame(): void {
     remotePlayers.clear();
     receivedCode = null;
     city = createCampaign();
+    restoreHatCollection(city, localStorage);
+    world.equipHat(city.campaign?.equippedHat ?? null);
+    canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";
     checkpoint = structuredClone(city);
     player = spawnPlayer();
     storyPending = true;
@@ -233,6 +249,7 @@ function startGame(): void {
       world.equipHat(nextHat);
       canvas.dataset.equippedHat = nextHat ?? "none";
     }
+    if (hatShop.open) hatShop.render();
     city.selected = selected;
     if (!changedLevel && !freshRoom) {
       ledger.earned = city.funding.earned;
@@ -290,13 +307,21 @@ function startGame(): void {
   const hatShop = new HatShopUI(
     () => city.budget,
     () => city.campaign?.equippedHat ?? null,
+    () => city.campaign?.ownedHats ?? [],
     (id: HatId) => {
+      if (network.room) {
+        void network.action({ equippedHat: id });
+        return true;
+      }
       if (!purchaseHat(city, id)) return false;
+      saveHatCollection(city, localStorage);
       world.equipHat(id);
       canvas.dataset.equippedHat = id;
       checkpoint.budget = city.budget;
-      if (checkpoint.campaign) checkpoint.campaign.equippedHat = id;
-      if (network.room) void network.action({ equippedHat: id });
+      if (checkpoint.campaign) {
+        checkpoint.campaign.equippedHat = id;
+        checkpoint.campaign.ownedHats = [...(city.campaign?.ownedHats ?? [])];
+      }
       ui.render(city, targetId, inReach());
       return true;
     },
@@ -335,8 +360,14 @@ function startGame(): void {
       return;
     }
     audio.update(false, false);
+    const ownedHats = [...(city.campaign?.ownedHats ?? [])];
+    const equippedHat = city.campaign?.equippedHat ?? null;
     city =
       city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
+    if (city.campaign) {
+      city.campaign.ownedHats = ownedHats;
+      city.campaign.equippedHat = equippedHat;
+    }
     if (city.campaign?.activeModifier) city.campaign.activeModifier = null;
     world.equipHat(city.campaign?.equippedHat ?? null);
     canvas.dataset.equippedHat = city.campaign?.equippedHat ?? "none";
@@ -347,7 +378,7 @@ function startGame(): void {
     campaignUI.hide();
     modifierWheel.hide();
     input.clear();
-    input.yaw = 0;
+    input.yaw = currentLevel(city)?.site?.startYaw ?? 0;
     input.pitch = 0.28;
     targetId = null;
     accumulator = 0;
@@ -406,6 +437,71 @@ function startGame(): void {
         message.textContent;
     }
   }
+  // ---- Dev-only level builder ----
+  // Off unless `npm run dev` runs with VITE_LEVEL_BUILDER=1 or the URL has ?builder;
+  // never available in an online co-op room, so shared games stay untouched.
+  const builderEnabled =
+    import.meta.env.DEV &&
+    (import.meta.env.VITE_LEVEL_BUILDER === "1" ||
+      new URLSearchParams(location.search).has("builder"));
+  let builder: ReturnType<typeof createLevelBuilder> | undefined;
+  const openBuilder = () => {
+    if (!builder || builder.active) return;
+    if (network.room) {
+      message.textContent =
+        "The level builder is not available in an online room.";
+      return;
+    }
+    document.exitPointerLock();
+    builder.toggle();
+    menu.hidden = true;
+    crosshair.hidden = true;
+  };
+  const closeBuilder = (play = true) => {
+    if (!builder?.active) return;
+    builder.toggle();
+    if (play) {
+      storyPending = false;
+      void enterGame();
+    } else menu.hidden = false;
+  };
+  if (builderEnabled)
+    void import("./ui/level-builder").then(({ createLevelBuilder }) => {
+      builder = createLevelBuilder({
+        scenery,
+        camera,
+        canvas,
+        levelIndex: () => city.campaign!.level,
+        terrain: () => terrain,
+        groundAt,
+        // Test play: the draft replaces that level in memory and starts at once.
+        testPlay: (levelId, level) => {
+          if (network.room) return;
+          const index = applyBuiltLevel(levelId, level);
+          city = startCampaignAt(index);
+          checkpoint = structuredClone(city);
+          placeScenery();
+          player = spawnPlayer();
+          input.pitch = 0.28;
+          targetId = null;
+          accumulator = 0;
+          hudTime = 0;
+          closeBuilder();
+        },
+        backToGame: () => closeBuilder(),
+        showGameScene: (visible) => {
+          cityView.setVisible(visible);
+          world.character.visible = visible;
+          trees?.setGhost(!visible);
+        },
+      });
+      const open = document.createElement("button");
+      open.type = "button";
+      open.className = "level-builder-open";
+      open.textContent = "🛠 Level builder (dev)";
+      open.addEventListener("click", openBuilder);
+      menu.append(open);
+    });
   play.addEventListener("click", () => {
     if (!onlineUI.requireAccount()) return;
     storyPending ? showStory() : void enterGame();
@@ -432,7 +528,8 @@ function startGame(): void {
       campaignUI.open ||
       hatShop.open ||
       modifierWheel.open ||
-      city.outcome !== "playing";
+      city.outcome !== "playing" ||
+      !!builder?.active;
     crosshair.hidden = !input.active;
     accumulator = 0;
     lastTime = performance.now();
@@ -441,6 +538,10 @@ function startGame(): void {
     if (!event.repeat && keyCode(event) === "KeyM") soundToggle.click();
     if (event.repeat || !input.active || city.outcome !== "playing") return;
     const code = keyCode(event);
+    if (code === "KeyN" && builder && !network.room) {
+      openBuilder();
+      return;
+    }
     if (code === "KeyT") {
       openHatShopDuringGame();
       return;
@@ -712,7 +813,6 @@ function startGame(): void {
         }
         if (city.campaign!.level !== previousLevel) {
           player = spawnPlayer();
-          input.yaw = 0;
           input.pitch = 0.28;
           targetId = null;
           accumulator = 0;
@@ -841,6 +941,11 @@ function startGame(): void {
       groundAt(camera.position.x, camera.position.z) + 0.5,
     );
     camera.lookAt(target);
+    // The level builder flies its own editor camera while it is open.
+    if (builder?.active) {
+      if (network.room) closeBuilder(false);
+      else builder.updateCamera(dt);
+    }
     camera.updateMatrixWorld();
     targetId = cityView.target(city, camera);
     cityView.update(

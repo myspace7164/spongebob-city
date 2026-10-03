@@ -822,6 +822,10 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       groundAt = ground;
       groundVersion++;
     },
+    /** Hide the mission's own plots and characters (the level builder draws its own). */
+    setVisible(visible: boolean) {
+      root.visible = visible;
+    },
     useImportedLevel() {
       importedLevel = true;
       architecture.visible = false;
@@ -859,7 +863,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       const level = currentLevel(s);
       const origin = level?.origin ?? { x: 0, z: 0 };
       root.position.set(origin.x, 0, origin.z);
-      root.updateMatrixWorld(true);
+      root.updateWorldMatrix(true, false);
       const ground = (x: number, z: number) => groundAt(x, z);
       playerGround = ground(player.position.x, player.position.z);
       const targetPlot = s.plots.find((p) => p.id === targetId);
@@ -1151,8 +1155,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
 
       // Character and vehicle remain sibling roots; the anchor couples their
       // placement during play without merging their controls or visibility.
-      root.updateMatrixWorld(true);
-      machine.updateMatrixWorld(true);
+      root.updateWorldMatrix(true, false);
       const driverWorld = driverPoint.getWorldPosition(new THREE.Vector3());
       root.worldToLocal(driverWorld);
       beton.position.copy(driverWorld);
@@ -1229,7 +1232,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           s.machineDisabled > 0 ? 0.05 : 0.25 + chargeAmount * 2;
       });
 
-      beton.updateMatrixWorld(true);
       const aimPoint = new THREE.Vector3(
         player.position.x,
         player.position.y + 1.15,

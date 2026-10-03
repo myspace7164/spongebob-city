@@ -136,6 +136,16 @@ export function createTrees(
   place(new Set());
   return {
     group,
+    /** See-through trees while building, so they don't hide what lies beneath. */
+    setGhost(ghost: boolean) {
+      for (const mesh of [trunks, crowns, cones]) {
+        const material = mesh.material as THREE.MeshLambertMaterial;
+        material.transparent = ghost;
+        material.opacity = ghost ? 0.3 : 1;
+        material.depthWrite = !ghost;
+        material.needsUpdate = true;
+      }
+    },
     /** Hide trees near these map-local points (the level's spots); cheap when unchanged. */
     clearAround(points: [number, number][]) {
       const key = points

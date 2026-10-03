@@ -142,11 +142,11 @@ for (const imported of [true, false]) {
         "absorb",
         "spray",
         "karate",
-        "tree",
         "basin",
+        "tree",
         "roof",
-        "pond",
         "shade",
+        "pond",
         "tank",
       ].map((id) => [`held-${id}`]),
     );

@@ -5,6 +5,7 @@ import {
 import { campaignConfig as c, cityLevels } from "../../config/levels.ts";
 import { cityConfig, cityTools } from "../../config/city.ts";
 import type {
+  NpcId,
   CityLevel,
   CityPlot,
   CityState,
@@ -59,6 +60,7 @@ export function createCampaign(random: () => number = Math.random): CityState {
     wheelPending: false,
     pendingModifier: null,
     activeModifier: null,
+    ownedHats: [],
     equippedHat: null,
   };
   applyLayout(s, currentLevel(s)!);
@@ -74,14 +76,30 @@ function applyLayout(s: CityState, level: CityLevel): void {
     ...position,
     // Each level's street decides which techniques fit its fresh plots.
     site: position.site,
+    builds: position.builds,
   }));
   placePowerups(s, level.origin);
   s.feedback = level.objective;
-  const start = levelPosition(s, cityConfig.machine);
+  const start = npcPosition(s, "beton");
   Object.assign(s.saboteur, start, {
     destinationX: start.x,
     destinationZ: start.z,
   });
+}
+/** World position of a character in the active level (its own place or the default). */
+export function npcPosition(s: CityState, id: NpcId) {
+  const own = currentLevel(s)?.site?.npcs?.[id];
+  return levelPosition(
+    s,
+    own ? { x: own[0], z: own[1] } : cityConfig.npcDefaults[id],
+  );
+}
+/** A fresh campaign that starts directly at a level (level builder "Test play"). */
+export function startCampaignAt(level: number): CityState {
+  const s = createCampaign();
+  s.campaign!.level = level;
+  applyLayout(s, cityLevels[level]);
+  return s;
 }
 /** Place local controls/NPCs at the active fictional neighbourhood. */
 export function levelPosition(s: CityState, local: { x: number; z: number }) {
@@ -273,6 +291,7 @@ export function startNextCampaignLevel(s: CityState): boolean {
     wheelPending: false,
     pendingModifier: null,
     activeModifier: progress.pendingModifier,
+    ownedHats: [...(progress.ownedHats ?? [])],
     equippedHat: progress.equippedHat,
   };
   Object.assign(s, createCity(), { campaign: next });

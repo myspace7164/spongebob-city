@@ -304,11 +304,11 @@ function act(
           : "This plot cannot take more water. Unseal asphalt or choose another green plot/tank.";
   }
   const site = p.site && siteTechniques[p.site];
-  if (site && action !== "karate" && !site.builds.includes(action)) {
-    const fits = site.builds.map(
-      (id) => cityTools.find((t) => t.id === id)!.name,
-    );
-    return `${site.hint}${fits.length ? ` Fits here: ${fits.join(", ")}.` : ""}`;
+  // A built level may allow other techniques on one spot than its site type does.
+  const builds = p.builds ?? site?.builds;
+  if (builds && action !== "karate" && !builds.includes(action)) {
+    const fits = builds.map((id) => cityTools.find((t) => t.id === id)!.name);
+    return `${site?.hint ?? "This spot has its own rules."}${fits.length ? ` Fits here: ${fits.join(", ")}.` : ""}`;
   }
   if (action === "karate" && p.kind !== "asphalt")
     return "Already unsealed. Choose a tree, rain garden or other upgrade.";
@@ -519,6 +519,5 @@ export function updateCity(
     s.campaign.activeModifier = null;
     s.campaign.pendingModifier = null;
     s.campaign.wheelPending = false;
-    s.campaign.equippedHat = null;
   }
 }

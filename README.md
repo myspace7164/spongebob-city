@@ -69,6 +69,8 @@ npm run test:browser
 
 ## Extend
 
+The level builder is a local development tool. Run `npm run dev` and open `/?builder` to place an area's bounds, construction spots, player spawn and characters; press **N** to open or close it during play. **Save** writes the validated draft to `config/built-levels/index.ts`. It is disabled in production and cannot open after joining an online room. Review the generated level in the game before committing it.
+
 SpongeBob carries a miniature of the selected tool in his right hand. Both the Blender character and fallback swing their arms and legs while walking; hold either Shift key to sprint with a faster gait. Shift held before mouse capture also works; the footer shows RUNNING while sprint is active. Idle arms hang naturally, and the imported character's teeth are white. Runtime limb pivots preserve Dry/WaterFull morph targets; the original Blender source stays intact.
 
 Dr. Beton roams the neighbourhood in his Asphaltinator. When sabotage starts, a red path shows his destination; he walks there and visibly seals before restoring asphalt. Catch him at his current position with E or karate to cancel the attack and disable him. His red eyes, dark outfit and jagged grin mark him as the villain. Movement, attacks and equipment animation pause with the mission.

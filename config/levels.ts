@@ -1,5 +1,11 @@
 import { baselLocations } from "./level-locations.ts";
-import type { CityLevel, LevelSite, SiteType } from "../src/interfaces.ts";
+import type {
+  BuiltLevel,
+  CityLevel,
+  LevelSite,
+  SiteType,
+} from "../src/interfaces.ts";
+import { builtLevels } from "./built-levels/index.ts";
 import { cityConfig } from "./city.ts";
 
 /** User-supplied story; all layouts and thresholds are illustrative; real map anchors use climate-risk area evidence. */
@@ -81,7 +87,7 @@ export const endingStory = {
     "Small fixes. Big difference. One plot at a time.",
   ],
 };
-export const cityLevels: readonly CityLevel[] = [
+const storyLevels: readonly CityLevel[] = [
   {
     id: "riehenring",
     location: baselLocations[0].name,
@@ -206,3 +212,29 @@ export const cityLevels: readonly CityLevel[] = [
     ],
   },
 ];
+
+/** A story level placed where a builder level says, under its new name. */
+function withBuilt(level: CityLevel, built: BuiltLevel | undefined): CityLevel {
+  return built
+    ? {
+        ...level,
+        location: built.location,
+        site: built.site,
+        layout: built.spots,
+        origin: { x: 0, z: 0 },
+      }
+    : level;
+}
+
+/** Levels saved from the dev-only level builder replace that level's place and spots. */
+export const cityLevels: readonly CityLevel[] = storyLevels.map((level) =>
+  withBuilt(level, builtLevels[level.id]),
+);
+
+/** Level builder "Test play": use a draft for one level in memory, without saving it. */
+export function applyBuiltLevel(id: string, built: BuiltLevel): number {
+  const index = storyLevels.findIndex((level) => level.id === id);
+  if (index < 0) throw new Error(`Unknown level ${id}`);
+  (cityLevels as CityLevel[])[index] = withBuilt(storyLevels[index], built);
+  return index;
+}

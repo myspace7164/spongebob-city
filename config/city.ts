@@ -71,6 +71,14 @@ export const cityConfig = {
   goals: { permeable: 6, trees: 4, reused: 2500, heat: 48, flood: 28 },
   machine: { x: 11, z: -24 },
   sandy: { x: -12, z: -12 },
+  /** Characters around the start (play coordinates); built levels may move them. */
+  npcDefaults: {
+    patrick: { x: -11, z: -3 },
+    krabs: { x: -11, z: 2 },
+    sandy: { x: -12, z: -12 },
+    squidward: { x: 12, z: -5 },
+    beton: { x: 11, z: -24 },
+  },
   bounds: { minX: -14, maxX: 14, minZ: -25, maxZ: 5 },
 };
 
