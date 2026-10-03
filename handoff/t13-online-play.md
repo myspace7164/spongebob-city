@@ -6,3 +6,5 @@ Next: hosted deployment needs the provider; none supplied, so no hosted deployme
 Notes: browser tests own a fresh server on port 5174. Freeze source edits during browser checks; HMR reloads erase fixtures. Networking tests use procedural scenery; map tests verify imported facades separately. Software-rendered long gameplay/network cases have a 150-second allowance. Local user preview on port 5173 remains running.
 
 Final shared-ground integration: build and all 66 unit/API tests pass; all seven affected browser checks pass (missions/progression/retry, full gameplay/reset, imported ground/map, co-op and progressive tools). Earlier full 21-case browser coverage retained; shared ground and mission cleanup preserved. Privacy and documentation checks pass.
+
+Latest push race: remote advanced again to b3b627d with gradual heat/fire system; push was safely rejected. Currently on feat/t13-multiplayer resolving this additional merge. Preserve heat/fire, English loss text, power-up tick and lantern gradual cooling; build/unit/affected browser checks needed before retrying push. No changes were force-pushed.

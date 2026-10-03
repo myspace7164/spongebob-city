@@ -106,6 +106,8 @@ export interface CityState {
   powerups: PowerupState;
   plots: CityPlot[];
   elapsed: number;
+  /** Global city temperature in Celsius; heat remains a normalized risk meter. */
+  temperature: number;
   heat: number;
   flood: number;
   sponge: number;
@@ -119,6 +121,10 @@ export interface CityState {
   stormSeen: boolean;
   outcome: "playing" | "won" | "lost";
   dangerTime: number;
+  lossReason?: string;
+  fires: CityFire[];
+  fireSpawnTimer: number;
+  fireSequence: number;
   sabotageIn: number;
   machineDisabled: number;
   saboteur: {
@@ -142,6 +148,12 @@ export interface CityState {
   feedback: string;
   /** Absent for the reusable single-mission sandbox. */
   campaign?: CampaignProgress;
+}
+export interface CityFire {
+  id: number;
+  plotId: number;
+  intensity: number;
+  size: 0 | 1 | 2;
 }
 export interface CampaignProgress {
   level: number;

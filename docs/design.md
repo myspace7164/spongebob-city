@@ -20,7 +20,7 @@ Dry periods alternate with thunderstorms. Each plot holds surface water, soil mo
 
 Patrick can remove several nearby asphalt slabs. Sandy sells a capacity/bubble upgrade. Squidward comments on shade and Mr. Krabs tracks the construction budget. Dr. Beton's Asphaltinator reseals an exposed green plot periodically; nearby karate disables it temporarily.
 
-The HUD shows heat, flood danger, sponge capacity, weather, budget and mission progress. Each level has its own construction, reuse, heat/flood and storm achievements. Prolonged maximum danger loses the mission. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
+The HUD shows city temperature and heat risk, flood danger, sponge capacity, weather, budget and mission progress. Asphalt and Dr. Beton's sealing slowly increase temperature; rain, watered trees, green plots, ponds and shade cool it. SpongeBob's Dry morph starts blending above 36°C, fires begin above 40°C, and temperatures over 60°C lose the mission; prolonged critical flooding also causes a loss. Both outcomes show measured simulation changes in temperature, water retained, tree count and unsealed area, with restart.
 
 ## Structure and limits
 
@@ -88,3 +88,5 @@ All game text is English. Compact colorful gauges put labels and readings inside
 Six Basel-themed boosts and the four existing powers form a ten-type collectible pool. Each level starts with one capacity drop; later drops appear at least 60 seconds apart with at most one waiting. Walking over a drop fills the single held/active slot and replaces its previous effect. Q activates once; H also offers activation. Effects expire without deleting water. Co-op claims are authoritative. Fresh levels/retries reset pickups.
 
 Tools unlock alongside missions: water, karate and rain gardens in level 1; trees in 2; roofs/shade in 3; ponds/tanks in 4. Locked gray tiles show remaining levels, and UI/keyboard/server actions enforce availability. The mission checklist is short; heat/flood targets remain visible as safety readings.
+
+Emotes stay behind Alt+1–5: 67, Macarena, teabag, dab and floss. Original procedural arm/leg and body motion uses existing character pivots on both the Blender and fallback characters. Timed poses cancel on movement/jump and restore the walking/idle rig. Co-op relays validated emote identity/timing; no reward or gameplay advantage. The field guide lists shortcuts without adding an always-visible emote panel.

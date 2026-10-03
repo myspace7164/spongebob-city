@@ -35,10 +35,17 @@
         Sound: on
       </button>
     </header>
-    <section id="city-hud" aria-label="City danger and water capacity">
+    <section
+      id="city-hud"
+      aria-label="City temperature, flood danger and water capacity"
+    >
       <div class="meter heat">
-        <div>🌡️ HEAT <strong id="heat-value"></strong></div>
-        <progress id="heat-meter" max="100" aria-label="Heat danger"></progress>
+        <div>🌡️ CITY TEMP <strong id="heat-value"></strong></div>
+        <progress
+          id="heat-meter"
+          max="100"
+          aria-label="City heat risk"
+        ></progress>
       </div>
       <div class="meter flood">
         <div>🌊 FLOOD <strong id="flood-value"></strong></div>

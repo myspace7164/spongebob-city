@@ -9,7 +9,7 @@ import {
 import { powerupConfig } from "../../config/powerups";
 import { updateWater } from "./city-water";
 import { advanceCampaign, currentLevel, levelPosition } from "./campaign";
-import { cityConfig as c, cityTools, plotCooling } from "../../config/city";
+import { cityConfig as c, cityTools } from "../../config/city";
 import { siteTechniques } from "../../config/sites";
 import { fundingConfig as funding } from "../../config/funding";
 import { grantFunding } from "./funding";
@@ -35,7 +35,8 @@ export function createCity(): CityState {
       stored: 0,
     })),
     elapsed: 0,
-    heat: c.initialHeat,
+    temperature: c.heatSystem.startingCelsius,
+    heat: 0,
     flood: (100 * c.plotCount * c.initialSurface) / c.floodLitres,
     sponge: 0,
     budget: c.budget,
@@ -47,6 +48,9 @@ export function createCity(): CityState {
     stormSeen: false,
     outcome: "playing",
     dangerTime: 0,
+    fires: [],
+    fireSpawnTimer: 0,
+    fireSequence: 0,
     sabotageIn: c.sabotageInterval,
     machineDisabled: 0,
     saboteur: {
@@ -101,8 +105,7 @@ export function cityMetrics(s: CityState): CityMetrics {
     ).length,
     retained: s.plots.reduce((n, p) => n + p.moisture + p.stored, 0),
     unsealedArea: permeable * c.plotArea,
-    temperature:
-      c.temperatureBase + (s.heat * c.temperatureSpan) / c.initialHeat,
+    temperature: s.temperature,
   };
 }
 const distance = (p: { x: number; z: number }, position: Vector3State) =>
@@ -111,6 +114,26 @@ const storagePlot = (p: CityPlot) => ["tank", "pond", "roof"].includes(p.kind);
 
 /** Transfer only available water into finite useful capacity; asphalt cannot be irrigated. */
 function spray(s: CityState, p: CityPlot, amount: number): number {
+  const fire = s.fires.find((active) => active.plotId === p.id);
+  if (fire) {
+    if (s.sponge <= 0) return 0;
+    const used = Math.min(
+      s.sponge,
+      amount,
+      fire.intensity * c.heatSystem.fireWaterPerIntensity,
+    );
+    s.sponge -= used;
+    s.reused += used;
+    fire.intensity = Math.max(
+      0,
+      fire.intensity - used / c.heatSystem.fireWaterPerIntensity,
+    );
+    if (fire.intensity <= 0.01) {
+      s.fires = s.fires.filter((active) => active.id !== fire.id);
+      grantFunding(s, `extinguish:${fire.id}`, funding.irrigate);
+    }
+    return used;
+  }
   if (p.kind === "asphalt") return 0;
   const field = storagePlot(p) ? "stored" : "moisture";
   const limit = field === "stored" ? c.storageCapacity : c.soilCapacity;
@@ -237,7 +260,14 @@ function act(
         : "No surface water here. Collect from the blue puddles.";
   }
   if (action === "spray") {
+    const wasBurning = s.fires.some((fire) => fire.plotId === p.id);
     const litres = spray(s, p, amount);
+    if (wasBurning)
+      return litres > 0
+        ? s.fires.some((fire) => fire.plotId === p.id)
+          ? `Water on the fire · ${Math.round(litres)} L used. Keep spraying to extinguish it.`
+          : `Fire extinguished · ${Math.round(litres)} L water used!`
+        : "Your sponge is empty. Absorb water before fighting the fire.";
     return litres > 0
       ? `${bubbles ? "Bubble irrigation" : "Water delivered"} · ${Math.round(s.reused)} L reused. Every drop counts!`
       : s.sponge <= 0
@@ -273,6 +303,102 @@ function act(
     : `${tool.name} built · ${c.plotArea} m² transformed. ${s.budget} coins left.`;
 }
 
+function updateTemperature(s: CityState, dt: number, raining: boolean): void {
+  const heat = c.heatSystem;
+  const sealedPlots = s.plots.filter((p) => p.kind === "asphalt").length;
+  const trees = s.plots
+    .filter((p) => p.kind === "tree")
+    .reduce(
+      (sum, p) =>
+        sum + 0.25 + 0.75 * Math.min(1, p.moisture / c.moistureHealthy),
+      0,
+    );
+  const greenAreas = s.plots.filter((p) =>
+    ["soil", "basin", "roof"].includes(p.kind),
+  ).length;
+  const ponds = s.plots.filter((p) => p.kind === "pond").length;
+  const shadePlaces = s.plots.filter((p) => p.kind === "shade").length;
+  const warming =
+    heat.passiveWarmingPerSecond +
+    sealedPlots * heat.sealedPlotWarmingPerSecond +
+    (s.saboteur.phase === "sealing"
+      ? heat.concreteProductionWarmingPerSecond
+      : 0);
+  const cooling =
+    (raining ? heat.rainCoolingPerSecond : 0) +
+    trees * heat.treeCoolingPerSecond +
+    greenAreas * heat.greenAreaCoolingPerSecond +
+    ponds * heat.pondCoolingPerSecond +
+    shadePlaces * heat.shadeCoolingPerSecond +
+    (isPowerupActive(s, "lantern") ? powerupConfig.lanternCooling : 0);
+  const changePerSecond = Math.max(
+    -heat.maximumChangePerSecond,
+    Math.min(heat.maximumChangePerSecond, warming - cooling),
+  );
+  s.temperature = Math.max(
+    heat.minimumCelsius,
+    s.temperature + changePerSecond * dt,
+  );
+  s.heat = Math.max(
+    0,
+    Math.min(
+      100,
+      ((s.temperature - heat.startingCelsius) /
+        (heat.gameOverCelsius - heat.startingCelsius)) *
+        100,
+    ),
+  );
+}
+
+function fireInterval(temperature: number): number {
+  const tier = Math.max(
+    0,
+    Math.min(3, Math.floor((temperature - c.heatSystem.fireStartCelsius) / 5)),
+  );
+  return c.heatSystem.fireIntervals[tier];
+}
+
+function updateFires(s: CityState, dt: number): void {
+  const heat = c.heatSystem;
+  if (s.temperature <= heat.fireStartCelsius) return;
+  for (const fire of s.fires)
+    fire.intensity = Math.min(
+      1,
+      fire.intensity +
+        heat.fireGrowthPerDegreeSecond *
+          (s.temperature - heat.fireStartCelsius) *
+          dt,
+    );
+  s.fireSpawnTimer -= dt;
+  if (s.fireSpawnTimer > 0) return;
+  if (s.fires.length >= heat.maximumFires) {
+    s.fireSpawnTimer = fireInterval(s.temperature);
+    return;
+  }
+  const available = s.plots.filter(
+    (plot) => !s.fires.some((fire) => fire.plotId === plot.id),
+  );
+  if (!available.length) return;
+  const sequence = s.fireSequence++;
+  const plot = available[(sequence * 7 + 3) % available.length];
+  const tier = Math.max(
+    0,
+    Math.min(3, Math.floor((s.temperature - heat.fireStartCelsius) / 5)),
+  );
+  const maxSize = Math.min(
+    2,
+    Math.floor(Math.max(0, s.temperature - heat.fireStartCelsius) / 7.5),
+  );
+  const size = (maxSize === 0 ? 0 : sequence % (maxSize + 1)) as 0 | 1 | 2;
+  s.fires.push({
+    id: sequence + 1,
+    plotId: plot.id,
+    intensity: 0.55 + tier * 0.05,
+    size,
+  });
+  s.fireSpawnTimer = fireInterval(s.temperature);
+}
+
 /** Advance from fixed steps only; no clock progresses while the game is paused. */
 export function updateCity(
   s: CityState,
@@ -306,34 +432,20 @@ export function updateCity(
   ] as const)
     s[field] = Math.max(0, s[field] - dt * 1);
   updateSaboteur(s, dt);
-  const cooling = s.plots.reduce((n, p) => {
-    const wet =
-      (p.kind === "pond" ? p.stored : p.moisture) >= c.moistureHealthy;
-    return n + plotCooling[p.kind][wet ? "wet" : "dry"];
-  }, 0);
-  const targetHeat = Math.max(
-    c.minimumHeat,
-    Math.min(
-      100,
-      c.initialHeat +
-        (raining ? 0 : c.dryHeatBoost) -
-        cooling -
-        (isPowerupActive(s, "lantern") ? powerupConfig.lanternCooling : 0),
-    ),
-  );
-  s.heat += (targetHeat - s.heat) * (1 - Math.exp(-c.heatResponse * dt));
+  updateTemperature(s, dt, raining);
+  updateFires(s, dt);
   s.flood = Math.min(
     100,
     (100 * s.plots.reduce((n, p) => n + p.surface, 0)) / c.floodLitres,
   );
-  s.dangerTime =
-    s.heat >= c.criticalDanger || s.flood >= c.criticalDanger
-      ? s.dangerTime + dt
-      : 0;
+  s.dangerTime = s.flood >= c.criticalDanger ? s.dangerTime + dt : 0;
   updatePowerups(s, dt, position);
   const m = cityMetrics(s),
     goals = c.goals;
-  if (s.dangerTime >= c.dangerSeconds) s.outcome = "lost";
+  if (s.temperature > c.heatSystem.gameOverCelsius) {
+    s.outcome = "lost";
+    s.lossReason = "The city has overheated.";
+  } else if (s.dangerTime >= c.dangerSeconds) s.outcome = "lost";
   else if (s.campaign) advanceCampaign(s);
   else if (
     s.stormSeen &&

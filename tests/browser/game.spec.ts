@@ -81,11 +81,20 @@ test("city renders, water loop and construction work, powers and pause/reset are
   await page.keyboard.press("Escape");
   await expect(page.locator("#menu")).toBeVisible();
   await expect(page.locator("#crosshair")).toBeHidden();
-  const paused = await canvas.screenshot();
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
+  const pauseCapture = {
+    style: "body > :not(canvas) { visibility: hidden !important; }",
+  };
+  const paused = await canvas.screenshot(pauseCapture);
   await page.keyboard.down("KeyW");
   await page.waitForTimeout(200);
   await page.keyboard.up("KeyW");
-  expect((await canvas.screenshot()).equals(paused)).toBe(true);
+  expect((await canvas.screenshot(pauseCapture)).equals(paused)).toBe(true);
   await page.screenshot({ path: "/tmp/sponge-city-after.png" });
   await page.locator("#play").click();
   await page.keyboard.press("KeyR");

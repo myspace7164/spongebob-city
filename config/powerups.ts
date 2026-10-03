@@ -8,7 +8,7 @@ export const powerupConfig = {
   transferMultiplier: 2,
   reachMultiplier: 2,
   dropSeconds: 60,
-  lanternCooling: 20,
+  lanternCooling: 0.02,
   items: [
     {
       id: "laeckerli",
@@ -43,7 +43,8 @@ export const powerupConfig = {
       name: "Fasnacht Lantern",
       icon: "🏮",
       duration: 18,
-      description: "A cool carnival glow: reduce the heat target by 20 points.",
+      description:
+        "A cool carnival glow: extra gradual cooling for 18 seconds.",
     },
     {
       id: "bell",

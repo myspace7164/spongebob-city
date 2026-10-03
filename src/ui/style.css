@@ -167,6 +167,14 @@ progress::-moz-progress-bar {
 .heat progress::-moz-progress-bar {
   background: var(--warm-gradient);
 }
+.heat[data-warning="danger"] progress::-webkit-progress-value,
+.heat[data-warning="critical"] progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #ef8a39, #d92f2f);
+}
+.heat[data-warning="danger"] progress::-moz-progress-bar,
+.heat[data-warning="critical"] progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #ef8a39, #d92f2f);
+}
 .flood progress::-webkit-progress-value {
   background: var(--aqua-gradient);
 }

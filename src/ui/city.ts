@@ -49,7 +49,19 @@ export class CityUI {
       ? `⛈ STORM · ${Math.ceil(w.remaining)}s until dry`
       : `☀ DRY HEAT · storm in ${Math.ceil(w.remaining)}s`;
     element("heat-value").textContent =
-      `${m.temperature.toFixed(1)} °C · ${Math.round(s.heat)}%`;
+      `${m.temperature.toFixed(1)} °C · ${Math.round(s.heat)}% risk`;
+    const heatLevel =
+      m.temperature >= 55
+        ? "critical"
+        : m.temperature >= 45
+          ? "danger"
+          : m.temperature >= 36
+            ? "warm"
+            : "normal";
+    element("heat-meter").parentElement!.setAttribute(
+      "data-warning",
+      heatLevel,
+    );
     element("flood-value").textContent = `${Math.round(s.flood)}% danger`;
     element("sponge-value").textContent =
       `${number(s.sponge)} / ${number(capacity)} L`;
@@ -59,7 +71,7 @@ export class CityUI {
       ["sponge", s.sponge, capacity],
     ] as const) {
       const progress = element(`${name}-meter`) as HTMLProgressElement;
-      progress.max = max;
+      progress.max = name === "heat" ? 100 : max;
       progress.value = value;
       progress.parentElement!.classList.toggle(
         "critical",
@@ -282,9 +294,10 @@ export class CityUI {
       element("result-reason").textContent =
         s.outcome === "won"
           ? "You cooled the square, gave water a purpose and made room for life."
-          : "Flood danger stayed critical for too long. Try more rain gardens and storage before the storm.";
+          : (s.lossReason ??
+            "Flood danger stayed critical for too long. Try more rain gardens and storage before the storm.");
       element("result-metrics").innerHTML =
-        `<div><strong>${(37 - m.temperature).toFixed(1)} °C</strong><span>surface cooling</span></div><div><strong>${number(m.retained)} L</strong><span>rainwater retained now</span></div><div><strong>${m.trees}</strong><span>new trees (${m.healthyTrees} healthy)</span></div><div><strong>${m.unsealedArea} m²</strong><span>unsealed ground</span></div><div><strong>${number(s.reused)} L</strong><span>usefully delivered</span></div><div><strong>${number(s.infiltrated)} L</strong><span>infiltrated to deeper soil</span></div>`;
+        `<div><strong>${m.temperature.toFixed(1)} °C</strong><span>city temperature</span></div><div><strong>${number(m.retained)} L</strong><span>rainwater retained now</span></div><div><strong>${m.trees}</strong><span>new trees (${m.healthyTrees} healthy)</span></div><div><strong>${m.unsealedArea} m²</strong><span>unsealed ground</span></div><div><strong>${number(s.reused)} L</strong><span>usefully delivered</span></div><div><strong>${number(s.infiltrated)} L</strong><span>infiltrated to deeper soil</span></div>`;
     }
   }
 }
