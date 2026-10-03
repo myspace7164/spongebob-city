@@ -1,11 +1,35 @@
-import { Mesh, type Group } from "three";
+import { Mesh, MeshStandardMaterial, type Group } from "three";
 import { cityConfig } from "../../config/city.ts";
 import type { ModelConfig } from "../interfaces.ts";
+
+export const spongeEyeBlue = 0x4b39ff;
+
+/** Slightly lighten only the imported SpongeBob iris material. */
+export function applySpongeEyeTint(model: Group): number {
+  let tinted = 0;
+  model.traverse((object) => {
+    if (!(object instanceof Mesh)) return;
+    const materials = Array.isArray(object.material)
+      ? object.material
+      : [object.material];
+    for (const material of materials) {
+      if (
+        material.name.toLowerCase() !== "iris export" ||
+        !(material instanceof MeshStandardMaterial)
+      )
+        continue;
+      material.color.setHex(spongeEyeBlue);
+      tinted++;
+    }
+  });
+  return tinted;
+}
 
 /** Load a Blender glTF/GLB export without changing gameplay or collision rules. */
 export async function loadModel(config: ModelConfig): Promise<Group> {
   const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
   const { scene } = await new GLTFLoader().loadAsync(config.url);
+  applySpongeEyeTint(scene);
   scene.scale.setScalar(config.scale);
   scene.rotation.y = config.rotationY;
   return scene;
