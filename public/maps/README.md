@@ -30,4 +30,17 @@ photographic markings to remain visible. Geometry and imagery have independent
 fallbacks; failed imagery preserves roads on the original ground. No imagery
 service is contacted during gameplay. Settings live in `config/map.ts`.
 
+## Terrain
+
+`basel-terrain.bin` holds 627 × 531 heights on a 4 m grid (Int16 centimetres,
+rows north to south) relative to the building GLB origin height; the grid's
+bounds and source tiles are in `basel-terrain.json`. It is resampled from nine
+swissALTI3D 2 m tiles (2025 release), which download to `.cache/terrain/` and
+are not committed. Rebuild with Python 3 only:
+
+```sh
+python3 scripts/convert-basel-terrain.py
+python3 tests/test_basel_terrain.py
+```
+
 Source credits and licences are recorded in `docs/SOURCES.md` and the field guide.
