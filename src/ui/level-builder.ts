@@ -35,7 +35,7 @@ import {
   unionBounds,
 } from "../game/level-builder";
 import { playToMap, worldToMap } from "../game/streets";
-import { heightAt, levelScenery } from "../game/terrain";
+import { levelLocalGroundAt, levelScenery } from "../game/terrain";
 import { areaCorners, openAreaMap, type AreaOutline } from "./level-area-map";
 
 /** What the builder needs from the running game. */
@@ -72,6 +72,11 @@ interface Snapshot {
   spawn: Point;
   facing: Point;
   npcs: Partial<Record<NpcId, Point>>;
+}
+interface SavedVersion {
+  id: string;
+  savedAt: string;
+  location: string | null;
 }
 const typeNames: Record<SiteType, string> = {
   parking: "Parking",
@@ -141,11 +146,11 @@ export function createLevelBuilder(host: BuilderHost) {
   // ---- Editor camera (focus in map-local metres) ----
   const view = { focus: [0, 0] as Point, yaw: 0, pitch: 0.9, distance: 45 };
   const held = new Set<string>();
+  let versions: SavedVersion[] = [];
   const pose = () =>
     levelScenery(cityLevels[host.levelIndex()], host.terrain());
   const groundMap = (x: number, z: number) => {
-    const grid = host.terrain();
-    return grid ? heightAt(grid, x, z) : 0;
+    return levelLocalGroundAt(pose(), x, z, host.groundAt);
   };
   /** Move the focus by world-space offsets (camera-relative panning). */
   function panWorld(dx: number, dz: number) {
@@ -275,10 +280,14 @@ export function createLevelBuilder(host: BuilderHost) {
       <ul id="lb-problems"></ul>
       <div class="lb-actions">
         <button type="button" id="lb-test" class="lb-primary">▶ Test play</button>
-        <button type="button" id="lb-save" class="lb-primary">💾 Save <kbd>Ctrl S</kbd></button>
+        <button type="button" id="lb-save-draft">📝 Save draft</button>
+        <button type="button" id="lb-load-draft">↩ Load draft</button>
+        <button type="button" id="lb-apply" class="lb-primary">✅ Apply to level</button>
         <button type="button" id="lb-undo">↶ Undo <kbd>Ctrl Z</kbd></button>
         <button type="button" id="lb-exit">Back to game</button>
       </div>
+      <label class="lb-row">Saved versions <select id="lb-history"><option value="">Loading…</option></select></label>
+      <button type="button" id="lb-restore">⏪ Restore selected version</button>
       <p id="lb-status" role="status"></p>
     </section>
     <details class="small"><summary>Mouse &amp; keys</summary>
@@ -294,6 +303,76 @@ export function createLevelBuilder(host: BuilderHost) {
   const status = (text: string) => {
     $("lb-status").textContent = text;
   };
+  const draftKey = (id: string) => `spongebob-city:level-builder:draft:${id}`;
+  const isPoint = (value: unknown): value is Point =>
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value.every((n) => typeof n === "number" && Number.isFinite(n));
+  const storedDraft = (): Snapshot | undefined => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem(draftKey(cityLevels[levelIndex].id)) ?? "null",
+      );
+      const draft = saved?.state as Snapshot | undefined;
+      if (
+        saved?.version !== 1 ||
+        !draft ||
+        typeof draft.name !== "string" ||
+        !isPoint(draft.origin) ||
+        !isPoint(draft.forward) ||
+        !isPoint(draft.spawn) ||
+        !isPoint(draft.facing) ||
+        !draft.area ||
+        !Number.isFinite(draft.area.width) ||
+        !Number.isFinite(draft.area.length) ||
+        !Array.isArray(draft.spots) ||
+        draft.spots.length > 16 ||
+        !draft.spots.every(
+          (spot) =>
+            Number.isFinite(spot.x) &&
+            Number.isFinite(spot.z) &&
+            siteTypes.includes(spot.site),
+        ) ||
+        !draft.npcs ||
+        !Object.entries(draft.npcs).every(
+          ([id, at]) => npcIds.includes(id as NpcId) && isPoint(at),
+        )
+      )
+        return;
+      return structuredClone(draft);
+    } catch {
+      return;
+    }
+  };
+  function saveDraft() {
+    try {
+      localStorage.setItem(
+        draftKey(cityLevels[levelIndex].id),
+        JSON.stringify({
+          version: 1,
+          savedAt: new Date().toISOString(),
+          state,
+        }),
+      );
+      status(`Draft saved in this browser for ${state.name}.`);
+      render();
+    } catch {
+      status("Draft could not be saved in this browser.");
+    }
+  }
+  function loadDraft() {
+    const saved = storedDraft();
+    if (!saved) return status("There is no valid saved draft for this level.");
+    remember();
+    state = saved;
+    npcsTouched = true;
+    selected = null;
+    view.focus = state.spawn;
+    render();
+    status(
+      `Draft loaded for ${state.name}. The saved game level is unchanged.`,
+    );
+  }
 
   // ---- Model ↔ level ----
   function load(index: number) {
@@ -340,6 +419,7 @@ export function createLevelBuilder(host: BuilderHost) {
     selected = null;
     view.focus = spawn;
     render();
+    void refreshVersions();
   }
 
   /** The level as it would be saved, in play coordinates of its site. */
@@ -578,6 +658,18 @@ export function createLevelBuilder(host: BuilderHost) {
     banner.textContent = `🛠 LEVEL BUILDER · Level ${levelIndex + 1} · ${state.name} · tool: ${toolNames[tool]}${tool === "spots" ? ` (${typeNames[type]})` : ""} · ${state.spots.length}/16 spots · N: close`;
     document.body.style.setProperty("--builder-type", typeColours[type]);
     $<HTMLButtonElement>("lb-undo").disabled = undoStack.length === 0;
+    $<HTMLButtonElement>("lb-load-draft").disabled = !storedDraft();
+    const historySelect = $<HTMLSelectElement>("lb-history");
+    const chosenVersion = historySelect.value;
+    historySelect.innerHTML = versions.length
+      ? versions
+          .map(
+            (version) =>
+              `<option value="${escape(version.id)}" ${version.id === chosenVersion ? "selected" : ""}>${escape(new Date(version.savedAt).toLocaleString())} · ${escape(version.location ?? "built-in level")}</option>`,
+          )
+          .join("")
+      : '<option value="">No saved versions yet</option>';
+    $<HTMLButtonElement>("lb-restore").disabled = versions.length === 0;
   }
 
   // ---- Mouse picking ----
@@ -761,7 +853,7 @@ export function createLevelBuilder(host: BuilderHost) {
     if (!active) return;
     if ((e.ctrlKey || e.metaKey) && e.code === "KeyS") {
       e.preventDefault();
-      void save();
+      saveDraft();
       return;
     }
     if ((e.ctrlKey || e.metaKey) && e.code === "KeyZ" && !typing()) {
@@ -817,12 +909,34 @@ export function createLevelBuilder(host: BuilderHost) {
     status("Undone.");
     render();
   }
-  async function save() {
-    const problems = checkLayout(state.spots, []);
-    if (problems.length) return status(`Not saved: ${problems.join(" ")}`);
-    status("Saving…");
+  async function refreshVersions() {
+    const levelId = cityLevels[levelIndex].id;
     try {
-      const response = await fetch("/__level-builder/save", {
+      const response = await fetch(
+        `/__level-builder/history?levelId=${encodeURIComponent(levelId)}`,
+      );
+      if (!response.ok) throw new Error(await response.text());
+      const data = (await response.json()) as { versions: SavedVersion[] };
+      versions = data.versions;
+      render();
+    } catch {
+      versions = [];
+      render();
+      status("Saved versions could not be loaded from the dev server.");
+    }
+  }
+  async function applyDraft() {
+    const problems = checkLayout(state.spots, []);
+    if (problems.length) return status(`Not applied: ${problems.join(" ")}`);
+    if (
+      !window.confirm(
+        `Apply this draft to ${state.name}? The current saved level will be kept as a restorable version.`,
+      )
+    )
+      return;
+    status("Applying draft and keeping the current level…");
+    try {
+      const response = await fetch("/__level-builder/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -830,13 +944,37 @@ export function createLevelBuilder(host: BuilderHost) {
           level: draft(),
         }),
       });
+      if (!response.ok) throw new Error(await response.text());
       status(
-        response.ok
-          ? `Saved level ${levelIndex + 1} (${state.name}). The game reloads with it.`
-          : `Not saved: ${await response.text()}`,
+        `Applied level ${levelIndex + 1} (${state.name}). The previous state is available under Saved versions. Reload to play the applied level.`,
       );
+      await refreshVersions();
     } catch {
-      status("Not saved: the dev server (npm run dev) is not reachable.");
+      status("Not applied: the dev server (npm run dev) is not reachable.");
+    }
+  }
+  async function restoreVersion() {
+    const versionId = $<HTMLSelectElement>("lb-history").value;
+    if (!versionId) return status("Choose a saved version first.");
+    const version = versions.find((item) => item.id === versionId);
+    if (!version) return status("That saved version is no longer available.");
+    if (
+      !window.confirm(
+        `Restore the saved state from ${new Date(version.savedAt).toLocaleString()}? Your current saved level will also be kept as a version.`,
+      )
+    )
+      return;
+    try {
+      const response = await fetch("/__level-builder/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ levelId: cityLevels[levelIndex].id, versionId }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      status("Restored. The level is saved; reload the game to play it.");
+      await refreshVersions();
+    } catch {
+      status("Restore failed: the dev server could not update this level.");
     }
   }
   $<HTMLSelectElement>("lb-level").addEventListener("change", (e) =>
@@ -893,7 +1031,10 @@ export function createLevelBuilder(host: BuilderHost) {
   });
   $("lb-auto").addEventListener("click", () => void autoPlace("on request"));
   $("lb-undo").addEventListener("click", undo);
-  $("lb-save").addEventListener("click", () => void save());
+  $("lb-save-draft").addEventListener("click", saveDraft);
+  $("lb-load-draft").addEventListener("click", loadDraft);
+  $("lb-apply").addEventListener("click", () => void applyDraft());
+  $("lb-restore").addEventListener("click", () => void restoreVersion());
   $("lb-exit").addEventListener("click", () => host.backToGame());
   $("lb-test").addEventListener("click", () => {
     const problems = checkLayout(state.spots, []);
