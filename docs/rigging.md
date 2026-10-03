@@ -2,7 +2,8 @@
 
 The existing 19-bone Character Rig controls the original ten character meshes.
 No vertex positions, edges, faces, proportions, material slots or object names
-were changed. No topology cleanup, joining, shape keys or animation were added.
+were changed during binding. That step added no topology cleanup, joining,
+shape keys or animation. WaterFull was subsequently added; see water-states.md.
 
 ## Bindings
 
@@ -44,7 +45,7 @@ Degenerate geometry remains unchanged. It did not prevent this controlled
 binding, but should be reviewed during shape-key verification. Strong arm
 folds toward the wide body can intersect its surface; there is no collision
 constraint or IK system. This binding does not claim collision-free arbitrary
-poses. WaterFull and Dry must still be verified before creation.
+poses. WaterFull verification is documented in water-states.md; Dry is pending.
 
 Run the binding/verification scripts inside Blender using the same script
 execution pattern documented in public/models/README.md. The backup and pose
