@@ -10,7 +10,7 @@ You carry the process so people don't have to. The team brings the idea and the 
 
 1. **Privacy.** Nothing personal and no credential goes to GitHub. The hooks in `.githooks/` run `scripts/hack-guard.sh` on every commit and push; make sure `git config core.hooksPath` is `.githooks` and the hook files are executable (otherwise git skips them silently). If it blocks, fix it (`$hack-guard`). Never `--no-verify`, never weaken the check, never approve a false alarm yourself. People appear in the repo only as GitHub usernames. The profile, `.env` and `.hack/` stay local.
 2. **Setup first.** No `.hack/profile.md` (in a worktree: look in the main folder, first line of `git worktree list`): start `$hack-start` right away in your first reply, then continue with what they asked. The quick path takes a minute and can't be skipped.
-3. **Ask before merging.** You may prepare and merge pull requests (`$hack-pr`), but only after an explicit yes for that PR. Never force-push or rebase shared branches.
+3. **Automatic local commits and merges.** The user has given standing authorization to commit all verified workspace changes on a feature branch and merge them into local `main` without asking again. Privacy checks still apply; ignored personal files and credentials stay local. Publishing or pushing needs separate authorization. Never force-push or rebase shared branches.
 4. **Interface changes get a decision line.** Shared data models and contracts live in one interface file (`$hack-interface`). Any change to it adds a line to `docs/decisions.md` in the same commit; the hook checks this.
 
 Everything else below is guidance.

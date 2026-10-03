@@ -1,0 +1,41 @@
+:root {
+  --background: #171b22;
+  --text: #f4f5ef;
+  --muted: #bcc5cc;
+  --accent: #d9fc88;
+  --border: #ffffff26;
+  --panel: #171b22cc;
+  --ground: #c7b9a3;
+  --sky: #b8deed;
+  --grid: #516568;
+  --player: #d9fc88;
+  --ink: #263331;
+  --font: "Segoe UI", Arial, sans-serif;
+  --space: 24px;
+  --radius: 8px;
+}
+:root {
+  --target: #f5ac6b;
+  --rain-sky: #718fa2;
+  --sponge: #ffda3e;
+  --pore: #c99e20;
+  --white: #fff8e9;
+  --wood: #88543e;
+  --coral: #ee745b;
+  --pink: #ef9eae;
+  --squid: #7bbbb5;
+  --concrete: #818891;
+  --water: #4fbad9;
+  --grass: #83ae58;
+  --leaf: #4e934e;
+  --dry-leaf: #b59854;
+  --asphalt: #797c81;
+  --soil: #a78c68;
+  --building: #e2ccb3;
+  --building-alt: #c8b0a2;
+  --roof: #ab6453;
+  --window: #527987;
+  --church: #c59482;
+  --shade: #ead28b;
+  --skin: #e1b38b;
+}

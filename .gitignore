@@ -96,3 +96,7 @@ temp/
 
 # ---------- Package managers ----------
 .pixi/
+
+# Browser test artifacts
+/test-results/
+/playwright-report/
