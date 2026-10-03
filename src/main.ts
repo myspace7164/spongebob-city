@@ -5,9 +5,9 @@ import { cityConfig, cityTools } from "../config/city";
 import { GameInput, keyCode } from "./game/input";
 import { createPlayer, updatePlayer } from "./game/player";
 import { createWorld } from "./game/world";
-import { loadModel } from "./game/assets";
+import { loadModel, updateSpongeWaterState } from "./game/assets";
+import { spongeCapacity, updateCity, weather } from "./game/city";
 import { loadMapLayers } from "./game/map-layers";
-import { updateCity, weather } from "./game/city";
 import {
   connectRunoff,
   createCampaign,
@@ -62,6 +62,7 @@ function startGame(): void {
   let checkpoint = structuredClone(city);
   let storyPending = true;
   const campaignUI = new CampaignUI();
+  let characterModel: THREE.Group | null = null;
   const cityView = createCityView(scene, city);
   const ui = new CityUI((tool) => {
     city.selected = tool;
@@ -217,6 +218,8 @@ function startGame(): void {
       try {
         const model = await loadModel(config);
         if (name === "character") {
+          characterModel = model;
+          updateSpongeWaterState(model, city.sponge, spongeCapacity(city));
           world.character.remove(world.placeholder);
           world.character.add(model);
         } else {
@@ -330,6 +333,8 @@ function startGame(): void {
     if (!active) audio.update(false, false);
     const origin = currentLevel(city)?.origin;
     scenery.position.set(origin?.x ?? 0, 0, origin?.z ?? 0);
+    if (characterModel)
+      updateSpongeWaterState(characterModel, city.sponge, spongeCapacity(city));
     world.update(player);
     world.character.scale.setScalar(
       city.maximumTime > 0 ? 2.5 : city.powerTime > 0 ? 1.2 : 1,

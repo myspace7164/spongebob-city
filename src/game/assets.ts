@@ -1,4 +1,4 @@
-import type { Group } from "three";
+import { Mesh, type Group } from "three";
 import type { ModelConfig } from "../interfaces";
 
 /** Load a Blender glTF/GLB export without changing gameplay or collision rules. */
@@ -8,4 +8,35 @@ export async function loadModel(config: ModelConfig): Promise<Group> {
   scene.scale.setScalar(config.scale);
   scene.rotation.y = config.rotationY;
   return scene;
+}
+
+/** Map the finite sponge water store onto exclusive Blender shape-key states. */
+export function updateSpongeWaterState(
+  model: Group,
+  sponge: number,
+  capacity: number,
+): void {
+  const fill = Math.max(0, Math.min(1, capacity > 0 ? sponge / capacity : 0));
+  const dry = fill <= 0.5 ? 1 - fill * 2 : 0;
+  const waterFull = fill > 0.5 ? (fill - 0.5) * 2 : 0;
+  let morphMeshes = 0;
+  model.traverse((object) => {
+    if (
+      !(object instanceof Mesh) ||
+      !object.morphTargetDictionary ||
+      !object.morphTargetInfluences
+    )
+      return;
+    const dryIndex = object.morphTargetDictionary.Dry;
+    const fullIndex = object.morphTargetDictionary.WaterFull;
+    if (dryIndex === undefined || fullIndex === undefined) return;
+    object.morphTargetInfluences[dryIndex] = dry;
+    object.morphTargetInfluences[fullIndex] = waterFull;
+    morphMeshes += 1;
+  });
+  if (morphMeshes === 0) {
+    throw new Error(
+      "The Blender character is missing Dry and WaterFull morph targets.",
+    );
+  }
 }

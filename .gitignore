@@ -86,6 +86,8 @@ logs/
 tmp/
 temp/
 *.tmp
+*.blend1
+*.blend2
 *.sqlite
 *.sqlite3
 *.db

@@ -144,6 +144,11 @@ test("level-two failure retries its entry checkpoint and keeps level one complet
 test("briefing reveals briskly with a bounded wah-wah voice; mute and early start silence it", async ({
   page,
 }) => {
+  // Isolate the short audio lifecycle from software rendering of the Blender
+  // character. Other browser checks exercise the real character model.
+  await page.route("**/models/spongebob.glb", (route) =>
+    route.fulfill({ status: 404, body: "Speech test uses the placeholder" }),
+  );
   await page.addInitScript(() => {
     const audio = { created: 0, ended: 0 };
     Object.defineProperty(window, "briefingAudio", { value: audio });
@@ -195,7 +200,11 @@ test("briefing reveals briskly with a bounded wah-wah voice; mute and early star
   await page.keyboard.press("KeyH");
   await page.locator("#read-story").click();
   await expect(mascot).toHaveAttribute("data-speaking", "true");
-  await page.locator("#sound-toggle").click();
+  // Dispatch immediately: software rendering can spend the short narration's
+  // entire lifetime waiting for repeated pointer actionability frames.
+  await page
+    .locator("#sound-toggle")
+    .evaluate((button) => (button as HTMLButtonElement).click());
   await expect
     .poll(() =>
       page.evaluate(() => {
@@ -221,7 +230,9 @@ test("briefing reveals briskly with a bounded wah-wah voice; mute and early star
           .briefingAudio.created,
     ),
   ).toBe(mutedCount);
-  await page.locator("#sound-toggle").click();
+  await page
+    .locator("#sound-toggle")
+    .evaluate((button) => (button as HTMLButtonElement).click());
   await expect
     .poll(() =>
       page.evaluate(

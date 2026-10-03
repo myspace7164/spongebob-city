@@ -1,6 +1,42 @@
 Place Blender `.glb` exports here. Files are served as `/models/<filename>.glb`.
 See the project README for export settings and configuration.
 
+`spongebob.glb` is the current Blender character export, 1.9 units tall,
+with its feet centred at the origin, Y up and front facing +Z. It preserves
+the red/blue shirt, swapped sleeves and collar, and restored original tie. Camera and light
+are excluded. `Sphere.001` is included: its origin is distant, but its geometry
+is beside the face. The game loads this Blender character from `/models/spongebob.glb`. Its Dry and
+WaterFull shape keys are exported as glTF morph targets; the game moves between
+Dry, Normal and WaterFull based on the sponge's stored water.
+
+Editable source: `assets/blender/spongebob.blend`. To save a new source
+version and regenerate the export, run `scripts/export-blender-character.py`
+inside Blender's Python console with the character scene open:
+
+```python
+from pathlib import Path
+script = Path(bpy.data.filepath).parents[2] / "scripts/export-blender-character.py"
+exec(compile(script.read_text(), str(script), "exec"), {"__file__": str(script)})
+```
+
+The export uses evaluated copies of the meshes and solid-view material colors;
+original scene objects and transforms are preserved. The shader split is
+represented by the existing shirt face assignments for glTF compatibility.
+
+The Blender source contains `Character Rig`, a bound 19-bone armature
+with torso, arm, leg, eye and jaw bones. Anatomical left is +X. The body and arms
+are skinned; eyes have rigid unit weights, and other accessories are bone-parented.
+The GLB contains evaluated static geometry plus Dry and WaterFull morph targets.
+It has no armature or animation clips yet; movement animation can be added later
+from the Blender source.
+`scripts/create-character-armature.py` records the initial bone placement;
+it refuses to add a second armature.
+
+`scripts/bind-character.py` records the non-destructive binding and refuses to
+overwrite an existing binding. `scripts/verify-character-binding.py` runs
+temporary pose tests, writes local diagnostics in `.hack/rig-tests`, and restores
+every bone's previous transform without Actions or keyframes. See `docs/rigging.md`.
+
 `basel-city.glb` is derived from the supplied `3D_Stadtmodell.obj`. Its full
 remaining building geometry is split into 100 m tiles, with one grey material
 matching the source MTL. Coordinates are converted from source east/north/height
