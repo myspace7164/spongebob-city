@@ -2,7 +2,7 @@
 
 Status: in progress
 
-Goal: show each equipped tool in SpongeBob's hand and make Dr. Beton a roaming, menacing villain with visible attacks.
+Goal: animate walking/sprinting arms and legs, relax the T-pose, whiten teeth, show each equipped tool in SpongeBob's hand and make Dr. Beton a roaming, menacing villain with visible attacks.
 
 Done: T11 funding and level music are verified, merged and pushed. Saved T12 design/plan before code; inspected imported character hand coordinates (no exported hand bones).
 

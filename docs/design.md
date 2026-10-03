@@ -38,6 +38,8 @@ Keep available coins in a large gold wallet beside the weather and sound control
 
 All nine selected climate tools have a recognisable miniature prop in SpongeBob's right hand, including the imported character and fallback. Reuse geometry and cache one prop per tool; attachment follows the character through movement, turns and powers. Tools change immediately when selected from the keyboard or guide.
 
+Both character variants use relaxed idle arms and alternating arm/leg movement while walking. Holding either Shift key increases speed and gait intensity. The current GLB has no exported skeleton or clips, so runtime limb pivots preserve its morph targets and animate its existing arm/leg geometry. Equipment follows the right-arm pivot; imported tooth materials become white. Keep the team Blender source and existing water states intact.
+
 Dr. Beton continuously wanders between deterministic pseudo-random waypoints while active. At each sabotage interval he picks exposed soil or a basin, visibly approaches it and spends a short sealing animation before restoring asphalt. A player can intercept him at his actual moving position with E or karate; disabling cancels the attack and pauses him for the existing duration. Movement and attacks freeze with gameplay, reset with the level and respect terrain. His dark angular outfit, red eyes, slanted brows and toothed grin make him a menacing cartoon villain. A warning path and animated roller signal the plot under attack; water remains conserved.
 
 Each neighbourhood loops the corresponding supplied stage track during gameplay. Rain plays at 8% volume and stage music at 22%; pause, briefings, hidden tabs and mute stop playback. The fifth stage track is reserved for future levels.

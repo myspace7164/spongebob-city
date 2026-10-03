@@ -124,10 +124,10 @@ Notes: grant ledger tracks earned coins separately from costs/refunds, so reward
 
 ### Chunk H · in order
 
-#### T12 Held climate tools and roaming Dr. Beton
+#### T12 Walking character, held tools and roaming Dr. Beton
 
 Owner: @myspace7164
 Needs: T11
-Files: config/equipment.ts, config/beton.ts, src/interfaces.ts, src/game/held-tools.ts, src/game/sabotage.ts, src/game/city.ts, src/game/campaign.ts, src/game/characters.ts, src/game/city-view.ts, src/game/world.ts, src/main.ts, src/ui/city.ts, tests/sabotage.test.ts, tests/city.test.ts, tests/campaign.test.ts, tests/browser/equipment.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/style-guide.md
-Done when: every selected inventory tool appears in SpongeBob's hand with either character model; Dr. Beton roams, visibly approaches the chosen plot and seals only after reaching it; he looks menacing, can be intercepted at his real position, and pause/reset/terrain and water conservation remain correct.
+Files: config/equipment.ts, config/beton.ts, src/interfaces.ts, src/game/held-tools.ts, src/game/locomotion.ts, src/game/sabotage.ts, src/game/city.ts, src/game/campaign.ts, src/game/characters.ts, src/game/city-view.ts, src/game/world.ts, src/main.ts, src/ui/city.ts, index.html, tests/sabotage.test.ts, tests/locomotion.test.ts, tests/city.test.ts, tests/campaign.test.ts, tests/browser/equipment.spec.ts, README.md, docs/design.md, docs/decisions.md, docs/style-guide.md
+Done when: arms and legs animate while walking or Shift-sprinting, idle arms are relaxed, teeth are white and every selected inventory tool appears in SpongeBob's moving hand with either model; Dr. Beton roams, visibly approaches the chosen plot and seals only after reaching it; he looks menacing, can be intercepted at his real position, and pause/reset/terrain and water conservation remain correct.
 Notes: original procedural props and cartoon villain geometry; deterministic pseudo-random roaming permits reproducible checks. See handoff/t12-held-tools-villain.md.
