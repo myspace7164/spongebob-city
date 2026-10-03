@@ -28,6 +28,8 @@ export function campaignLevel(
 ): CityLevel | undefined {
   const level = cityLevels[index];
   if (!level) return undefined;
+  // A builder draft or applied level owns its geography, including during Test play.
+  if (level.mapSite && level.mapSite === level.site) return level;
   const candidate = baselLocations.find(
     (site) => site.id === s.campaign?.locations?.[index],
   );

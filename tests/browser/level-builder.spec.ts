@@ -1,5 +1,144 @@
 import { test, expect } from "@playwright/test";
 
+test("real map remains visible and level previews return to the original game", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 750 });
+  await page.addInitScript(() => {
+    Math.random = () => 0.999;
+  });
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/?builder");
+  await expect(page.locator("#game")).toHaveAttribute("data-level", "loaded", {
+    timeout: 60000,
+  });
+  await expect(page.locator("#game")).toHaveAttribute(
+    "data-terrain",
+    "loaded",
+    { timeout: 60000 },
+  );
+  const initialMap = await page.locator("#level-status").textContent();
+  await page.locator(".level-builder-open").click();
+  await expect(page.locator("#lb-normal-view")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(initialMap).toContain(await page.locator("#lb-name").inputValue());
+  await page.screenshot({ path: "/tmp/level-builder-normal-view.png" });
+  await page.locator("#lb-overview").click();
+  await expect(page.locator("#lb-overview")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.locator("#lb-spots button").nth(2).click();
+  await page.locator("#lb-delete").click();
+  await expect(page.locator("#lb-spots button")).toHaveCount(15);
+  await page.locator("#lb-undo").click();
+  await expect(page.locator("#lb-spots button")).toHaveCount(16);
+  await page.locator("#lb-level").selectOption("1");
+  const previewName = await page.locator("#lb-name").inputValue();
+  await expect(page.locator("#level-status")).toContainText(previewName);
+  await expect(page.locator("#lb-normal-view")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.locator("#lb-exit").click();
+  await expect(page.locator("#level-builder")).toBeHidden();
+  await expect(page.locator("#level-status")).toHaveText(initialMap!);
+  expect(errors).toEqual([]);
+});
+
+test("builder markers align with the campaign map and default to the game camera", async ({
+  page,
+}) => {
+  await page.route("**/src/main.ts*", (route) =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body: 'import "/src/ui/style.css";',
+    }),
+  );
+  await page.route("**/__level-builder/history**", (route) =>
+    route.fulfill({ json: { versions: [] } }),
+  );
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const source = await (await fetch("/src/game/world.ts")).text();
+    const threePath = source.match(/from\s+"([^"]*three[^"]+)"/)![1];
+    const builderPath = "/src/ui/level-builder.ts";
+    const campaignPath = "/src/game/campaign.ts";
+    const terrainPath = "/src/game/terrain.ts";
+    const [
+      THREE,
+      { createLevelBuilder },
+      { createCampaign, campaignLevel, currentLevel },
+      { levelScenery },
+    ] = await Promise.all([
+      import(threePath),
+      import(builderPath),
+      import(campaignPath),
+      import(terrainPath),
+    ]);
+    const state = createCampaign(() => 0.999);
+    const level = currentLevel(state);
+    const scenery = new THREE.Group();
+    const scene = new THREE.Scene();
+    scene.add(scenery);
+    const pose = levelScenery(level, null);
+    scenery.position.set(pose.x, pose.y, pose.z);
+    scenery.rotation.y = pose.rotationY;
+    const camera = new THREE.PerspectiveCamera(55, 1.5, 0.1, 150);
+    const canvas = document.querySelector("#game") as HTMLCanvasElement;
+    const builder = createLevelBuilder({
+      scenery,
+      camera,
+      canvas,
+      levelIndex: () => 0,
+      level: (index: number) => campaignLevel(state, index),
+      selectLevel: () => {},
+      normalView: () => ({ x: 0, z: 0, yaw: 0, pitch: 0.28 }),
+      terrain: () => null,
+      groundAt: pose.groundAt,
+      testPlay: () => {},
+      backToGame: () => {},
+      showGameScene: () => {},
+    });
+    builder.toggle();
+    builder.updateCamera(0);
+    scene.updateMatrixWorld(true);
+    const marker = scenery.getObjectByName("builder-spot-3");
+    const world = marker.getWorldPosition(new THREE.Vector3());
+    const projected = world.clone().project(camera);
+    const target = new THREE.Vector3(0, 1.2, 0);
+    const normalDistance = camera.position.distanceTo(target);
+    document.querySelector<HTMLButtonElement>("#lb-overview")!.click();
+    builder.updateCamera(0);
+    const overviewDistance = camera.position.distanceTo(
+      new THREE.Vector3(0, 0, 0),
+    );
+    document.querySelector<HTMLButtonElement>("#lb-normal-view")!.click();
+    builder.updateCamera(0);
+    return {
+      name: document.querySelector<HTMLInputElement>("#lb-name")!.value,
+      expectedName: level.location,
+      marker: [world.x, world.z],
+      expectedMarker: [level.layout[2].x, level.layout[2].z],
+      projected: [projected.x, projected.y, projected.z],
+      normalDistance,
+      overviewDistance,
+      returnedDistance: camera.position.distanceTo(target),
+    };
+  });
+  expect(result.name).toBe(result.expectedName);
+  expect(result.marker[0]).toBeCloseTo(result.expectedMarker[0], 5);
+  expect(result.marker[1]).toBeCloseTo(result.expectedMarker[1], 5);
+  for (const coordinate of result.projected)
+    expect(Math.abs(coordinate)).toBeLessThan(1);
+  expect(result.normalDistance).toBeCloseTo(7);
+  expect(result.overviewDistance).toBeGreaterThan(30);
+  expect(result.returnedDistance).toBeCloseTo(7);
+});
+
 test("level builder stays local and refuses to open in an online room", async ({
   page,
 }) => {

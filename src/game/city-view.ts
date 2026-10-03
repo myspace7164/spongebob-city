@@ -581,11 +581,13 @@ function makeLaserBeam(parent: THREE.Object3D, side: "L" | "R"): THREE.Group {
 export function createCityView(scene: THREE.Scene, state: CityState) {
   const root = new THREE.Group();
   scene.add(root);
-  const updateFireView = createCityFireView(root);
+  const mission = new THREE.Group();
+  root.add(mission);
+  const updateFireView = createCityFireView(mission);
   const plotViews = state.plots.map((p) => {
     const tile = new THREE.Group();
     tile.position.set(p.x, 0, p.z);
-    root.add(tile);
+    mission.add(tile);
     const zoneMaterial = new THREE.MeshBasicMaterial({
       color: zoneGround(p),
       transparent: true,
@@ -657,11 +659,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   );
   border.name = "build-zone-hover-outline";
   border.renderOrder = 2;
-  root.add(border);
+  mission.add(border);
   const buildPreview = new THREE.Group();
   buildPreview.name = "build-structure-preview";
   buildPreview.visible = false;
-  root.add(buildPreview);
+  mission.add(buildPreview);
   let buildPreviewSignature = "";
   const architecture = new THREE.Group();
   root.add(architecture);
@@ -697,7 +699,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   sign.position.set(0, 6, -27);
   root.add(sign);
   const routes = new THREE.Group();
-  root.add(routes);
+  mission.add(routes);
   let campaignSignature = "";
   let importedLevel = false;
   // World height of the terrain; flat until the Basel terrain has loaded.
@@ -712,7 +714,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     const npc = makeCharacter(actor.id);
     npc.name = "cast-" + actor.id;
     npc.position.set(actor.x, 0, actor.z);
-    root.add(npc);
+    mission.add(npc);
     const name = label(actor.text, true);
     name.name = "speech-" + actor.id;
     name.position.set(0, 3, 0);
@@ -721,18 +723,18 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     return { npc, limbs };
   });
   const buddy = createRiversideBuddy();
-  root.add(buddy.root);
+  mission.add(buddy.root);
   const machine = new THREE.Group();
   machine.name = "roaming-asphaltinator";
   machine.position.set(c.machine.x, 0, c.machine.z + 2);
   machine.userData.assetKind = "procedural-three-dimensional-boss-vehicle";
-  root.add(machine);
+  mission.add(machine);
   const vehicle = buildBetonVehicle(machine);
   const beton = makeCharacter("beton");
   beton.name = "dr-beton";
   // Sibling roots keep the character and vehicle independently visible and
   // controllable; the driver anchor links their positions during gameplay.
-  root.add(beton);
+  mission.add(beton);
   const betonName = label("Dr. Beton: CONCRETE! [E]", true);
   betonName.position.set(0, 3.05, 0);
   beton.add(betonName);
@@ -764,14 +766,14 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     }),
   );
   attackPath.frustumCulled = false;
-  root.add(attackPath);
+  mission.add(attackPath);
   let lastBetonPhase = "";
   let phaseStartedAt = 0;
   let sealingEndedAt = Number.NEGATIVE_INFINITY;
   let previousVehicleX = machine.position.x;
   let previousVehicleZ = machine.position.z;
   const residents = new THREE.Group();
-  root.add(residents);
+  mission.add(residents);
   for (let i = 0; i < 8; i++) {
     const person = new THREE.Group();
     box(person, [0.3, 0.65, 0.3], [0, 0.65, 0], i % 2 ? "coral" : "water");
@@ -781,7 +783,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     keepOnGround(person);
   }
   const birds = new THREE.Group();
-  root.add(birds);
+  mission.add(birds);
   keepOnGround(birds);
   for (let i = 0; i < 6; i++) {
     const bird = box(
@@ -807,12 +809,12 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     rainGeometry,
     new THREE.PointsMaterial({ color: themeColor("water"), size: 0.12 }),
   );
-  root.add(rain);
+  mission.add(rain);
   const ray = new THREE.Raycaster();
   const screenCenter = new THREE.Vector2();
   const droplets = new THREE.Group();
   for (let i = 0; i < 8; i++) ball(droplets, 0.12, [0, 0, 0], "water");
-  root.add(droplets);
+  mission.add(droplets);
   const point = new THREE.Vector3();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   return {
@@ -821,9 +823,9 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       groundAt = ground;
       groundVersion++;
     },
-    /** Hide the mission's own plots and characters (the level builder draws its own). */
+    /** Hide mission markers and actors while keeping the scenery and street sign. */
     setVisible(visible: boolean) {
-      root.visible = visible;
+      mission.visible = visible;
     },
     useImportedLevel() {
       importedLevel = true;

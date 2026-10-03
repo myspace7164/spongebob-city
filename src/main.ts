@@ -27,6 +27,7 @@ import {
   connectRunoff,
   createCampaign,
   currentLevel,
+  campaignLevel,
   startCampaignAt,
   levelPosition,
   recyclePlot,
@@ -445,6 +446,15 @@ function startGame(): void {
     (import.meta.env.VITE_LEVEL_BUILDER === "1" ||
       new URLSearchParams(location.search).has("builder"));
   let builder: ReturnType<typeof createLevelBuilder> | undefined;
+  let builderSession:
+    | {
+        city: typeof city;
+        player: typeof player;
+        checkpoint: typeof checkpoint;
+        yaw: number;
+        pitch: number;
+      }
+    | undefined;
   const openBuilder = () => {
     if (!builder || builder.active) return;
     if (network.room) {
@@ -453,6 +463,13 @@ function startGame(): void {
       return;
     }
     document.exitPointerLock();
+    builderSession = {
+      city,
+      player,
+      checkpoint,
+      yaw: input.yaw,
+      pitch: input.pitch,
+    };
     builder.toggle();
     menu.hidden = true;
     crosshair.hidden = true;
@@ -460,6 +477,13 @@ function startGame(): void {
   const closeBuilder = (play = true) => {
     if (!builder?.active) return;
     builder.toggle();
+    if (builderSession) {
+      ({ city, player, checkpoint } = builderSession);
+      input.yaw = builderSession.yaw;
+      input.pitch = builderSession.pitch;
+      builderSession = undefined;
+      placeScenery();
+    }
     if (play) {
       storyPending = false;
       void enterGame();
@@ -472,11 +496,27 @@ function startGame(): void {
         camera,
         canvas,
         levelIndex: () => city.campaign!.level,
+        level: (index) => campaignLevel(city, index)!,
+        selectLevel: (index) => {
+          if (city.campaign!.level === index) return;
+          const locations = city.campaign!.locations;
+          city = startCampaignAt(index);
+          city.campaign!.locations = locations;
+          player = spawnPlayer();
+          placeScenery();
+        },
+        normalView: () => ({
+          x: player.position.x,
+          z: player.position.z,
+          yaw: input.yaw,
+          pitch: input.pitch,
+        }),
         terrain: () => terrain,
         groundAt,
         // Test play: the draft replaces that level in memory and starts at once.
         testPlay: (levelId, level) => {
           if (network.room) return;
+          builderSession = undefined;
           const index = applyBuiltLevel(levelId, level);
           city = startCampaignAt(index);
           checkpoint = structuredClone(city);
@@ -491,7 +531,7 @@ function startGame(): void {
         backToGame: () => closeBuilder(),
         showGameScene: (visible) => {
           cityView.setVisible(visible);
-          world.character.visible = visible;
+          world.character.visible = true;
           trees?.setGhost(!visible);
         },
       });

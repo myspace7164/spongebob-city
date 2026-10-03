@@ -1,9 +1,11 @@
 import * as THREE from "three";
 import { cityLevels } from "../../config/levels";
 import { groundStyle } from "../../config/ground";
+import { gameConfig } from "../../config/game";
 import type {
   BuiltLevel,
   CityTool,
+  CityLevel,
   LevelSite,
   LevelSpot,
   NpcId,
@@ -44,6 +46,9 @@ export interface BuilderHost {
   camera: THREE.PerspectiveCamera;
   canvas: HTMLCanvasElement;
   levelIndex: () => number;
+  level: (index: number) => CityLevel;
+  selectLevel: (index: number) => void;
+  normalView: () => { x: number; z: number; yaw: number; pitch: number };
   terrain: () => TerrainGrid | null;
   groundAt: (x: number, z: number) => number;
   /** Play the draft of a level right away (in memory, not saved). */
@@ -144,11 +149,23 @@ export function createLevelBuilder(host: BuilderHost) {
   };
 
   // ---- Editor camera (focus in map-local metres) ----
-  const view = { focus: [0, 0] as Point, yaw: 0, pitch: 0.9, distance: 45 };
+  const view = {
+    focus: [0, 0] as Point,
+    yaw: 0,
+    pitch: 0.28,
+    distance: gameConfig.cameraDistance,
+    targetHeight: gameConfig.cameraTargetHeight,
+  };
+  let overview = false;
+  let renderedTerrain: TerrainGrid | null = null;
   const held = new Set<string>();
   let versions: SavedVersion[] = [];
-  const pose = () =>
-    levelScenery(cityLevels[host.levelIndex()], host.terrain());
+  const pose = () => ({
+    rotationY: host.scenery.rotation.y,
+    x: host.scenery.position.x,
+    y: host.scenery.position.y,
+    z: host.scenery.position.z,
+  });
   const groundMap = (x: number, z: number) => {
     return levelLocalGroundAt(pose(), x, z, host.groundAt);
   };
@@ -159,6 +176,7 @@ export function createLevelBuilder(host: BuilderHost) {
     view.focus = worldToMap(p, wx + dx, wz + dz);
   }
   function updateCamera(dt: number) {
+    if (renderedTerrain !== host.terrain()) render();
     const step = view.distance * 0.9 * dt;
     const fx = -Math.sin(view.yaw),
       fz = -Math.cos(view.yaw);
@@ -176,7 +194,7 @@ export function createLevelBuilder(host: BuilderHost) {
     if (held.has("KeyQ")) view.yaw += 1.6 * dt;
     if (held.has("KeyE")) view.yaw -= 1.6 * dt;
     const [wx, wz] = mapToWorld(pose(), ...view.focus);
-    const wy = host.groundAt(wx, wz);
+    const wy = host.groundAt(wx, wz) + view.targetHeight;
     const horizontal = Math.cos(view.pitch) * view.distance;
     host.camera.position.set(
       wx + Math.sin(view.yaw) * horizontal,
@@ -189,7 +207,27 @@ export function createLevelBuilder(host: BuilderHost) {
     const eye = host.camera.position;
     const at = new THREE.Vector3();
     for (const tag of tags)
-      tag.visible = tag.getWorldPosition(at).distanceTo(eye) > 6;
+      tag.visible = tag.getWorldPosition(at).distanceTo(eye) > 2;
+  }
+
+  function normalView() {
+    const normal = host.normalView();
+    overview = false;
+    view.focus = worldToMap(pose(), normal.x, normal.z);
+    view.yaw = normal.yaw;
+    view.pitch = normal.pitch;
+    view.distance = gameConfig.cameraDistance;
+    view.targetHeight = gameConfig.cameraTargetHeight;
+    render();
+  }
+
+  function overviewView() {
+    overview = true;
+    view.focus = state.spawn;
+    view.pitch = 0.9;
+    view.distance = Math.min(90, Math.max(35, state.area.length * 0.5));
+    view.targetHeight = 0;
+    render();
   }
 
   // ---- Land cover for character placement (tiles decoded on demand) ----
@@ -223,6 +261,7 @@ export function createLevelBuilder(host: BuilderHost) {
 
   // ---- Scene markers (children of the scenery group, so map-local) ----
   const markers = new THREE.Group();
+  markers.name = "level-builder-markers";
   host.scenery.add(markers);
   markers.visible = false;
   const tags: THREE.Sprite[] = [];
@@ -244,6 +283,11 @@ export function createLevelBuilder(host: BuilderHost) {
   panel.hidden = true;
   panel.innerHTML = `
     <div class="lb-title"><span aria-hidden="true">🛠</span> Level builder</div>
+    <p class="small">Game paused · left-click to select or place · right-drag to look · WASD to move the view.</p>
+    <div class="lb-actions">
+      <button type="button" id="lb-normal-view">Normal view</button>
+      <button type="button" id="lb-overview">Overview</button>
+    </div>
     <label class="lb-row">Level <select id="lb-level"></select></label>
     <section>
       <h3>1 · Area &amp; name</h3>
@@ -259,6 +303,7 @@ export function createLevelBuilder(host: BuilderHost) {
         <button type="button" data-tool="npcs"><kbd>C</kbd> Characters</button>
       </div>
       <div id="lb-tool-spots">
+        <p class="small">Click a coloured spot to select it, drag to move it, or delete it to place a replacement.</p>
         <div id="lb-types">${siteTypes
           .map(
             (t, i) =>
@@ -376,10 +421,11 @@ export function createLevelBuilder(host: BuilderHost) {
 
   // ---- Model ↔ level ----
   function load(index: number) {
+    host.selectLevel(index);
     levelIndex = index;
     loaded = true;
-    const level = cityLevels[index];
-    const p = levelScenery(level, host.terrain());
+    const level = host.level(index);
+    const p = pose();
     const o = level.origin ?? { x: 0, z: 0 };
     const local = (x: number, z: number) => worldToMap(p, o.x + x, o.z + z);
     const [sx, sz] = level.site?.start ?? [0, 0];
@@ -417,8 +463,7 @@ export function createLevelBuilder(host: BuilderHost) {
     // Load the land cover for this area now, so auto-placing is instant later.
     void ensureGround([origin, spawn, ...Object.values(npcs)]);
     selected = null;
-    view.focus = spawn;
-    render();
+    normalView();
     void refreshVersions();
   }
 
@@ -496,7 +541,8 @@ export function createLevelBuilder(host: BuilderHost) {
   }
 
   function outlines(): AreaOutline[] {
-    return cityLevels.map((level, i) => {
+    return cityLevels.map((_, i) => {
+      const level = host.level(i);
       const p = levelScenery(level, host.terrain());
       const o = level.origin ?? { x: 0, z: 0 };
       const b = level.site?.bounds ?? {
@@ -523,6 +569,7 @@ export function createLevelBuilder(host: BuilderHost) {
 
   // ---- Rendering ----
   function render() {
+    renderedTerrain = host.terrain();
     markers.clear();
     tags.length = 0;
     const level = draft();
@@ -544,6 +591,7 @@ export function createLevelBuilder(host: BuilderHost) {
           color: i === selected ? "#ffffff" : typeColours[s.site],
         }),
       );
+      tile.name = `builder-spot-${i + 1}`;
       tile.position.set(s.x, y(s.x, s.z) + 0.2, s.z);
       tile.rotation.y = -level.site.heading;
       markers.add(tile);
@@ -571,6 +619,7 @@ export function createLevelBuilder(host: BuilderHost) {
       new THREE.RingGeometry(0.9, 1.3, 32),
       new THREE.MeshBasicMaterial({ color: "#000000", side: THREE.DoubleSide }),
     );
+    ring.name = "builder-spawn";
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(sx, y(sx, sz) + 0.12, sz);
     const n = len(state.facing) || 1;
@@ -612,7 +661,7 @@ export function createLevelBuilder(host: BuilderHost) {
     $<HTMLSelectElement>("lb-level").innerHTML = cityLevels
       .map(
         (l, i) =>
-          `<option value="${i}" ${i === levelIndex ? "selected" : ""}>${i + 1} · ${escape(i === levelIndex ? state.name : l.location)}</option>`,
+          `<option value="${i}" ${i === levelIndex ? "selected" : ""}>${i + 1} · ${escape(i === levelIndex ? state.name : host.level(i).location)}</option>`,
       )
       .join("");
     if (document.activeElement !== nameInput) nameInput.value = state.name;
@@ -658,6 +707,8 @@ export function createLevelBuilder(host: BuilderHost) {
     banner.textContent = `🛠 LEVEL BUILDER · Level ${levelIndex + 1} · ${state.name} · tool: ${toolNames[tool]}${tool === "spots" ? ` (${typeNames[type]})` : ""} · ${state.spots.length}/16 spots · N: close`;
     document.body.style.setProperty("--builder-type", typeColours[type]);
     $<HTMLButtonElement>("lb-undo").disabled = undoStack.length === 0;
+    $("lb-normal-view").setAttribute("aria-pressed", String(!overview));
+    $("lb-overview").setAttribute("aria-pressed", String(overview));
     $<HTMLButtonElement>("lb-load-draft").disabled = !storedDraft();
     const historySelect = $<HTMLSelectElement>("lb-history");
     const chosenVersion = historySelect.value;
@@ -1030,6 +1081,8 @@ export function createLevelBuilder(host: BuilderHost) {
     render();
   });
   $("lb-auto").addEventListener("click", () => void autoPlace("on request"));
+  $("lb-normal-view").addEventListener("click", normalView);
+  $("lb-overview").addEventListener("click", overviewView);
   $("lb-undo").addEventListener("click", undo);
   $("lb-save-draft").addEventListener("click", saveDraft);
   $("lb-load-draft").addEventListener("click", loadDraft);
@@ -1082,7 +1135,9 @@ export function createLevelBuilder(host: BuilderHost) {
         state.name = choice.name.trim() || state.name;
         selected = null;
         view.focus = choice.start;
-        view.distance = Math.max(40, choice.length * 0.7);
+        view.distance = overview
+          ? Math.min(90, Math.max(40, choice.length * 0.7))
+          : gameConfig.cameraDistance;
         render();
         void autoPlace("for the new area");
       },
@@ -1108,7 +1163,7 @@ export function createLevelBuilder(host: BuilderHost) {
       if (active) {
         if (!loaded || levelIndex !== host.levelIndex())
           load(host.levelIndex());
-        else render();
+        else normalView();
       }
     },
     updateCamera,
