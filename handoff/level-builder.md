@@ -2,7 +2,7 @@
 
 Status: done
 
-Branch: local `main` includes the level-builder work and current team `origin/main` through `973eb67`. The final local merge is ready to push.
+Branch: team `origin/main` contains the level-builder work through verification commit `cc516dd`.
 
 Done: builder ported onto current main (data layer, per-level spawn/facing/characters, free-mouse editor, area map, save endpoint merged into main's vite.config.ts via ssrLoadModule). Safety: loads only in `npm run dev` with VITE_LEVEL_BUILDER=1 or `?builder`; refused/closed in an online room (`network.room`); not in production bundle. Without saved levels the game is unchanged (test). Usability: status feedback for every click, 🗑 delete button, clickable spot list. Node 24 needed (~/.local/node-24/bin).
 
