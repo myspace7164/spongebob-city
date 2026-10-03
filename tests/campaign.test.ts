@@ -66,7 +66,10 @@ test("plot 15 is freely usable and no drying achievement remains", () => {
   const s = createCampaign();
   act(s, "karate", at(s, 15), 15);
   assert.equal(s.plots[15].kind, "soil");
-  assert.equal(levelAchievements(s).some((goal) => /trocken/i.test(goal.label)), false);
+  assert.equal(
+    levelAchievements(s).some((goal) => /trocken/i.test(goal.label)),
+    false,
+  );
 });
 
 test("runoff requires reachable safe destinations, rejects loops and conserves water with saturated ground", () => {
@@ -138,16 +141,61 @@ test("separated shaded plots do not satisfy a connected shade zone", () => {
   assert.equal(goal().done, true);
 });
 
-test("St. Johann has no rooftop connection objective and keeps its other goals", () => {
+test("Level 4 removes both runoff objectives and keeps its other goals", () => {
   const s = createCampaign();
   onPlaceholderLevel(s, 2);
   assert.deepEqual(
     currentLevel(s)?.goals.map((goal) => goal.metric),
-    ["roofs", "shadeConnected", "healthyTrees", "reused", "heat", "flood", "stormCompleted"],
+    [
+      "roofs",
+      "shadeConnected",
+      "healthyTrees",
+      "reused",
+      "heat",
+      "flood",
+      "stormCompleted",
+    ],
   );
-  assert.equal(levelAchievements(s).some((goal) => goal.metric === "roofRoutes"), false);
+  assert.equal(
+    levelAchievements(s).some((goal) => goal.metric === "roofRoutes"),
+    false,
+  );
   s.campaign!.level = 3;
-  assert.equal(currentLevel(s)?.goals.some((goal) => goal.metric === "roofRoutes"), true);
+  const level = currentLevel(s)!;
+  assert.deepEqual(
+    level.goals.map((goal) => goal.metric),
+    [
+      "tanks",
+      "ponds",
+      "basins",
+      "shadeConnected",
+      "healthyTrees",
+      "retained",
+      "reused",
+      "heat",
+      "flood",
+      "stormCompleted",
+    ],
+  );
+  assert.equal(level.goals.length, 10);
+  assert.equal(
+    level.goals.some((goal) => /Tanküberläufe|Dachzuflüsse/i.test(goal.label)),
+    false,
+  );
+  assert.equal(
+    /Dachzuflüsse|Überläufe verbinden/i.test(level.objective),
+    false,
+  );
+  assert.equal(
+    level.story.some((line) => /Überläufe verbinden/i.test(line)),
+    false,
+  );
+  assert.equal(
+    levelAchievements(s).some(
+      (goal) => goal.metric === "roofRoutes" || goal.metric === "tankRoutes",
+    ),
+    false,
+  );
 });
 
 /** Same legal play on flat ground, or with real terrain heights so water runs downhill. */
@@ -210,12 +258,6 @@ function playLegalStrategy(elevate?: (s: CityState) => void) {
     elevate?.(s);
     const initialWater = total(s) - s.rainfall;
     for (const [id, kind] of construction[level]) act(s, kind, at(s, id), id);
-    if (level === 3) {
-      connect(s, 7, 0);
-      connect(s, 8, 1);
-      connect(s, 11, 0);
-      connect(s, 12, 13);
-    }
     let levelWaterBeforeCompletion = 0;
     let rainfallBeforeCompletion = 0;
     for (

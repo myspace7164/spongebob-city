@@ -175,19 +175,14 @@ export const cityLevels: readonly CityLevel[] = [
     weather: { dryDuration: 55, rainDuration: 45, rainRate: 20 },
     story: [
       "„Mein Bauch ist kein Stausee!“",
-      "Tanks füllen. Teiche bauen. Überläufe verbinden. Dann: Gewitter abwehren.",
+      "Tanks füllen. Teiche bauen. Regen zurückhalten. Dann: Gewitter abwehren.",
     ],
-    objective: "2 Tanks. 1 Teich. 2 Mulden. Dächer und Überläufe verbinden.",
+    objective:
+      "2 Tanks. 1 Teich. 2 Mulden. Schatten schaffen und Regen zurückhalten.",
     goals: [
       { metric: "tanks", target: 2, label: "Rain Tanks bauen" },
       { metric: "ponds", target: 1, label: "Pond bauen" },
       { metric: "basins", target: 2, label: "Pflanzmulden bauen" },
-      {
-        metric: "tankRoutes",
-        target: 2,
-        label: "Sichere Tanküberläufe (C → C)",
-      },
-      { metric: "roofRoutes", target: 2, label: "Dachzuflüsse verbinden" },
       { metric: "shadeConnected", target: 2, label: "Schattenzone bauen" },
       { metric: "healthyTrees", target: 3, label: "Gesunde Bäume" },
       { metric: "retained", target: 2000, label: "Liter Vorrat zurückhalten" },
