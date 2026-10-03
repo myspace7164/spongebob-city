@@ -6,6 +6,7 @@ import { GameInput, keyCode } from "./game/input";
 import { createPlayer, updatePlayer } from "./game/player";
 import { createWorld } from "./game/world";
 import { loadModel } from "./game/assets";
+import { loadMapLayers } from "./game/map-layers";
 import { updateCity, weather } from "./game/city";
 import { connectRunoff, createCampaign, recyclePlot } from "./game/campaign";
 import { CampaignUI } from "./ui/campaign";
@@ -207,6 +208,7 @@ function startGame(): void {
         } else {
           scene.add(model);
           cityView.useImportedLevel();
+          void loadMapLayers(scene, canvas);
           canvas.dataset.level = "loaded";
           levelStatus.textContent =
             "Basel buildings loaded · fictional mission square";

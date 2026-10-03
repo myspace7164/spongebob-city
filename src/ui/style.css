@@ -43,6 +43,10 @@ footer {
   pointer-events: none;
   z-index: 1;
 }
+#sound-toggle {
+  pointer-events: auto;
+}
+
 header {
   top: var(--hud-top);
   align-items: flex-start;
