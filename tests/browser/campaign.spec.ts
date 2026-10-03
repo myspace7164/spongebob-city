@@ -73,6 +73,14 @@ test("actual game loop automatically enters each next story and shows the ending
     await expect(page.locator("#campaign-route .complete")).toHaveCount(
       index + 1,
     );
+    if (location === "VoltaNord") {
+      await expect(page.locator("#story-fulltext")).not.toContainText(
+        /connect overflows|roof inflows|tank overflows/i,
+      );
+      await expect(page.locator("#story-objective")).not.toContainText(
+        /roof inflows|tank overflows|connect overflows/i,
+      );
+    }
     await expect(page.locator("#story-start")).toBeInViewport();
     const weather = await page.locator("#weather").textContent();
     await page.waitForTimeout(100);

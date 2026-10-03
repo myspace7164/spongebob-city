@@ -2,7 +2,9 @@
 
 Requires the PROJ cs2cs command (as for the roads). The GeoJSON export of
 data.bs.ch dataset 100477 is downloaded to .cache/ground/ when missing. Each
-0.4 m texel holds one category code; the game draws matching surfaces.
+0.4 m texel holds one category code (red) and the exact distance from its
+centre to the nearest land-cover edge (green), so the game can reconstruct
+straight boundaries between texels.
 """
 import argparse
 import json
@@ -16,6 +18,8 @@ import zlib
 SOURCE = ("https://data.bs.ch/api/explore/v2.1/catalog/datasets/100477/"
           "exports/geojson?select=bodenbedeckungsart")
 SPACING = 0.4
+# Distances are stored up to this many texels; farther texels read as "deep inside".
+MAX_DISTANCE = 2.0
 # Tile splits fall on 100 m terrain-tile boundaries so every tile stays ≤ 4096 px.
 SPLIT = (1300, 1100)
 CATEGORIES = ["other", "road", "sidewalk", "island", "paved", "green",
@@ -68,14 +72,54 @@ def rasterise(grid, width, height, rings, code):
                 grid[row * width + start:row * width + end] = value * (end - start)
 
 
-def png(width, height, pixels):
-    """8-bit greyscale PNG bytes (filter 0 on every row)."""
+def edge_distances(distance, width, height, rings):
+    """Lower `distance` (0-255 for 0-MAX_DISTANCE texels) near every ring edge.
+
+    Edges are cut into pieces of at most 8 texels; each piece updates the
+    texels within MAX_DISTANCE of it with the exact point-to-segment distance.
+    """
+    reach = MAX_DISTANCE
+    for ring in rings:
+        for (ax, ay), (bx, by) in zip(ring, ring[1:] + ring[:1]):
+            total = math.hypot(bx - ax, by - ay)
+            if total == 0:
+                continue
+            pieces = math.ceil(total / 8)
+            for k in range(pieces):
+                sx, sy = ax + (bx - ax) * k / pieces, ay + (by - ay) * k / pieces
+                ex, ey = ax + (bx - ax) * (k + 1) / pieces, ay + (by - ay) * (k + 1) / pieces
+                x0 = max(0, int(min(sx, ex) - reach))
+                x1 = min(width - 1, int(max(sx, ex) + reach))
+                y0 = max(0, int(min(sy, ey) - reach))
+                y1 = min(height - 1, int(max(sy, ey) + reach))
+                if x0 > x1 or y0 > y1:
+                    continue  # outside the map
+                length = total / pieces
+                dx, dy = (ex - sx) / length, (ey - sy) / length
+                for y in range(y0, y1 + 1):
+                    py = y + 0.5 - sy
+                    row = y * width
+                    for x in range(x0, x1 + 1):
+                        px = x + 0.5 - sx
+                        along = min(max(px * dx + py * dy, 0.0), length)
+                        d = math.hypot(px - along * dx, py - along * dy)
+                        if d < reach:
+                            # 16 levels (5 cm) keep edges straight and compress well.
+                            value = int(d / reach * 15 + 0.5) * 17
+                            if value < distance[row + x]:
+                                distance[row + x] = value
+
+
+def png(width, height, pixels, channels=1):
+    """8-bit greyscale (1 channel) or RGB (3 channels) PNG, filter 0 on every row."""
     def chunk(kind, data):
         return (struct.pack(">I", len(data)) + kind + data
                 + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF))
-    rows = b"".join(b"\0" + pixels[r * width:(r + 1) * width] for r in range(height))
+    stride = width * channels
+    rows = b"".join(b"\0" + pixels[r * stride:(r + 1) * stride] for r in range(height))
+    colour = 0 if channels == 1 else 2
     return (b"\x89PNG\r\n\x1a\n"
-            + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0))
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, colour, 0, 0, 0))
             + chunk(b"IDAT", zlib.compress(rows, 9)) + chunk(b"IEND", b""))
 
 
@@ -115,6 +159,7 @@ def convert(source, model, roads, output):
     full_width = math.ceil((bounds[2] - bounds[0]) / SPACING)
     full_height = math.ceil((bounds[3] - bounds[1]) / SPACING)
     grid = bytearray(full_width * full_height)
+    distance = bytearray(b"\xff") * (full_width * full_height)
     kept = 0
     for code, part in polygons:
         rings = [[(lambda e, n: ((e - origin[0] - bounds[0]) / SPACING,
@@ -126,7 +171,9 @@ def convert(source, model, roads, output):
             continue
         kept += 1
         rasterise(grid, full_width, full_height, rings, code)
+        edge_distances(distance, full_width, full_height, rings)
     meta = {"origin": origin, "bounds": bounds, "spacing": SPACING,
+            "maxDistance": MAX_DISTANCE,
             "categories": CATEGORIES, "tiles": [],
             "source": "Bodenbedeckung, data.bs.ch dataset 100477",
             "license": "https://creativecommons.org/licenses/by/4.0/",
@@ -136,12 +183,14 @@ def convert(source, model, roads, output):
         r0 = round((z0 - bounds[1]) / SPACING)
         columns = min(columns, full_width - c0)
         rows = min(rows, full_height - r0)
-        pixels = bytearray()
+        pixels = bytearray(columns * rows * 3)
         for r in range(rows):
             start = (r0 + r) * full_width + c0
-            pixels += grid[start:start + columns]
+            line = r * columns * 3
+            pixels[line:line + columns * 3:3] = grid[start:start + columns]
+            pixels[line + 1:line + columns * 3:3] = distance[start:start + columns]
         name = f"{output.name}-{index}.png"
-        (output.parent / name).write_bytes(png(columns, rows, bytes(pixels)))
+        (output.parent / name).write_bytes(png(columns, rows, bytes(pixels), 3))
         meta["tiles"].append({"file": name, "x": x0, "z": z0,
                               "columns": columns, "rows": rows})
     output.with_suffix(".json").write_text(json.dumps(meta, indent=1) + "\n")

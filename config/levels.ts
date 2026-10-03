@@ -174,19 +174,13 @@ export const cityLevels: readonly CityLevel[] = [
     weather: { dryDuration: 55, rainDuration: 45, rainRate: 20 },
     story: [
       "“My belly is no reservoir!”",
-      "Fill tanks. Build ponds. Connect overflows. Bring on the storm.",
+      "Fill tanks. Build ponds. Hold the rain. Bring on the storm.",
     ],
-    objective: "2 tanks. 1 pond. 2 rain gardens. Connect roofs and overflows.",
+    objective: "2 tanks. 1 pond. 2 rain gardens. Add shade and hold rain.",
     goals: [
       { metric: "tanks", target: 2, label: "Rain tanks" },
       { metric: "ponds", target: 1, label: "Pond" },
       { metric: "basins", target: 2, label: "Rain gardens" },
-      {
-        metric: "tankRoutes",
-        target: 2,
-        label: "Safe tank overflows (C → C)",
-      },
-      { metric: "roofRoutes", target: 2, label: "Roof inflows" },
       { metric: "shadeConnected", target: 2, label: "Connected shade" },
       { metric: "healthyTrees", target: 3, label: "Healthy trees" },
       { metric: "retained", target: 2000, label: "Litres retained" },
