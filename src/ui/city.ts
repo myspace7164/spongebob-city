@@ -1,4 +1,5 @@
 import { cityConfig as c, cityTools, plotNames } from "../../config/city";
+import { siteTechniques } from "../../config/sites";
 import { cityMetrics, spongeCapacity, weather } from "../game/city";
 import { levelAchievements } from "../game/campaign";
 import type { CityState, CityTool } from "../interfaces";
@@ -92,8 +93,8 @@ export class CityUI {
     element("item-status").classList.toggle("emergency", s.dangerTime > 0);
     const plot = s.plots.find((p) => p.id === target);
     element("target-info").textContent = plot
-      ? `#${plot.id + 1} ${plotNames[plot.kind]} · ${number(plot.surface)} L surface · ${number(plot.moisture + plot.stored)} L retained${plot.drainsTo === undefined ? "" : ` · runoff → #${plot.drainsTo + 1}`}${inReach ? "" : " · MOVE CLOSER"}`
-      : "Aim at a plot on the square";
+      ? `#${plot.id + 1} ${plotNames[plot.kind]}${plot.site ? ` · ${siteTechniques[plot.site].name}` : ""} · ${number(plot.surface)} L surface · ${number(plot.moisture + plot.stored)} L retained${plot.drainsTo === undefined ? "" : ` · runoff → #${plot.drainsTo + 1}`}${inReach ? "" : " · MOVE CLOSER"}`
+      : "Aim at a plot on the street or square";
     const timer = (remaining: number) =>
       remaining > 0 ? `${Math.ceil(remaining)}s` : "READY";
     const powers = [

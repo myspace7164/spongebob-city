@@ -1,6 +1,6 @@
 # Sponge City · Basel
 
-A playable four-level 3D sponge-city campaign through Riehenring, Erlenmatt, St. Johann and VoltaNord, using placeholder layouts until the real topology and geography are supplied. Collect storm water with SpongeBob, distribute it to plants and storage, and transform asphalt into a cooler, greener square. Manage heat and flooding together while Dr. Beton tries to reseal your work.
+A playable four-level 3D sponge-city campaign through Riehenring, Erlenmatt, St. Johann and VoltaNord, with Riehenring played on the real street (spots on its parking lane, sidewalk verges, corners and building edges) and placeholder layouts for the other levels until their map data is added. Collect storm water with SpongeBob, distribute it to plants and storage, and transform asphalt into a cooler, greener square. Manage heat and flooding together while Dr. Beton tries to reseal your work.
 
 Built on Three.js, TypeScript and Vite. See [the design](docs/design.md) for gameplay, scope and limits.
 
@@ -70,7 +70,8 @@ npm run test:browser
 
 ## Extend
 
-- `config/levels.ts`: short German briefings, per-level achievements/weather and independent placeholder locations/layouts; replace coordinates when the actual level layouts arrive.
+- `config/levels.ts`: short German briefings, per-level achievements/weather and independent locations/layouts, including the real Riehenring street; replace coordinates when the actual level layouts arrive.
+- `config/sites.ts`: street situations and which unsealing technique fits each one.
 - `src/game/campaign.ts`: shared achievement evaluation, automatic progression and runoff/recycling rules.
 - `src/ui/campaign.ts`: paused story screens, campaign route and ending.
 - `config/briefing.ts` and `src/ui/story-speech.ts`: 300-word/minute text reveal and original Web Audio wah-wah voice, capped at 12 seconds. Start early to skip; M/Sound mutes the voice too. Reduced motion disables mascot bobbing.
@@ -97,4 +98,4 @@ Optional Blender exports go into `public/models/`. Set `character.url` or `level
 
 ## Limits and sources
 
-Four story levels with separate sixteen-plot placeholder layouts, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. No persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology, entrances and runoff links remain fictional; imported Basel buildings are background scenery. The map is centred on the supplied dataset rather than geographically aligned to the four story locations. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).
+Four story levels: Riehenring on its real street, the other three in separate fictional layouts, procedural characters, imported Basel building scenery, escalating cyclic weather and a sabotage machine. No persistence, multiplayer or mobile controls. Temperatures, litres and square metres are illustrative gameplay values, not a validated climate model. Level topology, entrances and runoff links remain fictional; imported Basel buildings are background scenery. Only Riehenring is aligned to its real location; the other levels use offset background scenery, and their neighbourhoods lie outside the current map data. Green roofs remain ground-level interactive props; vertical traversal and surveyed drainage networks are outside this preparation. See [map conversion notes](public/models/README.md). See [sources](docs/SOURCES.md) and [implementation handoff](handoff/t3-sponge-city.md).

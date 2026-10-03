@@ -33,6 +33,8 @@ function applyLayout(s: CityState, level: CityLevel): void {
     moisture: 0,
     stored: 0,
     ...position,
+    // Each level's street decides which techniques fit its fresh plots.
+    site: position.site,
   }));
   s.feedback = level.objective;
 }

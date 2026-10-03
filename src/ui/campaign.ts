@@ -59,8 +59,9 @@ export class CampaignUI {
     element("mission-level").textContent =
       `LEVEL ${s.campaign!.level + 1}/${cityLevels.length} · ${level.location}`;
     element("mission-title").textContent = level.title;
-    element("mission-layout").textContent =
-      "Placeholder layout · geography pending";
+    element("mission-layout").textContent = level.site
+      ? `Real street: ${level.site.street}`
+      : "Placeholder layout · geography pending";
     this.renderRoute(s, element("campaign-route"));
     if (s.outcome === "won") {
       element("result-title").textContent = endingStory.title;

@@ -15,6 +15,7 @@ import {
   levelPosition,
   recyclePlot,
 } from "./game/campaign";
+import { clampToLevel, sceneryPose } from "./game/streets";
 import { CampaignUI } from "./ui/campaign";
 import { CityAudio } from "./game/audio";
 import { createCityView } from "./game/city-view";
@@ -64,6 +65,23 @@ function startGame(): void {
   const campaignUI = new CampaignUI();
   let characterModel: THREE.Group | null = null;
   const cityView = createCityView(scene, city);
+  // Basel buildings, roads and photo move together so each level's street meets the play area.
+  const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
+  let sceneryLoaded = false;
+  const placeScenery = () => {
+    const site = currentLevel(city)?.site;
+    const pose = sceneryPose(site);
+    scenery.rotation.y = pose.rotationY;
+    const origin = currentLevel(city)?.origin;
+    scenery.position.set(
+      pose.x + (origin?.x ?? 0),
+      0,
+      pose.z + (origin?.z ?? 0),
+    );
+    if (sceneryLoaded)
+      levelStatus.textContent = `Basel buildings loaded · ${site ? site.street : "fictional mission square"}`;
+  };
+  placeScenery();
   const ui = new CityUI((tool) => {
     city.selected = tool;
     ui.render(city, targetId, inReach());
@@ -90,6 +108,7 @@ function startGame(): void {
       city.outcome === "won" ? createCampaign() : structuredClone(checkpoint);
     player = spawnPlayer();
     checkpoint = structuredClone(city);
+    placeScenery();
     storyPending = true;
     campaignUI.hide();
     input.clear();
@@ -205,7 +224,6 @@ function startGame(): void {
       "Graphics connection lost. Reload this page to restart.";
   });
   async function addAssets(): Promise<void> {
-    const levelStatus = document.querySelector<HTMLElement>("#level-status")!;
     for (const [name, config] of Object.entries({
       character: gameConfig.character,
       level: gameConfig.level,
@@ -227,8 +245,8 @@ function startGame(): void {
           cityView.useImportedLevel();
           void loadMapLayers(scenery, canvas);
           canvas.dataset.level = "loaded";
-          levelStatus.textContent =
-            "Basel buildings loaded · fictional mission square";
+          sceneryLoaded = true;
+          placeScenery();
         }
       } catch (error) {
         if (name === "level") {
@@ -275,18 +293,22 @@ function startGame(): void {
       accumulator += dt;
       while (accumulator >= gameConfig.fixedStep) {
         updatePlayer(player, input.consume(), input.yaw, gameConfig.fixedStep);
-        // The playable square has flat-ground bounds, so the mission stays in reach.
-        const origin = levelPosition(city, { x: 0, z: 0 });
-        player.position.x = THREE.MathUtils.clamp(
-          player.position.x,
-          cityConfig.bounds.minX + origin.x,
-          cityConfig.bounds.maxX + origin.x,
-        );
-        player.position.z = THREE.MathUtils.clamp(
-          player.position.z,
-          cityConfig.bounds.minZ + origin.z,
-          cityConfig.bounds.maxZ + origin.z,
-        );
+        if (currentLevel(city)?.site)
+          clampToLevel(player.position, currentLevel(city)?.site);
+        else {
+          // The playable square has flat-ground bounds, so the mission stays in reach.
+          const origin = levelPosition(city, { x: 0, z: 0 });
+          player.position.x = THREE.MathUtils.clamp(
+            player.position.x,
+            cityConfig.bounds.minX + origin.x,
+            cityConfig.bounds.maxX + origin.x,
+          );
+          player.position.z = THREE.MathUtils.clamp(
+            player.position.z,
+            cityConfig.bounds.minZ + origin.z,
+            cityConfig.bounds.maxZ + origin.z,
+          );
+        }
         if (
           input.using &&
           !input.held("KeyB") &&
@@ -321,6 +343,7 @@ function startGame(): void {
           accumulator = 0;
           hudTime = 0;
           checkpoint = structuredClone(city);
+          placeScenery();
           storyPending = true;
           showStory();
           break;
@@ -331,8 +354,7 @@ function startGame(): void {
       }
     }
     if (!active) audio.update(false, false);
-    const origin = currentLevel(city)?.origin;
-    scenery.position.set(origin?.x ?? 0, 0, origin?.z ?? 0);
+    placeScenery();
     if (characterModel)
       updateSpongeWaterState(characterModel, city.sponge, spongeCapacity(city));
     world.update(player);

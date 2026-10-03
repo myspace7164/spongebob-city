@@ -1,4 +1,4 @@
-import type { CityLevel } from "../src/interfaces";
+import type { CityLevel, LevelSite, SiteType } from "../src/interfaces";
 import { cityConfig } from "./city";
 
 /** User-supplied story; all layouts and thresholds are fictional until maps arrive. */
@@ -27,6 +27,38 @@ function placeholderLayout(level: number) {
     };
   });
 }
+/**
+ * Riehenring, the straight stretch south of the footbridge (map-local metres).
+ * Spots were placed on the street centreline from basel-roads.json and checked
+ * against building footprints in basel-city.glb and the SWISSIMAGE photo.
+ */
+export const riehenringSite: LevelSite = {
+  street: "Riehenring",
+  origin: [428.15, -898.98],
+  heading: -0.3974,
+  bounds: { minX: -11.5, maxX: 11.5, minZ: -100, maxZ: 12 },
+};
+const spot = (x: number, z: number, site: SiteType) => ({ x, z, site });
+/** Index = stable plot ID; 15 is the Messe entrance by the footbridge. */
+const riehenringLayout = [
+  spot(-8, -20, "swale"),
+  spot(-8, -26, "swale"),
+  // A parking space in front of the start becomes a tree pit.
+  spot(-3.6, -6, "verge"),
+  spot(-8.6, -53, "verge"),
+  spot(-8.6, -59, "verge"),
+  spot(-3.6, -44, "parking"),
+  spot(-3.6, -50, "parking"),
+  spot(9, -52, "facade"),
+  spot(9, -62, "facade"),
+  spot(-8.6, -65, "verge"),
+  spot(-8.6, -71, "verge"),
+  spot(-3.6, -56, "parking"),
+  spot(6, -96, "swale"),
+  spot(-8, -32, "swale"),
+  spot(-3.6, -62, "parking"),
+  spot(9, -40, "facade"),
+];
 export const campaignConfig = {
   entranceSurfaceLimit: 20,
   roofReleaseRate: 8,
@@ -54,7 +86,8 @@ export const cityLevels: readonly CityLevel[] = [
     location: "Riehenring",
     title: "Der Boden muss wieder atmen",
     origin: origins[0],
-    layout: placeholderLayout(0),
+    layout: riehenringLayout,
+    site: riehenringSite,
     entranceIds: [15],
     weather: { dryDuration: 25, rainDuration: 25, rainRate: 8 },
     story: [

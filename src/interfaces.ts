@@ -80,6 +80,17 @@ export interface CityPlot {
   stored: number;
   /** Optional runoff/overflow destination; plot IDs are stable across placeholder levels. */
   drainsTo?: number;
+  /** Real street situation on surveyed levels; limits which upgrades fit here. */
+  site?: SiteType;
+}
+/** Street situations that map to urban unsealing techniques (config/sites.ts). */
+export type SiteType = "parking" | "verge" | "swale" | "facade";
+/** Map-local metres (GLB origin) re-centred and turned so the street runs along -Z. */
+export interface LevelSite {
+  street: string;
+  origin: [number, number];
+  heading: number;
+  bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
 }
 export interface CityState {
   plots: CityPlot[];
@@ -145,7 +156,9 @@ export interface CityLevel {
   origin?: { x: number; z: number };
   story: readonly string[];
   objective: string;
-  layout: readonly { x: number; z: number }[];
+  layout: readonly { x: number; z: number; site?: SiteType }[];
+  /** Absent on placeholder levels, which keep the fictional square. */
+  site?: LevelSite;
   entranceIds: readonly number[];
   weather: { dryDuration: number; rainDuration: number; rainRate: number };
   goals: readonly LevelGoal[];
