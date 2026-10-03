@@ -9,3 +9,4 @@ Every dataset, API, notable library and AI tool used, with licence. Feeds the so
 | Climate and water coefficients | Original synthetic gameplay values in config/city.ts | Project-authored; illustrative, not empirical | Mission balancing and outcome metrics |
 | Basel stage set | Procedural geometry inspired by the supplied Barfüsserplatz setting | Original project geometry; no survey/map data or imported art | Mission environment |
 | Three.js | https://github.com/mrdoob/three.js | MIT | 3D renderer and glTF loader |
+| UI mascot, flower motifs and bubble/glass textures | Original inline SVG, public/ui/sea-flower.svg and CSS | Project-authored vector/CSS artwork; no external images or fonts | Cartoon / Frutiger Aero UI |

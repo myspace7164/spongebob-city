@@ -17,3 +17,7 @@ The HUD shows heat, flood danger, sponge capacity, weather, budget and mission p
 Shared contracts: `src/interfaces.ts`. Rules: `src/game/city.ts`. Tuning: `config/city.ts`. Scene: `src/game/city-view.ts` and `src/game/characters.ts`. HUD: `src/ui/city.ts`. Input and movement retain their existing modules. Old sandbox modules remain available as reusable foundation code but are not mounted in the mission.
 
 All coefficients, litres, area and temperatures are fictional gameplay values, not a validated hydrology/climate model or a surveyed Basel map. No persistence, multiplayer, mobile controls, building collision or campaign. Characters and city are procedural meshes, not imported/licensed assets. Named cartoon characters come from the user's concept. Boss representation is a sabotage machine; additional boss encounters and neighbourhoods are future work.
+
+## Visual direction
+
+The cartoon/Frutiger Aero interface follows `docs/style-guide.md`: sponge-yellow lettering and welcome card, glossy aqua controls, original vector mascot, flowers, decorative bubbles, speech-bubble feedback and individually readable power badges. The guide can scroll its tools while keeping its close control visible. Decoration pauses with the mission and respects reduced motion.

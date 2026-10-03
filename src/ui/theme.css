@@ -1,20 +1,78 @@
 :root {
-  --background: #171b22;
-  --text: #f4f5ef;
-  --muted: #bcc5cc;
-  --accent: #d9fc88;
-  --border: #ffffff26;
-  --panel: #171b22cc;
+  /* The interface palette; the world palette below keeps the scene grounded. */
+  --background: #a7e7ef;
+  --text: #183e55;
+  --muted: #284b5e;
+  --accent: #ffe542;
+  --border: #18536e;
+  --panel: #ecfbff;
+  --ink: #183e55;
+  --aqua: #087faa;
+  --aqua-deep: #075677;
+  --mint: #096340;
+  --cream: #fffbe4;
+  --gloss: #ffffffdb;
+  --gloss-soft: #ffffff70;
+  --glass-edge: #ffffff;
+  --pore-soft: #deaa273d;
+  --track: #badde8;
+  --shadow-color: #113f6652;
+  --panel-gradient: linear-gradient(
+    150deg,
+    #fffffff5,
+    #e4fafff2 48%,
+    #bbeaf4f2
+  );
+  --button-gradient: linear-gradient(
+    #fff9b0 0%,
+    #ffe74c 48%,
+    #ffcc32 51%,
+    #ffdf43 100%
+  );
+  --tool-gradient: linear-gradient(
+    #f5ffff 0%,
+    #b6eaf7 47%,
+    #6ecae4 50%,
+    #c4f3f5 100%
+  );
+  --aqua-gradient: linear-gradient(#90e9f2, #14a3d2 48%, #087ba9 51%, #26b3d9);
+  --warm-gradient: linear-gradient(#ffc8a3, #ff9470 48%, #ec644d 51%, #ffa577);
+  --green-gradient: linear-gradient(#e1f6a9, #b7e064 48%, #79b649 51%, #c4e88b);
+  --sponge-gradient: linear-gradient(135deg, #fff8a8, #ffe55a 55%, #fbd63c);
+  --shadow-panel: 0 6px 0 #18536e, 0 12px 22px #113f6633, inset 0 2px 0 #ffffff;
+  --shadow-button: 0 5px 0 #ad7617, 0 8px 0 #183e55, inset 0 2px 0 #fffbe4;
+  --shadow-tool: 0 4px 0 #186487, inset 0 2px 0 #ffffff;
+  --shadow-text: 0 2px 0 #fffbe4;
+  --font: "Trebuchet MS", "Verdana", Arial, sans-serif;
+  --font-display: "Comic Sans MS", "Chalkboard SE", "Trebuchet MS", sans-serif;
+  --font-xs: 10px;
+  --font-sm: 11px;
+  --font-md: 13px;
+  --font-lg: 16px;
+  --font-welcome: 34px;
+  --font-title: clamp(32px, 3.2vw, 46px);
+  --space: 24px;
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap-md: 12px;
+  --gap-lg: 18px;
+  --edge: clamp(16px, 2.4vw, 32px);
+  --outline: 3px;
+  --radius: 22px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+  --menu-width: 350px;
+  --mission-width: 262px;
+  --hud-top: 24px;
+  --sidebar-top: 138px;
+  --dock-bottom: 47px;
+  --motion-fast: 160ms;
+  --motion-float: 9s;
+  /* Procedural world and character colours. */
   --ground: #c7b9a3;
   --sky: #b8deed;
   --grid: #516568;
-  --player: #d9fc88;
-  --ink: #263331;
-  --font: "Segoe UI", Arial, sans-serif;
-  --space: 24px;
-  --radius: 8px;
-}
-:root {
+  --player: #ffe542;
   --target: #f5ac6b;
   --rain-sky: #718fa2;
   --sponge: #ffda3e;

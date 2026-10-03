@@ -14,13 +14,13 @@ export class CityUI {
       const slot = document.createElement("button");
       slot.className = "slot";
       slot.title = `${tool.name} · ${tool.description}`;
-      slot.innerHTML = `<span class="tool-icon">${tool.icon}</span><span>${i + 1} · ${tool.name}</span><small>${tool.cost ? `${tool.cost} coins` : "FREE"}</small>`;
+      slot.innerHTML = `<span class="tool-key" aria-hidden="true">${i + 1}</span><span class="tool-icon" aria-hidden="true">${tool.icon}</span><span class="tool-name">${tool.name}</span><small>${tool.cost ? `${tool.cost} coins` : "FREE"}</small>`;
       slot.setAttribute("aria-label", `${i + 1}. ${tool.name}`);
       slot.onclick = () => select(tool.id);
       element("hotbar").append(slot);
       const detail = document.createElement("button");
       detail.className = "inventory-item";
-      detail.textContent = `${i + 1} · ${tool.icon} ${tool.name} · ${tool.cost} coins — ${tool.description}`;
+      detail.innerHTML = `<span class="tool-icon" aria-hidden="true">${tool.icon}</span><span><strong>${i + 1} · ${tool.name} · ${tool.cost} coins</strong><small>${tool.description}</small></span>`;
       detail.onclick = () => select(tool.id);
       element("inventory-list").append(detail);
     }
@@ -74,7 +74,7 @@ export class CityUI {
     element("goals").innerHTML = goals
       .map(
         ([done, text]) =>
-          `<p class="${done ? "complete" : ""}">${done ? "✓" : "○"} ${text}</p>`,
+          `<p class="${done ? "complete" : ""}"><span class="goal-check" aria-hidden="true">${done ? "✓" : ""}</span><span>${done ? '<span class="sr-only">Complete: </span>' : ""}${text}</span></p>`,
       )
       .join("");
     element("city-change").textContent =
@@ -83,17 +83,43 @@ export class CityUI {
       s.dangerTime > 0
         ? `⚠ Flood emergency! ${Math.ceil(c.dangerSeconds - s.dangerTime)}s to bring danger below 99%. ${s.feedback}`
         : s.feedback;
+    element("item-status").classList.toggle("emergency", s.dangerTime > 0);
     const plot = s.plots.find((p) => p.id === target);
     element("target-info").textContent = plot
       ? `${plotNames[plot.kind]} · ${number(plot.surface)} L surface · ${number(plot.moisture + plot.stored)} L retained${inReach ? "" : " · MOVE CLOSER"}`
       : "Aim at a plot on the square";
     const timer = (remaining: number) =>
       remaining > 0 ? `${Math.ceil(remaining)}s` : "READY";
-    element("abilities").textContent =
-      `Q Poren-Power: ${timer(s.powerCooldown)} · P Patrick: ${timer(s.patrickCooldown)} · X Maximum: ${s.reused < c.maximumUnlock ? `reuse ${c.maximumUnlock} L to unlock` : timer(s.maximumCooldown)} · ${s.upgraded ? "B bubbles: READY" : "Sandy upgrade: E at workshop"} · Dr. Beton: ${s.machineDisabled > 0 ? `offline ${Math.ceil(s.machineDisabled)}s` : `sabotage in ${Math.ceil(s.sabotageIn)}s`}`;
+    const powers = [
+      ["Q", "Poren-Power", timer(s.powerCooldown), s.powerCooldown === 0],
+      ["P", "Patrick", timer(s.patrickCooldown), s.patrickCooldown === 0],
+      [
+        "X",
+        "MAXIMUM!",
+        s.reused < c.maximumUnlock
+          ? `${c.maximumUnlock} L to unlock`
+          : timer(s.maximumCooldown),
+        s.reused >= c.maximumUnlock && s.maximumCooldown === 0,
+      ],
+      ["B", "Bubbles", s.upgraded ? "READY" : "E at Sandy's", s.upgraded],
+    ];
+    element("abilities").innerHTML =
+      powers
+        .map(
+          ([key, name, status, ready]) =>
+            `<span class="power-pill ${ready ? "ready" : ""}"><kbd>${key}</kbd>${name}: ${status}</span>`,
+        )
+        .join("") +
+      `<span class="power-pill ${s.machineDisabled > 0 ? "" : "threat"}">🦹 Dr. Beton: ${s.machineDisabled > 0 ? `offline ${Math.ceil(s.machineDisabled)}s` : `${Math.ceil(s.sabotageIn)}s`}</span>`;
     if (this.selected !== s.selected) {
       this.selected = s.selected;
       [...element("hotbar").children].forEach((button, i) =>
+        button.setAttribute(
+          "aria-pressed",
+          String(cityTools[i].id === s.selected),
+        ),
+      );
+      [...element("inventory-list").children].forEach((button, i) =>
         button.setAttribute(
           "aria-pressed",
           String(cityTools[i].id === s.selected),
