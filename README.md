@@ -13,7 +13,7 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **Enter the square** to capture the mouse. Escape pauses; clicking Enter resumes. Leaving the tab pauses and clears input. The field guide explains every tool.
+Open the local URL printed by Vite in a desktop WebGL 2 browser. Click **I’M READY!** to capture the mouse. Escape pauses; click the same button to resume. Leaving the tab pauses and clears input. The field guide explains every tool.
 
 | Control | Action |
 |---|---|
@@ -73,6 +73,7 @@ npm run test:browser
 - `src/ui/city.ts`: HUD, field guide and mission report.
 - `src/interfaces.ts`: shared contracts.
 - `src/ui/theme.css`: palette and visual theme.
+- `docs/style-guide.md`: cartoon / Frutiger Aero visual direction; its local style sample is served by Vite at `/docs/design/style-sample.html`.
 - `config/game.ts`: movement, camera, renderer and optional GLB paths.
 
 Optional Blender exports go into `public/models/`. Set `character.url` or `level.url` in `config/game.ts`, with scale and rotation. Use a feet-centred origin, Y up and front facing +Z. An empty URL retains procedural visuals; failed loads report an error and keep the fallback. Imported models and buildings are visual only; movement uses the flat ground with mission bounds.
