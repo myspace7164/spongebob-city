@@ -51,6 +51,13 @@ local SWISSIMAGE orthophoto. Both share the building model's LV95 origin and
 bounds. The fictional mission rectangle remains clear. Roads are estimated widths
 with no surveyed bridge/tunnel elevations.
 
+Buildings get a procedural Basel look instead of the model's plain grey: four
+illustrative facade families (old-town houses with shutters and flower boxes,
+apartments, offices, workshops) with their own storey heights and windows, a
+muted Basel plaster and sandstone palette, tile or slate pitched roofs and
+gravel or green flat roofs. Colours and windows are artistic, chosen per
+building from a stable seed, not surveyed; bridges stay grey.
+
 The ground is real swissALTI3D terrain (4 m grid): the photo is draped over it,
 roads follow it, and buildings keep their surveyed heights on top. Each level's
 play area is lifted to y = 0. The player, characters and plots stand on the
