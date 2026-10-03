@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { cityConfig as c } from "../config/city.ts";
 import { cityLevels } from "../config/levels.ts";
 import {
@@ -16,7 +17,12 @@ import {
   updateCity,
   weather,
 } from "../src/game/city.ts";
-import { updateWater } from "../src/game/city-water.ts";
+import { downhillNeighbours, updateWater } from "../src/game/city-water.ts";
+import {
+  assignElevations,
+  levelScenery,
+  terrainFromBuffer,
+} from "../src/game/terrain.ts";
 import type { CityState } from "../src/interfaces.ts";
 const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
 const total = (s: CityState) =>
@@ -141,7 +147,8 @@ test("separated shaded plots do not satisfy a connected shade zone", () => {
   assert.equal(goal().done, true);
 });
 
-test("a legal strategy completes four independent fresh locations and conserves water within each level", () => {
+/** Same legal play on flat ground, or with real terrain heights so water runs downhill. */
+function playLegalStrategy(elevate?: (s: CityState) => void) {
   const s = createCampaign();
   const construction = [
     [
@@ -197,6 +204,7 @@ test("a legal strategy completes four independent fresh locations and conserves 
   for (let level = 0; level < cityLevels.length; level++) {
     assert.equal(s.campaign!.level, level);
     assert.equal(s.outcome, "playing");
+    elevate?.(s);
     const initialWater = total(s) - s.rainfall;
     for (const [id, kind] of construction[level]) act(s, kind, at(s, id), id);
     if (level >= 2) {
@@ -286,6 +294,25 @@ test("a legal strategy completes four independent fresh locations and conserves 
   updateCity(s, 1, at(s, 0));
   assert.equal(advanceCampaign(s), false);
   assert.deepEqual(s, finished);
+}
+
+test("a legal strategy completes four independent fresh locations and conserves water within each level", () =>
+  playLegalStrategy());
+
+test("the same strategy still wins on real Basel terrain where water runs downhill", () => {
+  const grid = terrainFromBuffer(
+    JSON.parse(readFileSync("public/maps/basel-terrain.json", "utf8")),
+    readFileSync("public/maps/basel-terrain.bin").buffer.slice(0),
+  );
+  playLegalStrategy((s) => {
+    assignElevations(s, levelScenery(currentLevel(s), grid).groundAt);
+    assert.ok(s.plots.every((p) => p.elevation !== undefined));
+    if (currentLevel(s)!.site === undefined)
+      assert.ok(
+        s.plots.some((p) => downhillNeighbours(s, p).length > 0),
+        "sloped stages send water downhill",
+      );
+  });
 });
 
 test("the last missing achievement blocks advancement; next neighbourhood resets water, upgrades and funds", () => {

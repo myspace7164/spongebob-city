@@ -20,13 +20,24 @@ export function sceneryPose(site: LevelSite | undefined) {
   return { rotationY: site.heading, x: -(c * ox + s * oz), z: s * ox - c * oz };
 }
 
+/** Map-local metres under a world point, for scenery placed with this pose. */
+export function worldToMap(
+  pose: { rotationY: number; x: number; z: number },
+  x: number,
+  z: number,
+): [number, number] {
+  const c = Math.cos(pose.rotationY),
+    s = Math.sin(pose.rotationY);
+  const dx = x - pose.x,
+    dz = z - pose.z;
+  return [c * dx - s * dz, s * dx + c * dz];
+}
+
 /** Inverse of sceneryPose: play-area metres back to map-local metres. */
 export function playToMap(
   site: LevelSite,
   x: number,
   z: number,
 ): [number, number] {
-  const c = Math.cos(site.heading),
-    s = Math.sin(site.heading);
-  return [site.origin[0] + c * x - s * z, site.origin[1] + s * x + c * z];
+  return worldToMap(sceneryPose(site), x, z);
 }
