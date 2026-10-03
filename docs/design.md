@@ -8,7 +8,7 @@ The supplied German arrival, four neighbourhood chapters and ending appear in ga
 
 Riehenring teaches unsealing, water reuse, rain gardens and a dry marked entrance. Erlenmatt adds healthy trees and planted basins. St. Johann adds green roofs, contiguous shade and roof runoff connections. VoltaNord combines tanks, ponds and safe overflow connections through a complete strongest storm. All current-level achievements must be satisfied together. Progression automatically selects the next level and pauses for its story; only the fourth completion shows the ending.
 
-Improvements, retained water, sponge contents and upgrades carry forward; each level resets weather/hazards, its reuse counter and budget allowance. Entry checkpoints allow retrying the current level; campaign restart returns to arrival. Press C at a roof/tank, then C at a receiving plot to connect runoff. Finite-capacity transfers conserve water. All layouts and drainage are illustrative placeholders.
+Improvements, retained water, sponge contents and upgrades carry forward; each level resets weather/hazards, its reuse counter and budget allowance. Entry checkpoints allow retrying the current level; campaign restart returns to arrival. Press C at a roof/tank, then C at a receiving plot to connect runoff. Finite-capacity transfers conserve water. All layouts and drainage are illustrative placeholders, currently sharing sixteen stable plot IDs. Entrance achievements check current surface water after a complete storm, rather than continuous surveyed inundation. Recycling with V reclaims an upgrade’s cost and preserves its water, so accidental building choices cannot exhaust the required plots.
 
 ## Playable mission
 
@@ -24,7 +24,7 @@ The HUD shows heat, flood danger, sponge capacity, weather, budget and mission p
 
 Contextual team-supplied audio accompanies successful construction and water transfers. Absorption, spraying and rain use loops; continuous sounds stop when their action or weather stops. Pause, hidden tabs and mission outcomes silence all clips. A Sound button and M key toggle mute.
 
-Shared contracts: `src/interfaces.ts`. Rules: `src/game/city.ts`. Tuning: `config/city.ts`. Scene: `src/game/city-view.ts` and `src/game/characters.ts`. HUD: `src/ui/city.ts`. Input and movement retain their existing modules. Old sandbox modules remain available as reusable foundation code but are not mounted in the mission.
+Shared contracts: `src/interfaces.ts`. Rules: `src/game/city.ts` and `src/game/campaign.ts`. Tuning/story: `config/city.ts` and `config/levels.ts`. Scene: `src/game/city-view.ts` and `src/game/characters.ts`. HUD/story: `src/ui/city.ts` and `src/ui/campaign.ts`. Input and movement retain their existing modules. Old sandbox modules remain available as reusable foundation code but are not mounted in the mission.
 
 All coefficients, litres, area and temperatures are fictional gameplay values, not a validated hydrology/climate model or a surveyed mission square. A converted Basel building dataset supplies surrounding scenery; its placement and cleared mission area are documented in `public/models/README.md`. No persistence, multiplayer, mobile controls or building collision. Characters and mission props are procedural meshes. Surrounding buildings load from the supplied Basel dataset, with the procedural architecture retained as a fallback. Named cartoon characters come from the user's concept. Boss representation is a sabotage machine; additional boss encounters and surveyed neighbourhood layouts are future work.
 

@@ -1,4 +1,5 @@
 import { updateWater } from "./city-water";
+import { advanceCampaign, currentLevel } from "./campaign";
 import { cityConfig as c, cityTools, plotCooling } from "../../config/city";
 import type {
   CityAction,
@@ -46,13 +47,14 @@ export function createCity(): CityState {
 }
 
 export function weather(state: CityState) {
-  const phase = state.elapsed % (c.dryDuration + c.rainDuration);
+  const climate = currentLevel(state)?.weather ?? c;
+  const phase = state.elapsed % (climate.dryDuration + climate.rainDuration);
   return {
-    raining: phase >= c.dryDuration,
+    raining: phase >= climate.dryDuration,
     remaining:
-      phase < c.dryDuration
-        ? c.dryDuration - phase
-        : c.dryDuration + c.rainDuration - phase,
+      phase < climate.dryDuration
+        ? climate.dryDuration - phase
+        : climate.dryDuration + climate.rainDuration - phase,
   };
 }
 export function spongeCapacity(s: CityState): number {
@@ -162,7 +164,10 @@ function act(
     if (s.patrickCooldown > 0)
       return `Patrick is resting: ${Math.ceil(s.patrickCooldown)}s.`;
     const plots = s.plots.filter(
-      (p) => p.kind === "asphalt" && distance(p, position) <= c.reach,
+      (p) =>
+        p.kind === "asphalt" &&
+        distance(p, position) <= c.reach &&
+        !currentLevel(s)?.entranceIds.includes(p.id),
     );
     if (!plots.length)
       return "Patrick: Bring me close to those boring asphalt stones!";
@@ -191,6 +196,8 @@ function act(
         ? "Your sponge is empty. Use 1 to collect surface water."
         : "This plot cannot take more water. Unseal asphalt or choose another green plot/tank.";
   }
+  if (currentLevel(s)?.entranceIds.includes(p.id))
+    return "Keep this marked entrance clear. Absorb its puddle and deliver the water elsewhere.";
   if (action === "karate" && p.kind !== "asphalt")
     return "Already unsealed. Choose a tree, rain garden or other upgrade.";
   if (action === "tree" && p.kind !== "soil")
@@ -239,6 +246,13 @@ export function updateCity(
 ): void {
   if (s.outcome !== "playing" || !Number.isFinite(dt) || dt <= 0) return;
   s.elapsed += dt;
+  const climate = currentLevel(s)?.weather;
+  if (
+    s.campaign &&
+    climate &&
+    s.elapsed >= climate.dryDuration + climate.rainDuration
+  )
+    s.campaign.stormCompleted = true;
   const raining = weather(s).raining;
   if (raining) s.stormSeen = true;
   updateWater(s, dt, raining);
@@ -277,6 +291,7 @@ export function updateCity(
   const m = cityMetrics(s),
     goals = c.goals;
   if (s.dangerTime >= c.dangerSeconds) s.outcome = "lost";
+  else if (s.campaign) advanceCampaign(s);
   else if (
     s.stormSeen &&
     m.permeable >= goals.permeable &&

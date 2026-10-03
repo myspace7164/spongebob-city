@@ -52,16 +52,21 @@
     </section>
     <aside id="mission">
       <div class="mission-tab">🌴 OPERATION: LESS CONCRETE!</div>
-      <p class="eyebrow">MISSION 01 · BARFÜSSERPLATZ</p>
-      <h2>A little greener.<br />A lot more awesome.</h2>
+      <p id="mission-level" class="eyebrow"></p>
+      <h2 id="mission-title"></h2>
+      <ol
+        id="campaign-route"
+        class="campaign-route"
+        aria-label="Campaign route"
+      ></ol>
       <p id="budget"></p>
       <div id="goals"></div>
       <p id="city-change"></p>
-      <p class="small">Make shade. Save rain. Be a sponge! 🧽</p>
+      <p id="mission-layout" class="small"></p>
     </aside>
     <aside id="menu">
       <span class="welcome-sticker">Aye-aye, Basel! ✦</span>
-      <p class="eyebrow">BARFÜSSERPLATZ NEEDS A HERO</p>
+      <p class="eyebrow">FOUR NEIGHBOURHOODS NEED A HERO</p>
       <div class="welcome-hero">
         <h1>LET'S GET<br /><em>SPONGEY!</em></h1>
         <svg class="hero-sponge" viewBox="0 0 220 280" aria-hidden="true">
@@ -134,6 +139,24 @@
     </aside>
     <div id="crosshair" hidden>+</div>
     <div id="target-info"></div>
+    <section
+      id="campaign-story"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="story-title"
+      lang="de"
+    >
+      <p class="eyebrow">BASEL WIRD SCHWAMMSTADT</p>
+      <h2 id="story-title"></h2>
+      <ol id="story-route" class="campaign-route" aria-label="Levelroute"></ol>
+      <p class="small">
+        Platzhalterkarte · Topologie und Geografie folgen später.
+      </p>
+      <div id="story-body" tabindex="0" aria-label="Geschichte"></div>
+      <p id="story-status" role="status"></p>
+      <button id="story-start" class="cta">Level starten ➜</button>
+    </section>
     <section id="inventory-panel" hidden aria-label="Sponge city field guide">
       <p class="eyebrow">SANDY'S VERY SCIENTIFIC FIELD GUIDE</p>
       <h2>Your bag of sponge tricks! 🫧</h2>
@@ -141,6 +164,7 @@
         Rain → absorb → store & distribute → greenery → cooling
       </p>
       <p id="level-status" class="small" role="status"></p>
+      <button id="read-story">Read this level's story</button>
       <p class="small">
         Buildings:
         <a href="https://shop.geo.bs.ch/geodaten-katalog/"
@@ -153,7 +177,9 @@
       <p class="small">
         Q: Poren-Power · P: Patrick clears nearby asphalt · X: MAXIMUM SCHWAMM
         (unlock at 800 L reused) · B: hold for distant bubble irrigation after
-        Sandy's upgrade. Visit Sandy or Dr. Beton and press E.
+        Sandy's upgrade. Visit Sandy or Dr. Beton and press E. C at a roof/tank,
+        then C at receiving ground: connect runoff. V: recycle an upgrade and
+        reclaim its cost. Keep marked entrances clear.
       </p>
       <button id="close-inventory">Back to mission</button>
     </section>
@@ -161,6 +187,7 @@
       <p class="eyebrow">MISSION REPORT</p>
       <h1 id="result-title"></h1>
       <p id="result-reason"></p>
+      <div id="campaign-ending" hidden lang="de"></div>
       <div id="result-metrics"></div>
       <p class="small">Illustrative gameplay values · not a climate forecast</p>
       <button id="restart">Try the mission again ↻</button>
@@ -178,7 +205,8 @@
         ><span><kbd>1–9</kbd> tool</span><span><kbd>CLICK</kbd> use</span
         ><span><kbd>Q / P / X</kbd> powers</span
         ><span><kbd>E</kbd> workshop / machine</span
-        ><span><kbd>H</kbd> guide</span><span><kbd>R</kbd> restart</span>
+        ><span><kbd>C</kbd> runoff</span><span><kbd>V</kbd> recycle</span
+        ><span><kbd>H</kbd> guide</span><span><kbd>R</kbd> retry level</span>
       </div>
       <span class="world-label">FICTIONAL CITY SIMULATION</span>
     </footer>
