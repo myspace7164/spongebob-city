@@ -1,7 +1,5 @@
 /** Original ambient character; no rewards, quests or gameplay powers. */
 export const riversideBuddy = {
-  x: 8.5,
-  z: -1.5,
   radiusX: 2.4,
   radiusZ: 2.1,
   speed: 0.18,

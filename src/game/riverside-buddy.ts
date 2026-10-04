@@ -1,5 +1,5 @@
 import { riversideBuddy as c } from "../../config/riverside-buddy.ts";
-import { levelPosition } from "./campaign.ts";
+import { currentLevel, landmarkPose, levelPosition } from "./campaign.ts";
 import type { CityState, AmbientActivity } from "../interfaces.ts";
 /** Integrate only walking intervals so hands-on activities never slide around. */
 export function riversideBuddyPose(s: CityState) {
@@ -31,7 +31,7 @@ export function riversideBuddyPose(s: CityState) {
     Math.max(0, Math.min(loop - 27, 12)) +
     Math.max(0, loop - 58);
   const phase = walkingTime * c.speed;
-  const origin = levelPosition(s, c);
+  const origin = levelPosition(s, landmarkPose(currentLevel(s), "buddy"));
   const messageIndex =
     Math.floor(s.elapsed / c.messageSeconds) % c.messages.length;
   return {

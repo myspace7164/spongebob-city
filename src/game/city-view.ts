@@ -15,7 +15,7 @@ import type {
 import { formatPlaytime } from "./time-format.ts";
 import { cityMetrics, spongeCapacity, weather } from "./city.ts";
 import { activeModifier } from "./level-modifiers.ts";
-import { currentLevel, validDrain } from "./campaign.ts";
+import { currentLevel, landmarkPose, validDrain } from "./campaign.ts";
 import { isToolAvailable } from "./progression.ts";
 import { siteTechniques } from "../../config/sites.ts";
 import {
@@ -979,15 +979,13 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       root.position.set(origin.x, 0, origin.z);
       root.updateWorldMatrix(true, false);
       const ground = (x: number, z: number) => groundAt(x, z);
-      const start = level?.site?.start ?? [0, 0];
-      const boardX = start[0] - 4;
-      const boardZ = start[1] + 1;
+      const board = landmarkPose(level, "leaderboard");
       leaderboard.root.position.set(
-        boardX,
-        ground(origin.x + boardX, origin.z + boardZ),
-        boardZ,
+        board.x,
+        ground(origin.x + board.x, origin.z + board.z),
+        board.z,
       );
-      leaderboard.root.rotation.y = Math.atan2(4, -1);
+      leaderboard.root.rotation.y = board.rotationY;
       playerGround = ground(player.position.x, player.position.z);
       const targetPlot = s.plots.find((p) => p.id === targetId);
       const buildKind = BUILD_KIND[s.selected];
@@ -1028,7 +1026,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
             (limb.name.startsWith("left") ? 1 : -1);
         });
       });
-      const nextSignature = `${level?.id}/${groundVersion}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
+      const signAt = landmarkPose(level, "streetSign");
+      const nextSignature = `${level?.id}/${signAt.x},${signAt.z}/${groundVersion}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
       if (campaignSignature !== nextSignature) {
         campaignSignature = nextSignature;
         dispose(routes);
@@ -1042,7 +1041,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         );
         // The stand-in square would block a real street when the Basel model is missing.
         architecture.visible = !importedLevel && !level?.site;
-        sign.position.set(0, 6 + ground(origin.x, origin.z - 27), -27);
+        sign.position.set(
+          signAt.x,
+          6 + ground(origin.x + signAt.x, origin.z + signAt.z),
+          signAt.z,
+        );
         root.add(sign);
         for (const { object, base } of grounded)
           object.position.y =
