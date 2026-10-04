@@ -129,6 +129,25 @@ export interface BuiltLevel {
   site: LevelSite;
   spots: LevelSpot[];
 }
+/** A builder level saved to the shared library (config/built-levels/library/<id>.json). */
+export interface LibraryLevel extends BuiltLevel {
+  /** File name and lookup key: a slug of the place plus a short suffix. */
+  id: string;
+  /** GitHub username of whoever saved it last; never a real name. */
+  author: string;
+  notes: string;
+  /** Story level id whose goals it was built and checked against. */
+  builtFor: string;
+  /** ISO time of the last save. */
+  savedAt: string;
+}
+/** Which level plays each story stage and which places endless mode may pick. */
+export interface LevelLineup {
+  /** Story level id to library level id; a missing stage picks a random built-in Basel street. */
+  stages: Record<string, string>;
+  /** Endless entries switched off: "basel:<location id>" or "library:<library id>". */
+  endlessOff: string[];
+}
 export interface CityState {
   powerups: PowerupState;
   plots: CityPlot[];
@@ -188,7 +207,8 @@ export interface CityFire {
 export interface CampaignProgress {
   /** Post-campaign round, starting at 1; absent during the normal campaign. */
   endlessRound?: number;
-  /** Server/solo-selected route, retained for retries; omitted only in legacy fixtures. */
+  /** Server/solo-selected route, retained for retries; omitted only in legacy fixtures.
+   * Each entry is a Basel location id or "library:<library id>". */
   locations?: string[];
   level: number;
   completed: string[];

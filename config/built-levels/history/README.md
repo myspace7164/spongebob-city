@@ -1,7 +1,7 @@
-# Level builder version history
+# Level library version history
 
-The local development builder writes one JSON history file per level here when
-a draft is applied or a saved version is restored. Each entry keeps the level
-state that was replaced; restoring the built-in state removes that level's
-override from `../index.ts`. Keep these files with the project so earlier
-applied level states remain available to restore.
+The local development builder writes one JSON history file per library level
+here (named like the level's file in `../library/`) whenever a saved level is
+overwritten, restored or deleted. Each entry keeps the state that was replaced,
+so **Earlier versions → Restore** in the builder can bring it back. Keep these
+files with the project.

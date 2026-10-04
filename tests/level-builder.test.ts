@@ -12,13 +12,14 @@ import {
   unionBounds,
   autoBounds,
   checkLayout,
-  levelFileSource,
   mapToPlay,
-  parseLevelFile,
   siteFromView,
   spotBuilds,
   spotLocal,
   validateBuiltLevel,
+  validateLibraryLevel,
+  validateLineup,
+  libraryId,
 } from "../src/game/level-builder.ts";
 import { playToMap, sceneryPose, worldToMap } from "../src/game/streets.ts";
 import type { LevelSpot, RoadNetwork } from "../src/interfaces.ts";
@@ -142,36 +143,70 @@ test("validation accepts a complete level and rejects broken ones", () => {
   );
 });
 
-test("the saved file round-trips every level", () => {
-  const level = validateBuiltLevel(
-    "erlenmatt",
-    {
-      location: "Messeplatz",
-      site: { ...riehenringSite, start: [0, 0] },
-      spots: grid("swale", ["pond"]),
-    },
-    ids,
-  );
-  const source = levelFileSource({ erlenmatt: level });
-  assert.deepEqual(parseLevelFile(source), { erlenmatt: level });
-  assert.deepEqual(parseLevelFile(levelFileSource({})), {});
+test("library levels keep author, notes and stage, and refuse bad input", () => {
+  const level = {
+    id: "messeplatz-a1b2c3",
+    author: "Giginio",
+    notes: "  Lots of swales.\r\nTry the pond.  ",
+    builtFor: "erlenmatt",
+    location: "Messeplatz",
+    site: { ...riehenringSite, start: [0, 0] },
+    spots: grid("swale", ["pond"]),
+  };
+  const saved = validateLibraryLevel(level, ids, "2026-10-04T12:00:00.000Z");
+  assert.equal(saved.author, "Giginio");
+  assert.equal(saved.notes, "Lots of swales.\nTry the pond.");
+  assert.equal(saved.builtFor, "erlenmatt");
+  assert.equal(saved.savedAt, "2026-10-04T12:00:00.000Z");
+  assert.deepEqual(JSON.parse(JSON.stringify(saved)), saved);
+  for (const broken of [
+    { ...level, author: "Real Name" },
+    { ...level, author: "" },
+    { ...level, id: "../escape" },
+    { ...level, builtFor: "nowhere" },
+    { ...level, notes: "x".repeat(601) },
+  ])
+    assert.throws(() => validateLibraryLevel(broken, ids, saved.savedAt));
 });
 
-test("every level saved from the builder can still reach its goals", async () => {
-  const { builtLevels } = await import("../config/built-levels/index.ts");
-  for (const level of cityLevels)
-    if (builtLevels[level.id]) {
-      // The saved name and place reach the game.
-      assert.equal(level.location, builtLevels[level.id].location);
-      assert.equal(level.site, builtLevels[level.id].site);
-    }
-  for (const level of cityLevels)
-    if (builtLevels[level.id])
-      assert.deepEqual(
-        checkLayout(builtLevels[level.id].spots, level.goals),
-        [],
-        level.id,
-      );
+test("library ids are file-safe slugs of the place", () => {
+  assert.equal(
+    libraryId("Klybeckstrasse · Matthäus", "a1b2c3"),
+    "klybeckstrasse-matthaus-a1b2c3",
+  );
+  assert.equal(libraryId("***", "a1b2c3"), "level-a1b2c3");
+});
+
+test("a lineup names only known stages and library levels", () => {
+  assert.deepEqual(
+    validateLineup(
+      {
+        stages: { erlenmatt: "messeplatz-a1b2c3" },
+        endlessOff: ["basel:clara", "basel:clara"],
+      },
+      ids,
+      ["messeplatz-a1b2c3"],
+    ),
+    { stages: { erlenmatt: "messeplatz-a1b2c3" }, endlessOff: ["basel:clara"] },
+  );
+  assert.throws(() =>
+    validateLineup({ stages: { nowhere: "x" }, endlessOff: [] }, ids, ["x"]),
+  );
+  assert.throws(() =>
+    validateLineup({ stages: { erlenmatt: "gone" }, endlessOff: [] }, ids, []),
+  );
+  assert.throws(() =>
+    validateLineup({ stages: {}, endlessOff: ["../x"] }, ids, []),
+  );
+});
+
+test("every library level can still reach the goals of the stage it was built for", async () => {
+  const { levelLibrary } = await import("../config/built-levels/index.ts");
+  for (const level of Object.values(levelLibrary)) {
+    const stage = cityLevels.find((l) => l.id === level.builtFor);
+    assert.ok(stage, `${level.id}: unknown stage ${level.builtFor}`);
+    assert.deepEqual(checkLayout(level.spots, stage.goals), [], level.id);
+  }
 });
 
 test("names are cleaned and must have 1–40 characters", () => {
@@ -257,10 +292,7 @@ test("field rotation survives validation and saved-version serialization", () =>
       ids,
     );
     assert.equal(level.spots[0].rotationY, rotationY);
-    assert.deepEqual(
-      parseLevelFile(levelFileSource({ erlenmatt: level })).erlenmatt,
-      level,
-    );
+    assert.deepEqual(JSON.parse(JSON.stringify(level)), level);
   }
   assert.throws(
     () =>

@@ -39,6 +39,7 @@ import { assignElevations, levelScenery } from "./game/terrain.ts";
 import { CampaignUI } from "./ui/campaign.ts";
 import { CreditsUI } from "./ui/credits.ts";
 import { applyBuiltLevel } from "../config/levels.ts";
+import { levelLocationPools } from "../config/level-locations.ts";
 import type { createLevelBuilder } from "./ui/level-builder.ts";
 import { CityAudio } from "./game/audio.ts";
 import { createCityView } from "./game/city-view.ts";
@@ -563,11 +564,18 @@ function startGame(): void {
         canvas,
         levelIndex: () => city.campaign!.level,
         level: (index) => campaignLevel(city, index)!,
-        selectLevel: (index) => {
-          if (city.campaign!.level === index) return;
-          const locations = city.campaign!.locations;
-          city = startCampaignAt(index);
-          city.campaign!.locations = locations;
+        selectLevel: (index, location) => {
+          const locations = [...(city.campaign!.locations ?? [])];
+          if (location) locations[index] = location;
+          else if (
+            city.campaign!.level === index &&
+            !locations[index]?.startsWith("library:")
+          )
+            return;
+          // A new level for a stage starts from a built-in street, not a library level.
+          else if (locations[index]?.startsWith("library:"))
+            locations[index] = levelLocationPools[index][0].id;
+          city = startCampaignAt(index, locations);
           player = spawnPlayer();
           placeScenery();
         },

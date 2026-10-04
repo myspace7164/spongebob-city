@@ -9,6 +9,7 @@ import type {
   LandmarkId,
   LevelSite,
   LevelSpot,
+  LibraryLevel,
   NpcId,
   SiteType,
   TerrainGrid,
@@ -28,7 +29,9 @@ import {
   buildTools,
   checkCharacters,
   checkLayout,
+  githubUsername,
   landmarkIds,
+  libraryId,
   landmarkNames,
   mapToPlay,
   mapToWorld,
@@ -44,19 +47,23 @@ import {
 import { playToMap, worldToMap } from "../game/streets";
 import { levelLocalGroundAt, levelScenery } from "../game/terrain";
 import { areaCorners, openAreaMap, type AreaOutline } from "./level-area-map";
+import { createLineupScreen } from "./level-lineup";
+import { levelLibrary, levelLineup } from "../../config/built-levels/index";
+import { libraryLocation } from "../game/level-lineup";
 
-/** What the builder needs from the running game. */
 /** Rotate buttons turn by this much; small enough to line spots up with streets. */
 const ROTATION_STEP_DEGREES = 5;
 const ROTATION_STEP = (ROTATION_STEP_DEGREES * Math.PI) / 180;
 
+/** What the builder needs from the running game. */
 export interface BuilderHost {
   scenery: THREE.Object3D;
   camera: THREE.PerspectiveCamera;
   canvas: HTMLCanvasElement;
   levelIndex: () => number;
   level: (index: number) => CityLevel;
-  selectLevel: (index: number) => void;
+  /** Preview a stage; with a location (e.g. "library:<id>") it plays there. */
+  selectLevel: (index: number, location?: string) => void;
   normalView: () => { x: number; z: number; yaw: number; pitch: number };
   terrain: () => TerrainGrid | null;
   groundAt: (x: number, z: number) => number;
@@ -99,6 +106,7 @@ interface SavedVersion {
   id: string;
   savedAt: string;
   location: string | null;
+  author: string | null;
 }
 const typeNames: Record<SiteType, string> = {
   parking: "Parking",
@@ -156,6 +164,8 @@ export function createLevelBuilder(host: BuilderHost) {
   let selected: number | null = null;
   let selectedLandmark: LandmarkId | null = null;
   let placementRotation = 0;
+  /** The library level being edited; null while building a new level for the stage. */
+  let editing: LibraryLevel | null = null;
   let state: Snapshot = {
     spots: [],
     origin: [0, 0],
@@ -315,7 +325,9 @@ export function createLevelBuilder(host: BuilderHost) {
       <button type="button" id="lb-normal-view">Normal view</button>
       <button type="button" id="lb-overview">Overview</button>
     </div>
-    <label class="lb-row">Level <select id="lb-level"></select></label>
+    <label class="lb-row">Build for stage <select id="lb-level"></select></label>
+    <button type="button" id="lb-lineup-open" class="lb-wide">📚 Lineup &amp; library <kbd>L</kbd></button>
+    <p id="lb-editing" class="small"></p>
     <section>
       <h3>1 · Area &amp; name</h3>
       <label class="lb-row">Name <input id="lb-name" maxlength="40" /></label>
@@ -368,19 +380,28 @@ export function createLevelBuilder(host: BuilderHost) {
         <button type="button" id="lb-test" class="lb-primary">▶ Test play</button>
         <button type="button" id="lb-save-draft">📝 Save draft</button>
         <button type="button" id="lb-load-draft">↩ Load draft</button>
-        <button type="button" id="lb-apply" class="lb-primary">✅ Apply to level</button>
         <button type="button" id="lb-undo">↶ Undo <kbd>Ctrl Z</kbd></button>
         <button type="button" id="lb-exit">Back to game</button>
       </div>
-      <label class="lb-row">Saved versions <select id="lb-history"><option value="">Loading…</option></select></label>
-      <button type="button" id="lb-restore">⏪ Restore selected version</button>
       <p id="lb-status" role="status"></p>
+    </section>
+    <section>
+      <h3>4 · Save to library</h3>
+      <p class="small">Saved levels can be picked for any stage they fit and played in endless mode. Commit &amp; push to share them with the team.</p>
+      <label class="lb-row">Your GitHub username <input id="lb-author" maxlength="39" autocomplete="username" spellcheck="false" /></label>
+      <label class="lb-col">Notes <textarea id="lb-notes" maxlength="600" rows="3" placeholder="What makes this level special, what still needs work…"></textarea></label>
+      <div class="lb-actions">
+        <button type="button" id="lb-save-library" class="lb-primary">💾 Save to library</button>
+        <button type="button" id="lb-save-copy">Save as new copy</button>
+      </div>
+      <label class="lb-row">Earlier versions <select id="lb-history"><option value="">Save to the library first</option></select></label>
+      <button type="button" id="lb-restore">⏪ Restore selected version</button>
     </section>
     <details class="small"><summary>Mouse &amp; keys</summary>
       Left-click: use the tool · drag: move · right-click: delete spot ·
       right-drag: rotate view · Shift+drag or middle-drag: move view · wheel: zoom ·
       WASD/arrows: move view · Q/E: rotate · F: focus selection · Home: focus spawn · O: objects ·
-      Delete: remove selected spot · N: close
+      L: lineup &amp; library · Delete: remove selected spot · N: close
     </details>`;
   document.body.append(panel);
   const $ = <T extends HTMLElement>(id: string) =>
@@ -389,16 +410,23 @@ export function createLevelBuilder(host: BuilderHost) {
   const status = (text: string) => {
     $("lb-status").textContent = text;
   };
-  const draftKey = (id: string) => `spongebob-city:level-builder:draft:${id}`;
+  const draftKey = () =>
+    `spongebob-city:level-builder:draft:${editing ? libraryLocation(editing.id) : cityLevels[levelIndex].id}`;
+  const authorInput = $<HTMLInputElement>("lb-author");
+  const notesInput = $<HTMLTextAreaElement>("lb-notes");
+  const builderNameKey = "spongebob-city:level-builder:author";
+  try {
+    authorInput.value = localStorage.getItem(builderNameKey) ?? "";
+  } catch {
+    // Without storage the name is simply typed again.
+  }
   const isPoint = (value: unknown): value is Point =>
     Array.isArray(value) &&
     value.length === 2 &&
     value.every((n) => typeof n === "number" && Number.isFinite(n));
   const storedDraft = (): Snapshot | undefined => {
     try {
-      const saved = JSON.parse(
-        localStorage.getItem(draftKey(cityLevels[levelIndex].id)) ?? "null",
-      );
+      const saved = JSON.parse(localStorage.getItem(draftKey()) ?? "null");
       const draft = saved?.state as Snapshot | undefined;
       if (
         saved?.version !== 1 ||
@@ -442,7 +470,7 @@ export function createLevelBuilder(host: BuilderHost) {
   function saveDraft() {
     try {
       localStorage.setItem(
-        draftKey(cityLevels[levelIndex].id),
+        draftKey(),
         JSON.stringify({
           version: 1,
           savedAt: new Date().toISOString(),
@@ -471,9 +499,11 @@ export function createLevelBuilder(host: BuilderHost) {
   }
 
   // ---- Model ↔ level ----
-  function load(index: number) {
-    host.selectLevel(index);
+  function load(index: number, opened: LibraryLevel | null = null) {
+    host.selectLevel(index, opened ? libraryLocation(opened.id) : undefined);
     levelIndex = index;
+    editing = opened;
+    notesInput.value = opened?.notes ?? "";
     loaded = true;
     const level = host.level(index);
     const p = pose();
@@ -821,10 +851,14 @@ export function createLevelBuilder(host: BuilderHost) {
     $<HTMLSelectElement>("lb-level").innerHTML = cityLevels
       .map(
         (l, i) =>
-          `<option value="${i}" ${i === levelIndex ? "selected" : ""}>${i + 1} · ${escape(i === levelIndex ? state.name : host.level(i).location)}</option>`,
+          `<option value="${i}" ${i === levelIndex ? "selected" : ""}>Stage ${i + 1} · ${escape(l.title)}</option>`,
       )
       .join("");
     if (document.activeElement !== nameInput) nameInput.value = state.name;
+    $("lb-editing").textContent = editing
+      ? `Editing “${editing.location}” by @${editing.author} from the library.`
+      : `New level for Stage ${levelIndex + 1}. Save it to the library to keep it.`;
+    $<HTMLButtonElement>("lb-save-copy").hidden = !editing;
     $("lb-area").textContent =
       `Area ${Math.round(state.area.width)} × ${Math.round(state.area.length)} m (yellow outline on the ground).`;
     panel
@@ -903,7 +937,7 @@ export function createLevelBuilder(host: BuilderHost) {
     $("lb-problems").innerHTML = problems.length
       ? problems.map((p) => `<li>${escape(p)}</li>`).join("")
       : '<li class="ok">✓ Ready: all goals can be reached.</li>';
-    banner.textContent = `🛠 LEVEL BUILDER · Level ${levelIndex + 1} · ${state.name} · tool: ${toolNames[tool]}${tool === "spots" ? ` (${typeNames[type]})` : ""} · ${state.spots.length}/16 spots · N: close`;
+    banner.textContent = `🛠 LEVEL BUILDER · Stage ${levelIndex + 1} · ${state.name} · tool: ${toolNames[tool]}${tool === "spots" ? ` (${typeNames[type]})` : ""} · ${state.spots.length}/16 spots · N: close`;
     document.body.style.setProperty("--builder-type", typeColours[type]);
     $<HTMLButtonElement>("lb-undo").disabled = undoStack.length === 0;
     $("lb-normal-view").setAttribute("aria-pressed", String(!overview));
@@ -915,10 +949,10 @@ export function createLevelBuilder(host: BuilderHost) {
       ? versions
           .map(
             (version) =>
-              `<option value="${escape(version.id)}" ${version.id === chosenVersion ? "selected" : ""}>${escape(new Date(version.savedAt).toLocaleString())} · ${escape(version.location ?? "built-in level")}</option>`,
+              `<option value="${escape(version.id)}" ${version.id === chosenVersion ? "selected" : ""}>${escape(new Date(version.savedAt).toLocaleString())} · ${escape(version.location ?? "empty")}${version.author ? ` · @${escape(version.author)}` : ""}</option>`,
           )
           .join("")
-      : '<option value="">No saved versions yet</option>';
+      : `<option value="">${editing ? "No earlier versions yet" : "Save to the library first"}</option>`;
     $<HTMLButtonElement>("lb-restore").disabled = versions.length === 0;
   }
 
@@ -1237,6 +1271,8 @@ export function createLevelBuilder(host: BuilderHost) {
     else if (e.code === "KeyF" && selected !== null)
       view.focus = [state.spots[selected].x, state.spots[selected].z];
     else if (e.code === "Home") view.focus = state.spawn;
+    else if (e.code === "KeyL") lineup.toggle();
+    else if (e.code === "Escape" && lineup.open) lineup.toggle();
     else if (e.code === "KeyN") host.backToGame();
   });
   window.addEventListener("keyup", (e) => held.delete(e.code));
@@ -1267,10 +1303,13 @@ export function createLevelBuilder(host: BuilderHost) {
     render();
   }
   async function refreshVersions() {
-    const levelId = cityLevels[levelIndex].id;
+    if (!editing) {
+      versions = [];
+      return render();
+    }
     try {
       const response = await fetch(
-        `/__level-builder/history?levelId=${encodeURIComponent(levelId)}`,
+        `/__level-builder/history?id=${encodeURIComponent(editing.id)}`,
       );
       if (!response.ok) throw new Error(await response.text());
       const data = (await response.json()) as { versions: SavedVersion[] };
@@ -1279,45 +1318,87 @@ export function createLevelBuilder(host: BuilderHost) {
     } catch {
       versions = [];
       render();
-      status("Saved versions could not be loaded from the dev server.");
+      status("Earlier versions could not be loaded from the dev server.");
     }
   }
-  async function applyDraft() {
-    const problems = checkLayout(draft().spots, []);
-    if (problems.length) return status(`Not applied: ${problems.join(" ")}`);
+  /** Open a library level in the builder, at its own place and stage. */
+  function openLibraryLevel(id: string) {
+    const level = levelLibrary[id];
+    const index = cityLevels.findIndex((stage) => stage.id === level?.builtFor);
+    if (!level || index < 0) return status("That library level is gone.");
+    load(index, level);
+    status(`Opened “${level.location}” by @${level.author} from the library.`);
+  }
+  async function saveToLibrary(asCopy: boolean) {
+    const level = draft();
+    const stage = cityLevels[levelIndex];
+    const problems = checkLayout(level.spots, stage.goals);
+    if (problems.length)
+      return status(
+        `Not saved: it must reach Stage ${levelIndex + 1}'s goals first. ${problems.join(" ")}`,
+      );
+    const author = authorInput.value.trim();
+    if (!githubUsername.test(author)) {
+      authorInput.focus();
+      return status(
+        "Not saved: enter your GitHub username (letters, digits, hyphens) so the team knows who built it.",
+      );
+    }
+    const overwrite = editing && !asCopy ? editing : null;
     if (
+      overwrite &&
+      overwrite.author !== author &&
       !window.confirm(
-        `Apply this draft to ${state.name}? The current saved level will be kept as a restorable version.`,
+        `“${overwrite.location}” was saved by @${overwrite.author}. Save your changes over it? Choose Cancel and “Save as new copy” to keep theirs.`,
       )
     )
       return;
-    status("Applying draft and keeping the current level…");
     try {
-      const response = await fetch("/__level-builder/apply", {
+      localStorage.setItem(builderNameKey, author);
+    } catch {
+      // The name is only a convenience for next time.
+    }
+    status("Saving to the library…");
+    try {
+      const response = await fetch("/__level-builder/library", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          levelId: cityLevels[levelIndex].id,
-          level: draft(),
+          level: {
+            ...level,
+            id:
+              overwrite?.id ??
+              libraryId(level.location, crypto.randomUUID().slice(0, 6)),
+            author,
+            notes: notesInput.value,
+            builtFor: stage.id,
+          },
         }),
       });
       if (!response.ok) throw new Error(await response.text());
+      const saved = ((await response.json()) as { level: LibraryLevel }).level;
+      levelLibrary[saved.id] = saved;
+      editing = saved;
       status(
-        `Applied level ${levelIndex + 1} (${state.name}). The previous state is available under Saved versions. Reload to play the applied level.`,
+        `Saved “${saved.location}” to the library (config/built-levels/library/${saved.id}.json). Pick it in 📚 Lineup; commit & push to share it.`,
       );
+      lineup.refresh();
       await refreshVersions();
-    } catch {
-      status("Not applied: the dev server (npm run dev) is not reachable.");
+    } catch (error) {
+      status(
+        error instanceof TypeError
+          ? "Not saved: the dev server (npm run dev) is not reachable."
+          : `Not saved: ${(error as Error).message}`,
+      );
     }
   }
   async function restoreVersion() {
     const versionId = $<HTMLSelectElement>("lb-history").value;
-    if (!versionId) return status("Choose a saved version first.");
     const version = versions.find((item) => item.id === versionId);
-    if (!version) return status("That saved version is no longer available.");
+    if (!editing || !version) return status("Choose an earlier version first.");
     if (
       !window.confirm(
-        `Restore the saved state from ${new Date(version.savedAt).toLocaleString()}? Your current saved level will also be kept as a version.`,
+        `Restore the version from ${new Date(version.savedAt).toLocaleString()}? The current one is kept as a version too.`,
       )
     )
       return;
@@ -1325,18 +1406,34 @@ export function createLevelBuilder(host: BuilderHost) {
       const response = await fetch("/__level-builder/restore", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ levelId: cityLevels[levelIndex].id, versionId }),
+        body: JSON.stringify({ id: editing.id, versionId }),
       });
       if (!response.ok) throw new Error(await response.text());
-      status("Restored. The level is saved; reload the game to play it.");
-      await refreshVersions();
+      const restored = ((await response.json()) as { level: LibraryLevel })
+        .level;
+      levelLibrary[restored.id] = restored;
+      openLibraryLevel(restored.id);
+      status("Restored that version in the library.");
     } catch {
       status("Restore failed: the dev server could not update this level.");
     }
   }
-  $<HTMLSelectElement>("lb-level").addEventListener("change", (e) =>
-    load(Number((e.target as HTMLSelectElement).value)),
-  );
+  const lineup = createLineupScreen({
+    open: (id) => openLibraryLevel(id),
+    editingId: () => editing?.id ?? null,
+    forget: (id) => {
+      if (editing?.id !== id) return;
+      editing = null;
+      void refreshVersions();
+    },
+  });
+  $<HTMLSelectElement>("lb-level").addEventListener("change", (e) => {
+    load(Number((e.target as HTMLSelectElement).value));
+    status(
+      "Started a new level for this stage. Save it to the library to keep it.",
+    );
+  });
+  $("lb-lineup-open").addEventListener("click", () => lineup.toggle());
   nameInput.addEventListener("focus", () => remember());
   nameInput.addEventListener("input", () => {
     state.name = nameInput.value;
@@ -1461,7 +1558,11 @@ export function createLevelBuilder(host: BuilderHost) {
   $("lb-undo").addEventListener("click", undo);
   $("lb-save-draft").addEventListener("click", saveDraft);
   $("lb-load-draft").addEventListener("click", loadDraft);
-  $("lb-apply").addEventListener("click", () => void applyDraft());
+  $("lb-save-library").addEventListener(
+    "click",
+    () => void saveToLibrary(false),
+  );
+  $("lb-save-copy").addEventListener("click", () => void saveToLibrary(true));
   $("lb-restore").addEventListener("click", () => void restoreVersion());
   $("lb-exit").addEventListener("click", () => host.backToGame());
   $("lb-test").addEventListener("click", () => {
@@ -1536,11 +1637,12 @@ export function createLevelBuilder(host: BuilderHost) {
       held.clear();
       drag = null;
       document.body.classList.toggle("building", active);
+      if (!active && lineup.open) lineup.toggle();
       host.showGameScene(!active);
       // Reopening after Test play keeps the draft; another level loads fresh.
       if (active) {
         if (!loaded || levelIndex !== host.levelIndex())
-          load(host.levelIndex());
+          load(host.levelIndex(), null);
         else normalView();
       }
     },
