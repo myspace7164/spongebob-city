@@ -234,6 +234,58 @@
         height: auto;
         display: block;
       }
+      .footage {
+        margin: 0;
+      }
+      .footage video,
+      .video-poster {
+        display: block;
+        width: 100%;
+        aspect-ratio: 24 / 13;
+        object-fit: contain;
+        border-radius: 16px;
+        background: var(--ink);
+      }
+      .video-poster {
+        display: none;
+      }
+      .media-unavailable video {
+        display: none;
+      }
+      .media-unavailable .video-poster {
+        display: block;
+      }
+      .game-feature {
+        border-top: 1px solid var(--line);
+        padding: 12px 0;
+      }
+      .game-feature h3 {
+        font-size: 19px;
+        margin-bottom: 5px;
+      }
+      .game-feature p {
+        font-size: 15px;
+        line-height: 1.4;
+        color: var(--muted);
+        margin-bottom: 0;
+      }
+      #show-gameplay {
+        margin-top: 16px;
+      }
+      body.no-motion .footage video {
+        display: none;
+      }
+      body.no-motion .video-poster {
+        display: block;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .footage video {
+          display: none;
+        }
+        .video-poster {
+          display: block;
+        }
+      }
       .art-caption {
         display: flex;
         justify-content: space-between;
@@ -723,6 +775,16 @@
         }
       }
       @media (max-height: 650px) and (min-width: 801px) {
+        .game-feature {
+          padding: 8px 0;
+        }
+        .game-feature h3 {
+          font-size: 17px;
+        }
+        .game-feature p {
+          font-size: 14px;
+          line-height: 1.3;
+        }
         #s9 {
           font-size: 32px;
         }
@@ -766,6 +828,12 @@
         }
       }
       @media print {
+        .footage video {
+          display: none !important;
+        }
+        .video-poster {
+          display: block !important;
+        }
         @page {
           size: A4 landscape;
           margin: 0;
@@ -983,42 +1051,30 @@
             </div>
             <div class="art">
               <div class="sticker">LET’S SAVE OUR CITY!</div>
-              <svg
-                viewBox="0 0 480 370"
-                role="img"
-                aria-label="A smiling sponge hero protecting a green city"
-              >
-                <circle
-                  cx="250"
-                  cy="180"
-                  r="160"
-                  fill="var(--aqua)"
-                  opacity=".3"
-                />
-                <use href="#buildings" transform="translate(0 80)" />
-                <path d="M0 310q240-30 480 0v60H0" fill="var(--green)" />
-                <use href="#tree" transform="translate(70 315) scale(.8)" />
-                <use href="#tree" transform="translate(395 310) scale(.8)" />
-                <g class="float">
-                  <use
-                    href="#sponge"
-                    transform="translate(165 115) scale(1.15)"
+              <figure class="footage">
+                <video
+                  muted
+                  loop
+                  playsinline
+                  controls
+                  preload="metadata"
+                  poster="presentation-media/explore.jpg"
+                  aria-label="Actual gameplay: the sponge hero explores Basel streets and open soil"
+                >
+                  <source
+                    src="presentation-media/explore.mp4"
+                    type="video/mp4"
                   />
-                </g>
-                <circle
-                  class="pulse"
-                  cx="410"
-                  cy="45"
-                  r="22"
-                  fill="var(--yellow)"
+                  Your browser cannot play this clip. The still image shows the
+                  gameplay.</video
+                ><img
+                  class="video-poster"
+                  src="presentation-media/explore.jpg"
+                  alt="Actual gameplay: the sponge hero explores Basel streets and open soil"
                 />
-                <path
-                  d="M23 35l7 14 16 2-12 11 3 15-14-8-13 8 3-15L1 51l16-2z"
-                  fill="var(--yellow)"
-                />
-              </svg>
+              </figure>
               <div class="art-caption">
-                <span>Small actions. A city-sized difference.</span
+                <span>Actual gameplay · explore a real city</span
                 ><span>01 / THE IDEA</span>
               </div>
             </div>
@@ -1158,101 +1214,143 @@
                   id="transform-city"
                   aria-pressed="false"
                 >
-                  Make it a sponge city <span aria-hidden="true">↗</span>
+                  Make it a sponge city
+                  <span aria-hidden="true">↗</span></button
+                ><button class="subtle" id="show-gameplay" aria-pressed="true">
+                  Show diagram
                 </button>
               </p>
               <p class="small">
-                See what changes when we make room for nature.
+                See the real game, then compare it with the teaching diagram.
               </p>
             </div>
             <div class="art">
-              <svg
-                id="city-transformation"
-                class="city-graphic"
-                viewBox="0 0 480 365"
-                role="img"
-                aria-labelledby="city-title"
-              >
-                <title id="city-title">
-                  A sealed street, ready to become a sponge city
-                </title>
-                <use href="#buildings" transform="translate(0 65)" />
-                <rect class="ground" y="268" width="480" height="97" rx="10" />
-                <g class="sealed">
-                  <path
-                    class="water-flow"
-                    d="M25 292H445"
-                    stroke="var(--aqua)"
-                    stroke-width="5"
-                  />
-                  <text
-                    x="26"
-                    y="344"
-                    fill="var(--white)"
-                    font-size="16"
-                    font-weight="bold"
+              <div id="city-gameplay">
+                <figure class="footage">
+                  <video
+                    muted
+                    loop
+                    playsinline
+                    controls
+                    preload="metadata"
+                    poster="presentation-media/planting.jpg"
+                    aria-label="Actual gameplay: watering open ground and planting trees earns visible rewards"
                   >
-                    WATER RUNS OFF
-                  </text>
-                </g>
-                <g class="plants">
-                  <path
-                    d="M0 280q50-25 120 0t120 0t120 0t120 0v18H0"
-                    fill="var(--green)"
+                    <source
+                      src="presentation-media/planting.mp4"
+                      type="video/mp4"
+                    />
+                    Your browser cannot play this clip. The still image shows
+                    the gameplay.</video
+                  ><img
+                    class="video-poster"
+                    src="presentation-media/planting.jpg"
+                    alt="Actual gameplay: watering open ground and planting trees earns visible rewards"
                   />
-                  <use href="#tree" transform="translate(85 277)" />
-                  <use href="#tree" transform="translate(290 277) scale(.8)" />
+                </figure>
+              </div>
+              <div id="city-diagram" hidden>
+                <svg
+                  id="city-transformation"
+                  class="city-graphic"
+                  viewBox="0 0 480 365"
+                  role="img"
+                  aria-labelledby="city-title"
+                >
+                  <title id="city-title">
+                    A sealed street, ready to become a sponge city
+                  </title>
+                  <use href="#buildings" transform="translate(0 65)" />
                   <rect
-                    x="366"
-                    y="222"
-                    width="70"
-                    height="67"
-                    rx="12"
-                    fill="var(--aqua)"
-                    stroke="var(--ink)"
-                    stroke-width="3"
+                    class="ground"
+                    y="268"
+                    width="480"
+                    height="97"
+                    rx="10"
                   />
-                  <path
-                    d="M400 225v-48h-45"
-                    fill="none"
-                    stroke="var(--ink)"
-                    stroke-width="6"
-                  />
-                  <text
-                    x="401"
-                    y="263"
-                    text-anchor="middle"
-                    font-size="12"
-                    fill="var(--ink)"
-                    font-weight="bold"
+                  <g class="sealed">
+                    <path
+                      class="water-flow"
+                      d="M25 292H445"
+                      stroke="var(--aqua)"
+                      stroke-width="5"
+                    />
+                    <text
+                      x="26"
+                      y="344"
+                      fill="var(--white)"
+                      font-size="16"
+                      font-weight="bold"
+                    >
+                      WATER RUNS OFF
+                    </text>
+                  </g>
+                  <g class="plants">
+                    <path
+                      d="M0 280q50-25 120 0t120 0t120 0t120 0v18H0"
+                      fill="var(--green)"
+                    />
+                    <use href="#tree" transform="translate(85 277)" />
+                    <use
+                      href="#tree"
+                      transform="translate(290 277) scale(.8)"
+                    />
+                    <rect
+                      x="366"
+                      y="222"
+                      width="70"
+                      height="67"
+                      rx="12"
+                      fill="var(--aqua)"
+                      stroke="var(--ink)"
+                      stroke-width="3"
+                    />
+                    <path
+                      d="M400 225v-48h-45"
+                      fill="none"
+                      stroke="var(--ink)"
+                      stroke-width="6"
+                    />
+                    <text
+                      x="401"
+                      y="263"
+                      text-anchor="middle"
+                      font-size="12"
+                      fill="var(--ink)"
+                      font-weight="bold"
+                    >
+                      REUSE
+                    </text>
+                  </g>
+                  <g class="infiltration">
+                    <path
+                      class="water-flow"
+                      d="M80 297v52m110-52v52m110-52v52"
+                      stroke="var(--deep)"
+                      stroke-width="4"
+                    />
+                    <path
+                      d="M72 343l8 8 8-8m94 0 8 8 8-8m94 0 8 8 8-8"
+                      fill="none"
+                      stroke="var(--deep)"
+                      stroke-width="4"
+                    />
+                  </g>
+                  <g
+                    stroke="var(--deep)"
+                    stroke-width="4"
+                    stroke-linecap="round"
                   >
-                    REUSE
-                  </text>
-                </g>
-                <g class="infiltration">
-                  <path
-                    class="water-flow"
-                    d="M80 297v52m110-52v52m110-52v52"
-                    stroke="var(--deep)"
-                    stroke-width="4"
-                  />
-                  <path
-                    d="M72 343l8 8 8-8m94 0 8 8 8-8m94 0 8 8 8-8"
-                    fill="none"
-                    stroke="var(--deep)"
-                    stroke-width="4"
-                  />
-                </g>
-                <g stroke="var(--deep)" stroke-width="4" stroke-linecap="round">
-                  <path class="drop" d="M55 65l-6 17" />
-                  <path class="drop" d="M155 70l-6 17" />
-                  <path class="drop" d="M255 55l-6 17" />
-                  <path class="drop" d="M345 60l-6 17" />
-                </g>
-              </svg>
+                    <path class="drop" d="M55 65l-6 17" />
+                    <path class="drop" d="M155 70l-6 17" />
+                    <path class="drop" d="M255 55l-6 17" />
+                    <path class="drop" d="M345 60l-6 17" />
+                  </g>
+                </svg>
+              </div>
               <div class="art-caption">
                 <strong id="city-status" aria-live="polite"
-                  >Sealed street · rain runs off</strong
+                  >Actual gameplay · water, plant & earn rewards</strong
                 ><span>03 / THE CHANGE</span>
               </div>
             </div>
@@ -1284,109 +1382,30 @@
             </div>
             <div class="art" style="background: var(--night)">
               <div class="sticker">WARNING: DR. BETON</div>
-              <svg
-                viewBox="0 0 480 365"
-                role="img"
-                aria-label="Dr. Beton drives a concrete-sealing tracked machine across green ground"
-              >
-                <path d="M0 308h480v57H0" fill="var(--green)" />
-                <path d="M0 308h255v57H0" fill="var(--road)" />
-                <g class="villain">
-                  <path
-                    d="M200 244l-38-91 63-37 57 40-12 95"
-                    fill="var(--ink)"
-                    stroke="var(--road)"
-                    stroke-width="4"
+              <figure class="footage">
+                <video
+                  muted
+                  loop
+                  playsinline
+                  controls
+                  preload="metadata"
+                  poster="presentation-media/dr-beton.jpg"
+                  aria-label="Actual gameplay: Dr. Beton and his tracked concrete machine threaten the player’s planted plots"
+                >
+                  <source
+                    src="presentation-media/dr-beton.mp4"
+                    type="video/mp4"
                   />
-                  <path
-                    d="M170 169l-34 62 42-9m92-48 35 55-45-14"
-                    fill="var(--coral)"
-                  />
-                  <rect
-                    x="196"
-                    y="83"
-                    width="64"
-                    height="67"
-                    rx="17"
-                    fill="var(--road)"
-                  />
-                  <path
-                    d="M192 85l33-35 40 38"
-                    fill="var(--ink)"
-                    stroke="var(--road)"
-                    stroke-width="3"
-                  />
-                  <path
-                    d="M204 102l16 8m28-8-16 8"
-                    stroke="var(--ink)"
-                    stroke-width="7"
-                  />
-                  <path
-                    d="M203 115h17m13 0h17"
-                    stroke="var(--coral)"
-                    stroke-width="7"
-                  />
-                  <path
-                    d="M211 132l16-5 16 5"
-                    stroke="var(--white)"
-                    stroke-width="4"
-                    fill="none"
-                  />
-                  <rect
-                    x="105"
-                    y="256"
-                    width="239"
-                    height="55"
-                    rx="27"
-                    fill="var(--ink)"
-                    stroke="var(--road)"
-                    stroke-width="4"
-                  />
-                  <g fill="var(--road)">
-                    <circle cx="133" cy="283" r="16" />
-                    <circle cx="184" cy="283" r="16" />
-                    <circle cx="235" cy="283" r="16" />
-                    <circle cx="309" cy="283" r="16" />
-                  </g>
-                  <path
-                    d="M123 259v-52h202v52"
-                    fill="var(--yellow)"
-                    stroke="var(--ink)"
-                    stroke-width="4"
-                  />
-                  <ellipse
-                    cx="152"
-                    cy="213"
-                    rx="32"
-                    ry="45"
-                    fill="var(--road)"
-                    stroke="var(--ink)"
-                    stroke-width="4"
-                  />
-                  <path
-                    d="M119 213h66m-33-42v84"
-                    stroke="var(--yellow)"
-                    stroke-width="5"
-                  />
-                  <path
-                    d="M115 245l-50 36"
-                    stroke="var(--road)"
-                    stroke-width="14"
-                  />
-                  <text
-                    x="267"
-                    y="239"
-                    font-size="14"
-                    text-anchor="middle"
-                    fill="var(--ink)"
-                    font-weight="bold"
-                  >
-                    BETON
-                  </text>
-                </g>
-              </svg>
+                  Your browser cannot play this clip. The still image shows the
+                  gameplay.</video
+                ><img
+                  class="video-poster"
+                  src="presentation-media/dr-beton.jpg"
+                  alt="Actual gameplay: Dr. Beton and his tracked concrete machine threaten the player’s planted plots"
+                />
+              </figure>
               <div class="art-caption" style="color: var(--paper)">
-                <span>A big bad villain. A clear environmental challenge.</span
+                <span>Actual gameplay · protect your work from Dr. Beton</span
                 ><span>04 / THE STAKES</span>
               </div>
             </div>
@@ -1398,44 +1417,70 @@
           aria-labelledby="s5"
           data-note="20 seconds. Fun brings kids in; the environmental challenge gives that fun a purpose. Mention exploration, collectibles, abilities, hats and emotes, cooperative play, the modifier wheel, and endless rounds. These are implemented elements, not a claim that engagement has already been measured."
         >
-          <p class="eyebrow">Designed to pull kids in</p>
-          <h2 id="s5">
-            Come for the adventure.<br /><span class="accent"
-              >Stay to save the city.</span
-            >
-          </h2>
-          <p class="lead">
-            A colorful 3D world where useful actions become part of the fun.
-          </p>
-          <div class="cards">
-            <article class="card reveal">
-              <div class="number" aria-hidden="true">↗</div>
-              <h3>A city to explore</h3>
-              <p>
-                Four story missions, real locations, a recognizable hero, and
-                Dr. Beton to outsmart.
+          <div class="layout">
+            <div>
+              <p class="eyebrow">Designed to pull kids in</p>
+              <h2 id="s5">
+                Come for the fun.<br /><span class="accent"
+                  >Stay to save the city.</span
+                >
+              </h2>
+              <p class="lead">
+                A colorful 3D world where useful actions become part of the fun.
               </p>
-            </article>
-            <article class="card reveal">
-              <div class="number" aria-hidden="true">★</div>
-              <h3>One more discovery</h3>
-              <p>
-                Collect boosts, unlock tools, earn coins, choose hats, perform
-                emotes, and spin the modifier wheel.
+              <div class="game-feature">
+                <h3>A city to explore</h3>
+                <p>
+                  Four story missions, real locations, a familiar hero, and a
+                  villain to outsmart.
+                </p>
+              </div>
+              <div class="game-feature">
+                <h3>One more discovery</h3>
+                <p>
+                  Boosts, tools, coins, hats, emotes, and a modifier wheel
+                  between levels.
+                </p>
+              </div>
+              <div class="game-feature">
+                <h3>Better together</h3>
+                <p>
+                  Up to four players. Endless rounds after the story, with
+                  stronger rain and heat.
+                </p>
+              </div>
+            </div>
+            <div class="art">
+              <figure class="footage">
+                <video
+                  muted
+                  loop
+                  playsinline
+                  controls
+                  preload="metadata"
+                  poster="presentation-media/modifier-wheel.jpg"
+                  aria-label="Actual gameplay: the modifier wheel reveals a temporary ability for the next level"
+                >
+                  <source
+                    src="presentation-media/modifier-wheel.mp4"
+                    type="video/mp4"
+                  />
+                  Your browser cannot play this clip. The still image shows the
+                  gameplay.</video
+                ><img
+                  class="video-poster"
+                  src="presentation-media/modifier-wheel.jpg"
+                  alt="Actual gameplay: the modifier wheel reveals a temporary ability for the next level"
+                />
+              </figure>
+              <div class="art-caption">
+                <span>Actual gameplay · spin for the next challenge</span
+                ><span>05 / THE FUN</span>
+              </div>
+              <p class="pill yellow" style="margin-top: 18px">
+                Try → See the result → Try again
               </p>
-            </article>
-            <article class="card reveal">
-              <div class="number" aria-hidden="true">∞</div>
-              <h3>Better together</h3>
-              <p>
-                Up to four players share the challenge. After the story, endless
-                rounds bring stronger rain and heat.
-              </p>
-            </article>
-          </div>
-          <div class="pills" style="margin-top: 28px">
-            <span class="pill yellow">Try → See the result → Try again</span
-            ><span class="pill">Learning through decisions</span>
+            </div>
           </div>
         </section>
         <section
@@ -1648,45 +1693,30 @@
               >
             </div>
             <div class="art">
-              <svg
-                viewBox="0 0 480 365"
-                role="img"
-                aria-label="Our sponge hero celebrates a thriving green city"
-              >
-                <circle
-                  cx="240"
-                  cy="170"
-                  r="145"
-                  fill="var(--yellow)"
-                  opacity=".45"
-                />
-                <use href="#buildings" transform="translate(0 65)" />
-                <path d="M0 285q240-30 480 0v80H0" fill="var(--green)" />
-                <use href="#tree" transform="translate(68 310)" />
-                <use href="#tree" transform="translate(404 311)" />
-                <g class="float">
-                  <use href="#sponge" transform="translate(178 123)" />
-                </g>
-                <path
-                  class="water-flow"
-                  d="M30 335q90-25 155 0t130 0t135 0"
-                  fill="none"
-                  stroke="var(--deep)"
-                  stroke-width="5"
-                />
-                <text
-                  x="240"
-                  y="52"
-                  text-anchor="middle"
-                  fill="var(--ink)"
-                  font-size="21"
-                  font-weight="bold"
+              <figure class="footage">
+                <video
+                  muted
+                  loop
+                  playsinline
+                  controls
+                  preload="metadata"
+                  poster="presentation-media/greener-city.jpg"
+                  aria-label="Actual gameplay: planted trees, green roofs, tanks and a pond transform the neighbourhood"
                 >
-                  LEARN IT. PLAY IT. LIVE IT.
-                </text>
-              </svg>
+                  <source
+                    src="presentation-media/greener-city.mp4"
+                    type="video/mp4"
+                  />
+                  Your browser cannot play this clip. The still image shows the
+                  gameplay.</video
+                ><img
+                  class="video-poster"
+                  src="presentation-media/greener-city.jpg"
+                  alt="Actual gameplay: planted trees, green roofs, tanks and a pond transform the neighbourhood"
+                />
+              </figure>
               <div class="art-caption">
-                <span>A city worth caring for. A game worth playing.</span
+                <span>Actual gameplay · a greener city built by the player</span
                 ><span>08 / THE FUTURE</span>
               </div>
             </div>
@@ -1799,7 +1829,8 @@
                   target="_blank"
                   rel="noopener"
                   >Claude Code</a
-                >. Presentation artwork: original inline SVG/CSS. Named cartoon
+                >. Presentation artwork: original inline SVG/CSS plus short
+                clips from a user-supplied game recording. Named cartoon
                 characters are third-party; supplied model and audio licences
                 need review.
               </p>
@@ -1842,6 +1873,52 @@
       (() => {
         const slides = [...document.querySelectorAll(".slide")];
         const previous = document.getElementById("previous");
+        const reducedMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        );
+        document.querySelectorAll("video").forEach((video) => {
+          video.addEventListener("error", () =>
+            video.closest(".footage").classList.add("media-unavailable"),
+          );
+        });
+        function syncMedia() {
+          const paused =
+            document.body.classList.contains("no-motion") ||
+            reducedMotion.matches ||
+            document.hidden;
+          document.querySelectorAll("video").forEach((video) => {
+            const active =
+              !video.closest(".slide").hidden && !video.closest("[hidden]");
+            if (paused || !active) video.pause();
+            else void video.play().catch(() => {});
+          });
+        }
+        reducedMotion.addEventListener("change", syncMedia);
+        document.addEventListener("visibilitychange", syncMedia);
+        window.addEventListener("beforeprint", () =>
+          document.querySelectorAll("video").forEach((video) => video.pause()),
+        );
+        window.addEventListener("afterprint", syncMedia);
+        function showCityMedia(gameplay) {
+          document.getElementById("city-gameplay").hidden = !gameplay;
+          document.getElementById("city-diagram").hidden = gameplay;
+          const button = document.getElementById("show-gameplay");
+          button.setAttribute("aria-pressed", String(gameplay));
+          button.textContent = gameplay ? "Show diagram" : "Watch gameplay";
+          document.getElementById("city-status").textContent = gameplay
+            ? "Actual gameplay · water, plant & earn rewards"
+            : document
+                  .getElementById("city-transformation")
+                  .classList.contains("sponge")
+              ? "Sponge city · soil, shade & stored rain"
+              : "Sealed street · rain runs off";
+          syncMedia();
+        }
+        document
+          .getElementById("show-gameplay")
+          .addEventListener("click", () =>
+            showCityMedia(document.getElementById("city-gameplay").hidden),
+          );
         const next = document.getElementById("next");
         const notes = document.getElementById("speaker-notes");
         let current = 0;
@@ -1876,6 +1953,7 @@
           if (updateHash)
             history.replaceState(null, "", `#slide-${current + 1}`);
           window.scrollTo(0, 0);
+          syncMedia();
         }
         previous.addEventListener("click", () => show(current - 1));
         next.addEventListener("click", () => show(current + 1));
@@ -1920,10 +1998,12 @@
           document.getElementById("motion").textContent = paused
             ? "Resume motion"
             : "Pause motion";
+          syncMedia();
         });
         document
           .getElementById("transform-city")
           .addEventListener("click", (event) => {
+            showCityMedia(false);
             const sponge = document
               .getElementById("city-transformation")
               .classList.toggle("sponge");

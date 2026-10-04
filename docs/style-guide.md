@@ -38,4 +38,4 @@ Current HUD: compact colorful gauges with labels and values inside; a readable g
 
 Ground boosts use original miniature props with gentle bobbing. One slot distinguishes gray empty, gold held and mint active states. Q activates once; H also offers activation. New drops are sparse. Locked inventory tiles are gray with a lock and remaining-level count; only available tools are introduced as usable. Sealed plots are dark with pale markings; open plots have bright green edges.
 
-The standalone presentation in public/presentation.html uses a scoped inline theme for offline portability: aqua, sponge yellow, dark ink and green; original SVG city diagrams and large readable type. It supports reduced motion and landscape print export.
+The offline presentation in public/presentation.html uses a scoped inline theme: aqua, sponge yellow, dark ink and green; original SVG city diagrams, cropped gameplay clips from public/presentation-media/, and large readable type. It supports reduced motion and landscape print export using gameplay stills.
