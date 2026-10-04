@@ -97,7 +97,12 @@ function startGame(): void {
     scene,
     new URLSearchParams(location.search).get("debugCollisions") === "1",
   );
-  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 150);
+  const camera = new THREE.PerspectiveCamera(
+    55,
+    1,
+    0.1,
+    gameConfig.viewDistance,
+  );
   const world = createWorld(scene);
   canvas.dataset.equippedHat = "none";
   const input = new GameInput(canvas);

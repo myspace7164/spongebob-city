@@ -13,7 +13,7 @@ import type {
   PlayerState,
 } from "../interfaces.ts";
 import { formatPlaytime } from "./time-format.ts";
-import { cityMetrics, spongeCapacity, weather } from "./city.ts";
+import { cityMetrics, spongeCapacity } from "./city.ts";
 import { activeModifier } from "./level-modifiers.ts";
 import { currentLevel, landmarkPose, validDrain } from "./campaign.ts";
 import { isToolAvailable } from "./progression.ts";
@@ -28,6 +28,7 @@ import {
 } from "./characters.ts";
 import { betonConfig as betonTuning } from "../../config/beton.ts";
 import { createCityFireView } from "./city-fire-view.ts";
+import { createWeatherView } from "./weather-view.ts";
 import { gameplayColliders } from "./world-colliders.ts";
 import type { SolidCollider } from "./collisions.ts";
 
@@ -904,22 +905,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     );
     bird.rotation.z = i % 2 ? 0.3 : -0.3;
   }
-  const rainGeometry = new THREE.BufferGeometry();
-  const rainPositions = new Float32Array(180 * 3);
-  for (let i = 0; i < 180; i++) {
-    rainPositions[i * 3] = ((i * 13) % 37) - 18;
-    rainPositions[i * 3 + 1] = (i * 7) % 14;
-    rainPositions[i * 3 + 2] = -((i * 17) % 30);
-  }
-  rainGeometry.setAttribute(
-    "position",
-    new THREE.BufferAttribute(rainPositions, 3),
-  );
-  const rain = new THREE.Points(
-    rainGeometry,
-    new THREE.PointsMaterial({ color: themeColor("water"), size: 0.12 }),
-  );
-  mission.add(rain);
+  const weatherView = createWeatherView(scene, mission);
   const ray = new THREE.Raycaster();
   const screenCenter = new THREE.Vector2();
   const droplets = new THREE.Group();
@@ -1076,10 +1062,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           }
         }
       }
-      const rainy = weather(s).raining;
-      scene.background = themeColor(rainy ? "rain-sky" : "sky");
-      if (scene.fog instanceof THREE.Fog)
-        scene.fog.color.copy(scene.background);
       s.plots.forEach((p, i) => {
         const view = plotViews[i];
         const baseHeight = p.elevation ?? ground(p.x, p.z);
@@ -1243,17 +1225,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       });
       birds.visible = healthy >= 2;
       birds.position.x = Math.sin(s.elapsed * 0.4) * 2;
-      rain.visible = rainy;
-      // Rain covers the area around the player, so it also falls further down a street.
-      rain.position.set(
-        player.position.x - origin.x,
-        playerGround,
-        player.position.z - origin.z + 15,
-      );
-      const attribute = rainGeometry.getAttribute("position");
-      for (let i = 0; i < 180; i++)
-        attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);
-      attribute.needsUpdate = true;
+      weatherView.update(s, player, origin, ground);
       const villain = s.saboteur;
       machine.position.set(
         villain.x - origin.x,
