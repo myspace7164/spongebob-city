@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { riversideBuddy } from "../config/riverside-buddy.ts";
-import { createCampaign, levelPosition } from "../src/game/campaign.ts";
+import {
+  createCampaign,
+  currentLevel,
+  landmarkPose,
+  levelPosition,
+} from "../src/game/campaign.ts";
 import { riversideBuddyPose } from "../src/game/riverside-buddy.ts";
 import { gameplayColliders } from "../src/game/world-colliders.ts";
 
@@ -43,7 +48,7 @@ test("ambient buddy walks, pauses for every gesture and matches shared room snap
   assert.deepEqual(s, snapshot);
   s.campaign!.level = 3;
   const pose = riversideBuddyPose(s);
-  const origin = levelPosition(s, riversideBuddy);
+  const origin = levelPosition(s, landmarkPose(currentLevel(s), "buddy"));
   assert.equal(pose.x, origin.x);
   assert.equal(pose.z, origin.z + riversideBuddy.radiusZ);
 });

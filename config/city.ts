@@ -80,6 +80,14 @@ export const cityConfig = {
     squidward: { x: 12, z: -5 },
     beton: { x: 11, z: -24 },
   },
+  /** World objects (play coordinates); built levels may move them. */
+  landmarkDefaults: {
+    /** Offset from the player's start; the sign faces back toward it. */
+    leaderboard: { x: -4, z: 1, rotationY: Math.atan2(4, -1) },
+    buddy: { x: 8.5, z: -1.5 },
+    powerup: { x: -2, z: -2 },
+    streetSign: { x: 0, z: -27 },
+  },
   bounds: { minX: -14, maxX: 14, minZ: -25, maxZ: 5 },
 };
 

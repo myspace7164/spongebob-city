@@ -97,6 +97,15 @@ export interface LevelSite {
   startYaw?: number;
   /** Character positions in play coordinates; missing ones use config defaults. */
   npcs?: Partial<Record<NpcId, [number, number]>>;
+  /** World objects in play coordinates; missing ones use config defaults. */
+  landmarks?: Partial<Record<LandmarkId, LandmarkPlacement>>;
+}
+/** Fixed world objects a built level may move: signs, the buddy, the first pickup. */
+export type LandmarkId = "leaderboard" | "buddy" | "powerup" | "streetSign";
+/** Play coordinates; rotationY (radians) only turns the leaderboard sign. */
+export interface LandmarkPlacement {
+  at: [number, number];
+  rotationY?: number;
 }
 /** The square's characters: helpers, Sandy's workshop and Dr. Beton's start. */
 export type NpcId = "patrick" | "krabs" | "sandy" | "squidward" | "beton";

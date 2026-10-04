@@ -8,6 +8,7 @@ import {
 } from "../../config/levels.ts";
 import { cityConfig, cityTools } from "../../config/city.ts";
 import type {
+  LandmarkId,
   NpcId,
   CityLevel,
   CityPlot,
@@ -133,7 +134,8 @@ function applyLayout(s: CityState, level: CityLevel): void {
     site: position.site,
     builds: position.builds,
   }));
-  placePowerups(s, level.origin);
+  const pickup = landmarkPose(level, "powerup");
+  placePowerups(s, levelPosition(s, pickup));
   s.feedback = level.objective;
   const start = npcPosition(s, "beton");
   Object.assign(s.saboteur, start, {
@@ -148,6 +150,22 @@ export function npcPosition(s: CityState, id: NpcId) {
     s,
     own ? { x: own[0], z: own[1] } : cityConfig.npcDefaults[id],
   );
+}
+/**
+ * Level-local position of a world object: the level's own placement, else the
+ * default (the leaderboard's default follows the player's start).
+ */
+export function landmarkPose(level: CityLevel | undefined, id: LandmarkId) {
+  const own = level?.site?.landmarks?.[id];
+  if (own) return { x: own.at[0], z: own.at[1], rotationY: own.rotationY ?? 0 };
+  const d = cityConfig.landmarkDefaults[id];
+  const [sx, sz] =
+    id === "leaderboard" ? (level?.site?.start ?? [0, 0]) : [0, 0];
+  return {
+    x: sx + d.x,
+    z: sz + d.z,
+    rotationY: "rotationY" in d ? d.rotationY : 0,
+  };
 }
 /** A fresh campaign that starts directly at a level (level builder "Test play"). */
 export function startCampaignAt(level: number): CityState {

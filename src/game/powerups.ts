@@ -10,7 +10,13 @@ import type {
 /** One carried or active boost, and at most one ground pickup. */
 export function createPowerups(): PowerupState {
   return {
-    pickups: [{ id: "pore", x: -2, z: -2, collected: false }],
+    pickups: [
+      {
+        id: "pore",
+        ...cityConfig.landmarkDefaults.powerup,
+        collected: false,
+      },
+    ],
     held: null,
     active: null,
     remaining: 0,
@@ -19,10 +25,14 @@ export function createPowerups(): PowerupState {
     pulseIn: 0,
   };
 }
-export function placePowerups(s: CityState, origin = { x: 0, z: 0 }): void {
+/** Fresh boosts with the first pickup at a world point (the level's own spot). */
+export function placePowerups(
+  s: CityState,
+  at: { x: number; z: number },
+): void {
   s.powerups = createPowerups();
-  s.powerups.pickups[0].x += origin.x;
-  s.powerups.pickups[0].z += origin.z;
+  s.powerups.pickups[0].x = at.x;
+  s.powerups.pickups[0].z = at.z;
 }
 export function isPowerupActive(s: CityState, id: PowerupKind): boolean {
   return s.powerups.active === id && s.powerups.remaining > 0;

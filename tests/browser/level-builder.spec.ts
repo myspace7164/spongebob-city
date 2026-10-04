@@ -346,3 +346,63 @@ test("Test play does not write a saved level", async ({ page }) => {
   await expect(panel).toBeHidden();
   expect(writes).toBe(0);
 });
+
+test("world objects can be selected, moved, turned, reset and test-played", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 750 });
+  await page.route("**/models/*.glb", (route) =>
+    route.fulfill({ status: 404, body: "Use procedural fallback" }),
+  );
+  await page.route("**/__level-builder/**", (route) =>
+    route.fulfill({ json: { versions: [] } }),
+  );
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/?builder");
+  await page.locator(".level-builder-open").click();
+  const panel = page.locator("#level-builder");
+  await expect(panel).toBeVisible();
+  await page.keyboard.press("o");
+  await expect(panel.locator("#lb-tool-objects")).toBeVisible();
+  const objects = panel.locator("#lb-landmarks button");
+  await expect(objects).toHaveCount(4);
+  await expect(objects.first()).toContainText("default");
+
+  const savedLandmarks = async () => {
+    await panel.locator("#lb-save-draft").click();
+    return page.evaluate(() => {
+      const key = Object.keys(localStorage).find((k) =>
+        k.startsWith("spongebob-city:level-builder:draft:"),
+      )!;
+      return JSON.parse(localStorage.getItem(key)!).state.landmarks;
+    });
+  };
+
+  // Selecting flies the view to the object, so it sits at the canvas centre.
+  await objects.nth(2).click();
+  await expect(panel.locator("#lb-landmark")).toContainText("First power-up");
+  await page.waitForTimeout(200);
+  const box = (await page.locator("canvas").first().boundingBox())!;
+  const [cx, cy] = [box.x + box.width / 2, box.y + box.height / 2];
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx + 60, cy + 20, { steps: 6 });
+  await page.mouse.up();
+  const afterDrag = await savedLandmarks();
+  expect(afterDrag.powerup?.at).toHaveLength(2);
+  await expect(objects.nth(2)).not.toContainText("default");
+
+  await objects.first().click();
+  await panel.locator("#lb-landmark [data-turn='1']").click();
+  const turned = await savedLandmarks();
+  expect(typeof turned.leaderboard.rotationY).toBe("number");
+  await panel.locator("#lb-landmark-reset").click();
+  expect((await savedLandmarks()).leaderboard).toBeUndefined();
+  await panel.locator("#lb-undo").click();
+  expect((await savedLandmarks()).leaderboard).toBeDefined();
+
+  await panel.locator("#lb-test").click();
+  await expect(panel).toBeHidden();
+  expect(errors).toEqual([]);
+});

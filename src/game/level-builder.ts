@@ -4,6 +4,8 @@ import { siteTechniques } from "../../config/sites";
 import type {
   BuiltLevel,
   CityTool,
+  LandmarkId,
+  LandmarkPlacement,
   LevelGoal,
   LevelSite,
   LevelSpot,
@@ -275,6 +277,28 @@ export function validateBuiltLevel(
       throw new Error(`${id} stands outside the level area`);
     npcs[id as NpcId] = [round(at[0]), round(at[1])];
   }
+  const landmarks: Partial<Record<LandmarkId, LandmarkPlacement>> = {};
+  for (const [id, placement] of Object.entries(site.landmarks ?? {})) {
+    const at = placement?.at;
+    if (
+      !landmarkIds.includes(id as LandmarkId) ||
+      !Array.isArray(at) ||
+      at.length !== 2 ||
+      !at.every(finite) ||
+      (placement.rotationY !== undefined && !finite(placement.rotationY))
+    )
+      throw new Error("Invalid object position");
+    if (!inside(at))
+      throw new Error(
+        `${landmarkNames[id as LandmarkId]} lies outside the level area`,
+      );
+    landmarks[id as LandmarkId] = {
+      at: [round(at[0]), round(at[1])],
+      ...(placement.rotationY !== undefined
+        ? { rotationY: Math.round(placement.rotationY * 1e4) / 1e4 }
+        : {}),
+    };
+  }
   if (!inside(site.start as [number, number]))
     throw new Error("The spawn lies outside the level area");
   return {
@@ -284,6 +308,7 @@ export function validateBuiltLevel(
         ? { startYaw: Math.round(site.startYaw * 1e4) / 1e4 }
         : {}),
       ...(Object.keys(npcs).length ? { npcs } : {}),
+      ...(Object.keys(landmarks).length ? { landmarks } : {}),
       street: location,
       origin: [round(site.origin[0]), round(site.origin[1])],
       heading: site.heading,
@@ -293,6 +318,20 @@ export function validateBuiltLevel(
     spots,
   };
 }
+
+/** World objects the builder can move (defaults: config/city.ts). */
+export const landmarkIds: readonly LandmarkId[] = [
+  "leaderboard",
+  "buddy",
+  "powerup",
+  "streetSign",
+];
+export const landmarkNames: Record<LandmarkId, string> = {
+  leaderboard: "Leaderboard sign",
+  buddy: "Riverside buddy",
+  powerup: "First power-up",
+  streetSign: "Street sign",
+};
 
 export const npcIds: readonly NpcId[] = [
   "sandy",
@@ -423,6 +462,12 @@ export function checkCharacters(
       problems.push(`${id} stands on a spot.`);
     if (surface && !walkable.has(surface(at[0], at[1])))
       problems.push(`${id} stands on ${surface(at[0], at[1])}.`);
+  }
+  // The street sign floats overhead, so only grounded objects can block a spot.
+  for (const id of ["leaderboard", "buddy", "powerup"] as const) {
+    const at = site.landmarks?.[id]?.at;
+    if (at && spots.some((s) => toSquare(s, at[0], at[1]) === 0))
+      problems.push(`${landmarkNames[id]} stands on a spot.`);
   }
   const sandy = site.npcs?.sandy;
   if (sandy && Math.hypot(sandy[0] - sx, sandy[1] - sz) > 12)
