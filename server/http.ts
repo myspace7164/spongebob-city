@@ -6,16 +6,22 @@ import { AccountStore } from "./store.ts";
 import { Rooms } from "./rooms.ts";
 import { onlineConfig } from "../config/online.ts";
 import type { OnlineCommand } from "../src/interfaces.ts";
+import {
+  clientAddress,
+  production,
+  publicOrigin,
+  RequestLimits,
+} from "./security.ts";
 export function createOnlineServer(
   database = process.env.DATABASE_PATH ?? "data/accounts.sqlite",
 ) {
   if (database !== ":memory:")
-    mkdirSync(dirname(database), { recursive: true });
+    mkdirSync(dirname(database), { recursive: true, mode: 0o700 });
   const store = new AccountStore(database),
     rooms = new Rooms(store);
   const streams = new Map<ServerResponse, string>();
   const compressedStreams = new Map<ServerResponse, Gzip>();
-  const limits = new Map<string, { time: number; count: number }>();
+  const limits = new RequestLimits();
   const timer = setInterval(() => {
     rooms.tick(0.1);
     // Serialize each room once, rather than cloning all 64 players for every viewer.
@@ -51,12 +57,35 @@ export function createOnlineServer(
     const path = new URL(req.url ?? "/", "http://localhost").pathname;
     if (!path.startsWith("/api/")) return false;
     try {
+      const address = clientAddress(req);
+      if (
+        !limits.allow("global", 240000) ||
+        !limits.allow(`ip:${address}`, 180000)
+      ) {
+        res.setHeader("Retry-After", "60");
+        json(res, 429, { error: "Too many requests. Wait a minute." });
+        return true;
+      }
+      if (req.headers["sec-fetch-site"] === "cross-site") {
+        json(res, 403, { error: "Use the game on this host." });
+        return true;
+      }
       const token = req.headers.cookie
         ?.split(";")
         .map((s) => s.trim())
         .find((s) => s.startsWith("sponge_session="))
         ?.slice(15);
       const account = store.account(token);
+      if (
+        !limits.allow(
+          account ? `account:${account.id}` : `anonymous:${address}`,
+          account ? 2400 : 1200,
+        )
+      ) {
+        res.setHeader("Retry-After", "60");
+        json(res, 429, { error: "Too many requests. Wait a minute." });
+        return true;
+      }
       if (req.method === "GET") {
         if (path === "/api/account") {
           json(res, 200, { account });
@@ -80,6 +109,15 @@ export function createOnlineServer(
           return true;
         }
         if (path === "/api/events") {
+          if (
+            streams.size >= 256 &&
+            ![...streams.values()].includes(account.id)
+          ) {
+            json(res, 503, {
+              error: "All connections are busy. Try again shortly.",
+            });
+            return true;
+          }
           // Replace an older stream for this account (one browser identity, one player).
           for (const [old, id] of streams)
             if (id === account.id) {
@@ -120,7 +158,10 @@ export function createOnlineServer(
         return true;
       }
       const origin = req.headers.origin;
-      if (origin && new URL(origin).host !== req.headers.host) {
+      if (
+        (production && origin !== publicOrigin) ||
+        (origin && new URL(origin).host !== req.headers.host)
+      ) {
         json(res, 403, { error: "Use the game on this host." });
         return true;
       }
@@ -128,32 +169,40 @@ export function createOnlineServer(
         json(res, 415, { error: "JSON required." });
         return true;
       }
-      const key = account?.id ?? req.socket.remoteAddress ?? "unknown";
-      const limit = limits.get(key) ?? { time: Date.now(), count: 0 };
-      if (Date.now() - limit.time > 60000) {
-        limit.time = Date.now();
-        limit.count = 0;
-      }
-      limit.count++;
-      limits.set(key, limit);
+      const key =
+        path === "/api/account"
+          ? `registration:${address}`
+          : `${path === "/api/command" ? "command" : "post"}:${account?.id ?? address}`;
       if (
-        limit.count > (account ? 1800 : onlineConfig.registrationsPerMinute)
+        (path === "/api/account" &&
+          !limits.allow("registrations:global", 256)) ||
+        !limits.allow(
+          key,
+          path === "/api/account" || !account
+            ? onlineConfig.registrationsPerMinute
+            : path === "/api/command"
+              ? 1800
+              : 120,
+        )
       ) {
+        res.setHeader("Retry-After", "60");
         json(res, 429, { error: "Too many requests. Wait a minute." });
         return true;
       }
-      if (limits.size > 10000)
-        for (const [k, v] of limits)
-          if (Date.now() - v.time > 60000) limits.delete(k);
       let data = "";
+      let bytes = 0;
       for await (const chunk of req) {
+        bytes += Buffer.byteLength(chunk);
         data += chunk;
-        if (data.length > 4096) {
+        if (bytes > 4096) {
+          res.setHeader("Connection", "close");
           json(res, 413, { error: "Request too large." });
           return true;
         }
       }
       const body = JSON.parse(data || "{}");
+      if (!body || typeof body !== "object" || Array.isArray(body))
+        throw new Error("JSON object required.");
       if (path === "/api/account") {
         if (account) {
           json(res, 409, { error: "This browser already has an account." });
@@ -210,7 +259,13 @@ export function createOnlineServer(
       } else json(res, 404, { error: "Not found." });
     } catch (error) {
       json(res, 400, {
-        error: error instanceof Error ? error.message : "Request failed.",
+        error:
+          error instanceof Error &&
+          !(error instanceof TypeError) &&
+          !(error instanceof SyntaxError) &&
+          !("code" in error)
+            ? error.message
+            : "Invalid request.",
       });
     }
     return true;

@@ -113,6 +113,11 @@ export class AccountStore {
     mode: SurvivalMode,
     now = Date.now(),
   ): string {
+    this.db
+      .prepare(
+        "DELETE FROM survival_runs WHERE account_id=? AND mode=? AND ended_at IS NULL",
+      )
+      .run(accountId, mode);
     const runId = randomUUID();
     this.db
       .prepare(

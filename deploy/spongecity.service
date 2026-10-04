@@ -1,0 +1,40 @@
+[Unit]
+Description=Sponge City production server
+After=network.target
+
+[Service]
+Type=simple
+User=spongecity
+Group=spongecity
+WorkingDirectory=/opt/spongecity
+Environment=NODE_ENV=production
+Environment=PUBLIC_ORIGIN=https://spongecity.brexit.ch
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+Environment=TRUST_PROXY=loopback
+Environment=DATABASE_PATH=/var/lib/spongecity/accounts.sqlite
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+StateDirectory=spongecity
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+TasksMax=128
+LimitNOFILE=4096
+MemoryMax=2G
+CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target

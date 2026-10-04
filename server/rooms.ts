@@ -183,6 +183,8 @@ export class Rooms {
     if (previous && previous !== room)
       throw new Error("Leave your current room first.");
     if (!room.members.has(account.id)) {
+      if (this.membership.size >= 256)
+        throw new Error("All player slots are busy. Try again shortly.");
       if (room.members.size >= onlineConfig.maxPlayers)
         throw new Error(
           `This room is full (${onlineConfig.maxPlayers} players).`,
