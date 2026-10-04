@@ -97,6 +97,8 @@ Format: `- <date> · <decision> · @<github-username> · Affects: <tasks or area
 
 - 2026-10-04: Add optional `rotationY` (Three.js Y angle in play coordinates, radians) to LevelSpot and CityPlot; omitted angles remain zero. Builder drafts keep map-local orientation and convert it for gameplay, with 15° controls, exact angles, mesh selection and undo.
 
+- 2026-10-04 · Drive the shared character's Dry/WaterFull morphs and iris shading from stored sponge water, smoothing visual changes locally on every client · Affects: local and co-op character appearance · Why: the character should visibly agree with the shared water amount without changing collision or syncing cosmetic geometry · Instead of: boolean swaps or a separate visual-only water meter.
+
 - CampaignProgress.endlessRound and the endless room command add post-campaign play. Random layouts retain their goals, all tools unlock, and final-stage rain/heat intensity grows by 20% per round. Credits precede entry; co-op entry belongs to the room leader.
 - 2026-10-04 · Remove Level 4's connected-shade challenge and hide/disable its C runoff shortcut while retaining runoff simulation and earlier-level routing · @bikinipowerbottom · Affects: VoltaNord objectives and controls · Why: remove these Level 4 challenges without removing shared water behavior · Instead of: replacing either challenge with automatic completion.
 - 2026-10-04: Add optional `LevelSite.landmarks` (play coordinates, `rotationY` for the leaderboard) so built levels can move the leaderboard sign, riverside buddy, first power-up and street sign; missing entries keep the defaults in `config/city.ts` `landmarkDefaults`. One helper, `landmarkPose`, places them for the view, colliders, buddy and pickup.

@@ -19,6 +19,8 @@ export const gameConfig = {
   cameraDistance: 7,
   cameraTargetHeight: 1.2,
   maxPixelRatio: 1.5,
+  /** Exponential response for water-driven character morphs, per second. */
+  waterVisualResponsePerSecond: 7,
   /** Camera draw distance; the whole map is loaded, so this sets how far you see. */
   viewDistance: 700,
   groundSize: 240,

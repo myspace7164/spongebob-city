@@ -965,6 +965,7 @@ function startGame(): void {
           temperature: city.temperature,
           equippedHat: city.campaign?.equippedHat ?? null,
           visualScale: effectivePlayerVisualScale(city, powerVisualScale),
+          deltaSeconds: dt,
         },
       );
       const nextRemotePlayerCount = String(remoteCount);
@@ -996,6 +997,7 @@ function startGame(): void {
         city.sponge,
         spongeCapacity(city),
         city.temperature,
+        dt,
       );
     world.update(
       player,

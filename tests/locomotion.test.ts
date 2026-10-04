@@ -187,6 +187,48 @@ test("real GLB has relaxed moving limbs, white teeth, preserved water morphs and
       morphs >= 4,
       "water state includes both animated legs and the torso",
     );
+    const body = model.getObjectByName("Body_Cube_morph_export") as THREE.Mesh;
+    const dryIndex = body.morphTargetDictionary!.Dry;
+    const fullIndex = body.morphTargetDictionary!.WaterFull;
+    const iris = (() => {
+      let result: THREE.MeshStandardMaterial | undefined;
+      model.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        for (const material of Array.isArray(object.material)
+          ? object.material
+          : [object.material])
+          if (material.name.toLowerCase() === "iris export")
+            result = material as THREE.MeshStandardMaterial;
+      });
+      return result!;
+    })();
+    const healthyEye = iris.color.getHex();
+    updateSpongeWaterState(model, 0, 400, 27, 0.1);
+    assert.ok(body.morphTargetInfluences![dryIndex]! > 0);
+    assert.ok(body.morphTargetInfluences![dryIndex]! < 1);
+    assert.ok(body.morphTargetInfluences![fullIndex]! > 0);
+    assert.notEqual(iris.color.getHex(), healthyEye);
+    for (let step = 0; step < 120; step++)
+      updateSpongeWaterState(model, 0, 400, 27, 1 / 60);
+    assert.ok(body.morphTargetInfluences![dryIndex]! > 0.99);
+    assert.ok(body.morphTargetInfluences![fullIndex]! < 0.01);
+    for (let step = 0; step < 120; step++)
+      updateSpongeWaterState(model, 400, 400, 27, 1 / 60);
+    assert.ok(body.morphTargetInfluences![dryIndex]! < 0.01);
+    assert.ok(body.morphTargetInfluences![fullIndex]! > 0.99);
+    assert.equal(iris.color.getHex(), healthyEye);
+    for (let step = 0; step < 24; step++) {
+      updateSpongeWaterState(model, 100, 400, 27, 1 / 60);
+      updateSpongeWaterState(remoteModel, 100, 400, 27, 1 / 60);
+    }
+    const remoteBody = remoteModel.getObjectByName(
+      "Body_Cube_morph_export",
+    ) as THREE.Mesh;
+    assert.deepEqual(
+      remoteBody.morphTargetInfluences,
+      body.morphTargetInfluences,
+      "remote clones derive the same smooth morph from the shared water value",
+    );
     const count = props.root.children.length;
     for (const tool of cityTools) {
       props.select(tool.id);

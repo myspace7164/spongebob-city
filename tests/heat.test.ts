@@ -176,6 +176,17 @@ test("heat above 30 C progressively dries SpongeBob and suppresses WaterFull", (
   assert.ok(hotter.dry > warmer.dry && hotter.dry < 1);
 });
 
+test("stored water smoothly spans dry, normal and full character endpoints", () => {
+  const at = (litres: number) => spongeWaterMorphWeights(litres, 400, 27);
+  assert.deepEqual(at(0), { dry: 1, waterFull: 0 });
+  assert.ok(at(1).dry > 0.99 && at(1).dry < 1);
+  assert.ok(at(100).dry >= 0.7 && at(100).dry <= 0.8);
+  assert.deepEqual(at(200), { dry: 0, waterFull: 0 });
+  assert.equal(at(300).waterFull, 0.5);
+  assert.ok(at(396).waterFull > 0.99);
+  assert.deepEqual(at(400), { dry: 0, waterFull: 1 });
+});
+
 test("less-frequent rain still cycles through every campaign level", () => {
   for (const level of cityLevels) {
     assert.ok(level.weather.dryDuration > level.weather.rainDuration);

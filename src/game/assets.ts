@@ -1,8 +1,25 @@
-import { Mesh, MeshStandardMaterial, type Group } from "three";
+import { Color, Mesh, MeshStandardMaterial, type Group } from "three";
 import { cityConfig } from "../../config/city.ts";
+import { gameConfig } from "../../config/game.ts";
 import type { ModelConfig } from "../interfaces.ts";
 
 export const spongeEyeBlue = 0x639bff;
+const dryEyeColor = new Color(0x27364c);
+interface SpongeMorphMesh {
+  mesh: Mesh;
+  dryIndex: number;
+  waterFullIndex: number;
+}
+interface SpongeVisualWeights {
+  dry: number;
+  waterFull: number;
+}
+const spongeMorphMeshes = new WeakMap<Group, SpongeMorphMesh[]>();
+const spongeEyeMaterials = new WeakMap<
+  Group,
+  { material: MeshStandardMaterial; healthyColor: Color }[]
+>();
+const spongeVisualWeights = new WeakMap<Group, SpongeVisualWeights>();
 
 /** Slightly lighten only the imported SpongeBob iris material. */
 export function applySpongeEyeTint(model: Group): number {
@@ -41,32 +58,76 @@ export function updateSpongeWaterState(
   sponge: number,
   capacity: number,
   temperature = 27,
+  deltaSeconds?: number,
 ): void {
-  const { dry, waterFull } = spongeWaterMorphWeights(
-    sponge,
-    capacity,
-    temperature,
-  );
-  let morphMeshes = 0;
-  model.traverse((object) => {
-    if (
-      !(object instanceof Mesh) ||
-      !object.morphTargetDictionary ||
-      !object.morphTargetInfluences
-    )
-      return;
-    const dryIndex = object.morphTargetDictionary.Dry;
-    const fullIndex = object.morphTargetDictionary.WaterFull;
-    if (dryIndex === undefined || fullIndex === undefined) return;
-    object.morphTargetInfluences[dryIndex] = dry;
-    object.morphTargetInfluences[fullIndex] = waterFull;
-    morphMeshes += 1;
-  });
-  if (morphMeshes === 0) {
-    throw new Error(
-      "The Blender character is missing Dry and WaterFull morph targets.",
-    );
+  const target = spongeWaterMorphWeights(sponge, capacity, temperature);
+  let morphMeshes = spongeMorphMeshes.get(model);
+  if (!morphMeshes) {
+    morphMeshes = [];
+    const eyeMaterials: {
+      material: MeshStandardMaterial;
+      healthyColor: Color;
+    }[] = [];
+    model.traverse((object) => {
+      if (!(object instanceof Mesh)) return;
+      if (object.morphTargetDictionary && object.morphTargetInfluences) {
+        const dryIndex = object.morphTargetDictionary.Dry;
+        const waterFullIndex = object.morphTargetDictionary.WaterFull;
+        if (dryIndex !== undefined && waterFullIndex !== undefined)
+          morphMeshes!.push({ mesh: object, dryIndex, waterFullIndex });
+      }
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+      for (let index = 0; index < materials.length; index++) {
+        const material = materials[index];
+        if (
+          material.name.toLowerCase() !== "iris export" ||
+          !(material instanceof MeshStandardMaterial)
+        )
+          continue;
+        const eyeMaterial = material.clone();
+        if (Array.isArray(object.material))
+          object.material[index] = eyeMaterial;
+        else object.material = eyeMaterial;
+        eyeMaterials.push({
+          material: eyeMaterial,
+          healthyColor: eyeMaterial.color.clone(),
+        });
+      }
+    });
+    if (morphMeshes.length === 0) {
+      throw new Error(
+        "The Blender character is missing Dry and WaterFull morph targets.",
+      );
+    }
+    spongeMorphMeshes.set(model, morphMeshes);
+    spongeEyeMaterials.set(model, eyeMaterials);
   }
+  const previous = spongeVisualWeights.get(model) ?? target;
+  const blend =
+    deltaSeconds === undefined
+      ? 1
+      : 1 -
+        Math.exp(
+          -gameConfig.waterVisualResponsePerSecond * Math.max(0, deltaSeconds),
+        );
+  const current = {
+    dry: easedWeight(previous.dry, target.dry, blend),
+    waterFull: easedWeight(previous.waterFull, target.waterFull, blend),
+  };
+  spongeVisualWeights.set(model, current);
+  for (const { mesh, dryIndex, waterFullIndex } of morphMeshes) {
+    mesh.morphTargetInfluences![dryIndex] = current.dry;
+    mesh.morphTargetInfluences![waterFullIndex] = current.waterFull;
+  }
+  for (const { material, healthyColor } of spongeEyeMaterials.get(model) ?? [])
+    material.color.copy(healthyColor).lerp(dryEyeColor, current.dry);
+}
+
+function easedWeight(current: number, target: number, blend: number): number {
+  const next = current + (target - current) * blend;
+  return Math.abs(target - next) < 0.0005 ? target : next;
 }
 
 export function spongeWaterMorphWeights(
@@ -75,8 +136,9 @@ export function spongeWaterMorphWeights(
   temperature: number,
 ): { dry: number; waterFull: number } {
   const fill = Math.max(0, Math.min(1, capacity > 0 ? sponge / capacity : 0));
-  const waterDry = fill <= 0.5 ? 1 - fill * 2 : 0;
-  const waterFull = fill > 0.5 ? (fill - 0.5) * 2 : 0;
+  const waterDry = fill < 0.5 ? Math.pow(Math.max(0, 1 - fill * 2), 0.45) : 0;
+  const fullProgress = Math.max(0, Math.min(1, (fill - 0.5) * 2));
+  const waterFull = fullProgress * fullProgress * (3 - 2 * fullProgress);
   const { dryThresholdCelsius, dryFullCelsius, dryStartInfluence } =
     cityConfig.heatSystem;
   const heatProgress = Math.max(
