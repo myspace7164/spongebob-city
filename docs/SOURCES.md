@@ -39,3 +39,7 @@ Eight eligible Basel locations are ranked from official GeoBS human-bioclimate W
 ## Original ambient character and voices
 
 A user-supplied outfit reference remains outside the repository. The riverside buddy's hoodie, jeans, sneakers, can, cigarette, smoke and poses are original procedural geometry; no real name or photograph is stored. Twenty positive English lines, cartoon speech balloons and nearby synthesized cast/buddy gibberish are original game content. Voices are not recordings.
+
+## Presentation
+
+The standalone deck uses original inline SVG/CSS artwork with no external images or fonts. Environmental teaching principles reference [EPA green infrastructure](https://www.epa.gov/green-infrastructure/about-green-infrastructure), [types of green infrastructure](https://www.epa.gov/green-infrastructure/types-green-infrastructure) and [urban heat reduction](https://www.epa.gov/green-infrastructure/reduce-heat-islands). The deck paraphrases these principles; it introduces no measured effectiveness claim. The existing geodata and asset provenance entries above govern the presentation’s project claims.

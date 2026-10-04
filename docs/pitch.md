@@ -1,0 +1,11 @@
+# Sponge City presentation
+
+Open [the animated HTML deck](../public/presentation.html) directly in a browser, or visit `/presentation.html` on the game server. It is self-contained and needs no network connection for its slides, illustrations or animations. External source links and the game launch require their usual destinations.
+
+The first eight slides form an approximately three-minute pitch; the ninth is the sources and limits appendix. Speaker notes and suggested timing are embedded in the deck as the single home for the script. Press N or click Notes to show them.
+
+Use the arrow keys, Space, Page Up/Down, Home/End or the navigation buttons. F enters full screen. Pause motion disables animations; system reduced-motion settings are also respected. Print to PDF exports all nine slides in landscape. Slide 3 has a button that transforms a sealed street into a sponge city.
+
+The geographic claim is deliberately scoped: eight real Basel location candidates today, with expansion to other cities worldwide as a future possibility. Public geodata is separate from illustrative gameplay coefficients and third-party game assets. Intended learning outcomes have not yet been evaluated in classrooms.
+
+Before presenting, open the game in another tab, check the controls and rehearse the first eight slides. The deck remains available as a fallback if the game or network is unavailable.
