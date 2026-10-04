@@ -211,20 +211,20 @@
       </div>
       <p id="online-status" role="status"></p>
       <p id="connection-status" class="sr-only"></p>
-      <h3>🏆 CITY HEROES</h3>
-      <p>Top 5 players by active time spent in online game sessions.</p>
+      <h3>🏆 SURVIVAL LEADERBOARD</h3>
+      <p>Top 5 longest runs across solo, practice and multiplayer.</p>
       <table id="leaderboard">
         <thead>
           <tr>
             <th>Rank</th>
             <th>Hero</th>
-            <th>Time played</th>
+            <th>Survived</th>
           </tr>
         </thead>
         <tbody id="leaderboard-rows"></tbody>
       </table>
       <p id="leaderboard-empty">
-        Make the first splash. The leaderboard is waiting!
+        No survival scores yet. Start a run and see how long you last!
       </p>
       <button id="online-close">Back to game</button>
     </section>
@@ -381,6 +381,12 @@
       <p class="eyebrow">MISSION REPORT</p>
       <h1 id="result-title"></h1>
       <p id="result-reason"></p>
+      <section id="survival-report" hidden aria-live="polite">
+        <h2>YOU SURVIVED <strong id="survival-time"></strong></h2>
+        <p id="survival-record-status"></p>
+        <h3>TOP 5 SURVIVORS</h3>
+        <ol id="survival-top-five"></ol>
+      </section>
       <div id="campaign-ending" hidden lang="en"></div>
       <div id="result-metrics"></div>
       <p class="small">Illustrative gameplay values · not a climate forecast</p>

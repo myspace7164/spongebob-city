@@ -10,6 +10,11 @@ import {
   weather,
 } from "../src/game/city.ts";
 import type { CityState } from "../src/interfaces.ts";
+import {
+  activeLevelBounds,
+  belongsToActiveLevel,
+} from "../src/game/active-level-area.ts";
+import { activeBetonTargets } from "../src/game/sabotage.ts";
 const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
 const build = (
   s: CityState,
@@ -175,6 +180,11 @@ test("rain, infiltration, evaporation and automatic tank irrigation conserve wat
 test("sabotage reseals a plot without destroying its water; disabling machine stops it", () => {
   const s = createCity();
   build(s, "basin", 0);
+  assert.ok(belongsToActiveLevel(activeLevelBounds(s), s.plots[0], 1.8));
+  assert.deepEqual(
+    activeBetonTargets(s).map((plot) => plot.id),
+    [0],
+  );
   s.plots[0].moisture = 300;
   const initial = totalWater(s);
   s.sabotageIn = 0;

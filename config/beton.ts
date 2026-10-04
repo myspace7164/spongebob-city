@@ -9,6 +9,15 @@ export const betonConfig = {
   laserRecoverySeconds: 0.36,
   laserRange: 17,
   waypointSpread: 1.4,
+  vehicleBoundaryMargin: 1.8,
+  playerWaterInterruptReach: 4.5,
+  waterInterruptSeconds: 3,
+  levelPressure: {
+    firstMoveMultiplier: 0.8,
+    finalMoveMultiplier: 1.25,
+    firstPauseMultiplier: 1.25,
+    finalPauseMultiplier: 0.8,
+  },
   /** Appearance only: the same villain grows visibly heavier at each stage. */
   appearance: {
     finalScale: 1.58,

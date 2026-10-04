@@ -8,7 +8,7 @@ import { AccountStore } from "../server/store";
 import { Rooms } from "../server/rooms";
 import { createOnlineServer } from "../server/http";
 
-test("unique account names, opaque sessions and leaderboard rewards survive reopening storage", () => {
+test("unique accounts and best survival scores survive reopening storage", () => {
   const dir = mkdtempSync(join(tmpdir(), "sponge-accounts-")),
     path = join(dir, "accounts.sqlite");
   let store = new AccountStore(path);
@@ -21,13 +21,18 @@ test("unique account names, opaque sessions and leaderboard rewards survive reop
     store.reward(account.id, "server-event-1", 40);
     store.reward(account.id, "server-event-1", 40);
     store.reward(account.id, "server-win", 0, 1);
-    store.recordPlaytime(account.id, 93);
-    store.recordPlaytime(account.id, 0.8);
+    const runId = store.startSurvivalRun(account.id, "solo", 1000);
+    store.finishSurvivalRun(account.id, runId, 94000);
     store.close();
     store = new AccountStore(path);
     assert.equal(store.account(token)?.id, account.id);
     assert.deepEqual(store.leaderboard(), [
-      { username: "TestSponge", playSeconds: 93 },
+      {
+        playerId: account.id,
+        username: "TestSponge",
+        survivalTimeMs: 93000,
+        mode: "solo",
+      },
     ]);
   } finally {
     store.close();
@@ -59,9 +64,7 @@ test("co-op shares legal construction, refuses client scores/positions and limit
       yaw: 0,
     });
     for (let i = 0; i < 14; i++) rooms.tick(0.1);
-    assert.deepEqual(store.leaderboard(), [
-      { username: "AlphaSponge", playSeconds: 1 },
-    ]);
+    assert.deepEqual(store.leaderboard(), []);
     rooms.command(a.id, {
       movement: { forward: 0, right: 0, run: false, jump: false },
       yaw: 0,
@@ -75,7 +78,6 @@ test("co-op shares legal construction, refuses client scores/positions and limit
     rooms.command(a.id, { equippedHat: "wizard" });
     assert.equal(rooms.current(a.id)!.city.budget, hatBalance);
     assert.deepEqual(rooms.current(a.id)!.city.campaign!.ownedHats, ["wizard"]);
-    assert.equal(store.leaderboard()[0].playSeconds, 1);
     assert.equal(
       rooms.current(a.id)!.city.funding.earned,
       rooms.current(b.id)!.city.funding.earned,
@@ -87,7 +89,6 @@ test("co-op shares legal construction, refuses client scores/positions and limit
       budget: 999999,
     } as never);
     assert.deepEqual(rooms.current(a.id)!.players[0].player.position, before);
-    assert.equal(store.leaderboard()[0].playSeconds, 1);
     assert.throws(
       () =>
         rooms.command(a.id, {
@@ -108,7 +109,7 @@ test("co-op shares legal construction, refuses client scores/positions and limit
     store.close();
   }
 });
-test("opening an old account database adds the playtime column", async () => {
+test("opening an old account database adds required persistence columns", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sponge-old-accounts-")),
     path = join(dir, "accounts.sqlite");
   const { DatabaseSync } = await import("node:sqlite");
@@ -120,25 +121,84 @@ test("opening an old account database adds the playtime column", async () => {
   const store = new AccountStore(path);
   try {
     const player = store.create("ReturnPlayer").account;
-    store.recordPlaytime(player.id, 9);
-    assert.equal(store.leaderboard()[0].playSeconds, 9);
+    const run = store.startSurvivalRun(player.id, "practice", 1000);
+    assert.equal(
+      store.finishSurvivalRun(player.id, run, 10000).survivalTimeMs,
+      9000,
+    );
   } finally {
     store.close();
     rmSync(dir, { recursive: true });
   }
 });
-test("leaderboard ranks cumulative active playtime rather than funding or wins", () => {
+test("leaderboard ranks best survival duration rather than funding or wins", () => {
   const store = new AccountStore(":memory:");
   try {
     const longer = store.create("LongerPlayer").account;
     const winner = store.create("WinningPlayer").account;
     store.reward(winner.id, "campaign-one", 100000, 20);
-    store.recordPlaytime(longer.id, 3601);
-    store.recordPlaytime(winner.id, 3600);
+    const longerRun = store.startSurvivalRun(longer.id, "solo", 1000);
+    const winnerRun = store.startSurvivalRun(winner.id, "practice", 1000);
+    store.finishSurvivalRun(longer.id, longerRun, 3602000);
+    store.finishSurvivalRun(winner.id, winnerRun, 3601000);
     assert.deepEqual(store.leaderboard(), [
-      { username: "LongerPlayer", playSeconds: 3601 },
-      { username: "WinningPlayer", playSeconds: 3600 },
+      {
+        playerId: longer.id,
+        username: "LongerPlayer",
+        survivalTimeMs: 3601000,
+        mode: "solo",
+      },
+      {
+        playerId: winner.id,
+        username: "WinningPlayer",
+        survivalTimeMs: 3600000,
+        mode: "practice",
+      },
     ]);
+  } finally {
+    store.close();
+  }
+});
+test("survival pauses exclude paused time and duplicate runs never occupy multiple ranks", () => {
+  const store = new AccountStore(":memory:");
+  try {
+    const players = Array.from(
+      { length: 7 },
+      (_, index) => store.create(`RankHero${index}`).account,
+    );
+    const pausedRun = store.startSurvivalRun(players[0]!.id, "practice", 1000);
+    store.pauseSurvivalRun(players[0]!.id, pausedRun, 4000);
+    store.resumeSurvivalRun(players[0]!.id, pausedRun, 9000);
+    const firstResult = store.finishSurvivalRun(
+      players[0]!.id,
+      pausedRun,
+      14000,
+    );
+    assert.equal(firstResult.survivalTimeMs, 8000);
+    assert.equal(firstResult.improved, true);
+    const duplicate = store.finishSurvivalRun(players[0]!.id, pausedRun, 20000);
+    assert.equal(duplicate.survivalTimeMs, 8000);
+    assert.equal(duplicate.improved, false);
+    const betterRun = store.startSurvivalRun(players[0]!.id, "solo", 20000);
+    assert.equal(
+      store.finishSurvivalRun(players[0]!.id, betterRun, 33000).survivalTimeMs,
+      13000,
+    );
+    for (let i = 1; i < players.length; i++) {
+      const run = store.startSurvivalRun(
+        players[i]!.id,
+        i % 2 ? "solo" : "practice",
+        1000,
+      );
+      store.finishSurvivalRun(players[i]!.id, run, 1000 + (13 - i) * 1000);
+    }
+    const topFive = store.leaderboard();
+    assert.equal(topFive.length, 5);
+    assert.deepEqual(
+      topFive.map((entry) => entry.survivalTimeMs),
+      [13000, 12000, 11000, 10000, 9000],
+    );
+    assert.equal(new Set(topFive.map((entry) => entry.playerId)).size, 5);
   } finally {
     store.close();
   }
@@ -208,6 +268,68 @@ test("HTTP cookies restore identity, origin checks reject cross-site writes and 
       ).status,
       400,
     );
+    const run = await (
+      await fetch(`${base}/api/runs/start`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ mode: "practice" }),
+      })
+    ).json();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const submitted = await (
+      await fetch(`${base}/api/runs/finish`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ runId: run.runId, survivalTimeMs: 999999999 }),
+      })
+    ).json();
+    assert.ok(submitted.survivalTimeMs > 0 && submitted.survivalTimeMs < 1000);
+    assert.equal(submitted.entries[0].username, "CookieSponge");
+    const duplicate = await (
+      await fetch(`${base}/api/runs/finish`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ runId: run.runId }),
+      })
+    ).json();
+    assert.equal(duplicate.survivalTimeMs, submitted.survivalTimeMs);
+    const otherRegistration = await fetch(`${base}/api/account`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "OtherLongRunner" }),
+    });
+    const otherCookie = otherRegistration.headers.get("set-cookie")!;
+    const otherHeaders = {
+      "Content-Type": "application/json",
+      cookie: otherCookie.split(";")[0],
+    };
+    const otherRun = await (
+      await fetch(`${base}/api/runs/start`, {
+        method: "POST",
+        headers: otherHeaders,
+        body: JSON.stringify({ mode: "solo" }),
+      })
+    ).json();
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    await fetch(`${base}/api/runs/finish`, {
+      method: "POST",
+      headers: otherHeaders,
+      body: JSON.stringify({ runId: otherRun.runId }),
+    });
+    const globalEntries = await (await fetch(`${base}/api/leaderboard`)).json();
+    assert.deepEqual(
+      globalEntries.entries.map(
+        (entry: { username: string }) => entry.username,
+      ),
+      ["OtherLongRunner", "CookieSponge"],
+    );
+    assert.equal(online.store.leaderboard().length, 2);
+    assert.equal(
+      (await fetch(`${base}/api/leaderboard`, { headers })).headers.get(
+        "cache-control",
+      ),
+      "no-store",
+    );
     const create = await (
       await fetch(`${base}/api/rooms`, { method: "POST", headers, body: "{}" })
     ).json();
@@ -253,7 +375,7 @@ test("authoritative cooperative movement honors Shift sprint", () => {
   }
 });
 
-test("the leaderboard records a player's partial active session when they pause", () => {
+test("pausing a multiplayer session does not submit a survival result", () => {
   const store = new AccountStore(":memory:"),
     rooms = new Rooms(store);
   try {
@@ -266,8 +388,7 @@ test("the leaderboard records a player's partial active session when they pause"
     });
     for (let i = 0; i < 6; i++) rooms.tick(0.1);
     rooms.command(account.id, { ready: false });
-    assert.equal(store.leaderboard()[0].username, "BriefSession");
-    assert.equal(store.leaderboard()[0].playSeconds, 1);
+    assert.deepEqual(store.leaderboard(), []);
   } finally {
     store.close();
   }

@@ -66,6 +66,8 @@ export type CityTool =
 /** Litres are conserved between surface, sponge, soil and storage except evaporation. */
 export interface CityPlot {
   id: number;
+  /** Present in campaigns so AI can reject stale/inactive-level candidates. */
+  levelId?: string;
   x: number;
   z: number;
   kind: PlotKind;
@@ -80,6 +82,8 @@ export interface CityPlot {
   builds?: CityTool[];
   /** Ground height in metres from the terrain; absent means flat (no downhill runoff). */
   elevation?: number;
+  /** Provenance for debug/reclamation; ground remains walkable either way. */
+  concretedByBeton?: boolean;
 }
 /** Street situations that map to urban unsealing techniques (config/sites.ts). */
 export type SiteType = "parking" | "verge" | "swale" | "facade";
@@ -138,6 +142,9 @@ export interface CityState {
   sabotageIn: number;
   machineDisabled: number;
   saboteur: {
+    levelId?: string | null;
+    lastValidX?: number;
+    lastValidZ?: number;
     x: number;
     z: number;
     facing: number;
@@ -284,8 +291,11 @@ export interface Account {
   username: string;
 }
 export interface LeaderboardEntry {
+  /** Stable server account identity used to keep only one best score per player. */
+  playerId: string;
   username: string;
-  playSeconds: number;
+  survivalTimeMs: number;
+  mode: "solo" | "practice" | "multiplayer";
 }
 export interface OnlinePlayer extends Account {
   player: PlayerState;

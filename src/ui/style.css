@@ -1024,6 +1024,33 @@ footer {
   line-height: 1.6;
   font-size: var(--font-md);
 }
+#survival-report {
+  margin: var(--gap-md) 0;
+  padding: var(--gap-md);
+  border: 2px solid var(--leaderboard-line);
+  border-radius: var(--radius-sm);
+  background: var(--tool-gradient);
+}
+#survival-report h2,
+#survival-report h3 {
+  margin: var(--gap-xs) 0;
+}
+#survival-time {
+  color: var(--aqua-deep);
+  font-variant-numeric: tabular-nums;
+}
+#survival-record-status {
+  color: var(--aqua-deep);
+  font-weight: 900;
+}
+#survival-top-five {
+  margin: var(--gap-xs) 0 0;
+  padding-left: 1.6em;
+}
+#survival-top-five .current-player {
+  color: var(--aqua-deep);
+  font-weight: 900;
+}
 #result-metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;

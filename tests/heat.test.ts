@@ -3,7 +3,7 @@ import test from "node:test";
 import * as THREE from "three";
 import { cityConfig as c } from "../config/city.ts";
 import { cityLevels } from "../config/levels.ts";
-import { createCampaign } from "../src/game/campaign.ts";
+import { createCampaign, startCampaignAt } from "../src/game/campaign.ts";
 import {
   createCity,
   performCityAction,
@@ -12,7 +12,24 @@ import {
 } from "../src/game/city.ts";
 import { spongeWaterMorphWeights } from "../src/game/assets.ts";
 import { createCityFireView } from "../src/game/city-fire-view.ts";
+import { activeLevelBounds } from "../src/game/active-level-area.ts";
 import type { CityState, PlotKind } from "../src/interfaces.ts";
+
+function placeSaboteurAndTargetInsideActiveLevel(state: CityState): void {
+  const area = activeLevelBounds(state);
+  const x = (area.minX + area.maxX) / 2;
+  const z = (area.minZ + area.maxZ) / 2;
+  Object.assign(state.plots[0]!, { x, z, levelId: area.levelId ?? undefined });
+  Object.assign(state.saboteur, {
+    x,
+    z,
+    destinationX: x,
+    destinationZ: z,
+    lastValidX: x,
+    lastValidZ: z,
+    levelId: area.levelId,
+  });
+}
 
 const at = (s: CityState, id: number) => ({ ...s.plots[id], y: 0 });
 function advance(s: CityState, seconds: number) {
@@ -25,9 +42,8 @@ function temperatureAfterOneSecond(
   raining = false,
   level?: number,
 ): number {
-  const s = level === undefined ? createCity() : createCampaign();
+  const s = level === undefined ? createCity() : startCampaignAt(level);
   if (level !== undefined) {
-    s.campaign!.level = level;
     if (raining) s.elapsed = cityLevels[level].weather.dryDuration - 1;
   }
   s.plots.forEach((plot) => {
@@ -80,12 +96,13 @@ test("campaign warming pressure rises proportionally across every level", () => 
 
 test("concrete production heat also scales while every cooling source still works", () => {
   const productionPressure = cityLevels.map((_, level) => {
-    const idle = createCampaign();
-    const production = createCampaign();
-    idle.campaign!.level = production.campaign!.level = level;
+    const idle = startCampaignAt(level);
+    const production = startCampaignAt(level);
     idle.machineDisabled = 100;
     for (const state of [idle, production])
       state.plots.forEach((plot) => (plot.kind = "soil"));
+    for (const state of [idle, production])
+      placeSaboteurAndTargetInsideActiveLevel(state);
     production.saboteur.phase = "sealing";
     production.saboteur.targetId = 0;
     production.saboteur.sealTime = 100;
@@ -112,6 +129,8 @@ test("Dr. Beton sealing adds gradual heat pressure beyond the sealed surface", (
   const production = createCity();
   for (const state of [idle, production])
     state.plots.forEach((plot) => (plot.kind = "soil"));
+  for (const state of [idle, production])
+    placeSaboteurAndTargetInsideActiveLevel(state);
   idle.machineDisabled = 20;
   production.saboteur.phase = "sealing";
   production.saboteur.targetId = 0;
@@ -161,8 +180,7 @@ test("less-frequent rain still cycles through every campaign level", () => {
   for (const level of cityLevels) {
     assert.ok(level.weather.dryDuration > level.weather.rainDuration);
     assert.ok(level.weather.rainRate < 16);
-    const s = createCampaign();
-    s.campaign!.level = cityLevels.indexOf(level);
+    const s = startCampaignAt(cityLevels.indexOf(level));
     s.elapsed = level.weather.dryDuration;
     assert.equal(weather(s).raining, true);
   }

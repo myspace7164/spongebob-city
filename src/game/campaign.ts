@@ -21,6 +21,7 @@ import { placePowerups } from "./powerups.ts";
 import { grantFunding } from "./funding.ts";
 import { fundingConfig } from "../../config/funding.ts";
 import { endlessConfig } from "../../config/endless.ts";
+import { waterUsageReached } from "./water-goals.ts";
 
 export function endlessIntensity(s: CityState): number {
   return 1 + (s.campaign?.endlessRound ?? 0) * endlessConfig.intensityIncrease;
@@ -122,6 +123,7 @@ function startEndlessRound(
 function applyLayout(s: CityState, level: CityLevel): void {
   s.plots = level.layout.map((position, id) => ({
     id,
+    levelId: level.id,
     kind: "asphalt",
     surface: cityConfig.initialSurface,
     moisture: 0,
@@ -130,11 +132,19 @@ function applyLayout(s: CityState, level: CityLevel): void {
     // Each level's street decides which techniques fit its fresh plots.
     site: position.site,
     builds: position.builds,
+    concretedByBeton: false,
   }));
   placePowerups(s, level.origin);
   s.feedback = level.objective;
   const start = npcPosition(s, "beton");
   Object.assign(s.saboteur, start, {
+    levelId: level.id,
+    lastValidX: start.x,
+    lastValidZ: start.z,
+    targetId: null,
+    phase: "roaming",
+    step: 0,
+    sealTime: 0,
     destinationX: start.x,
     destinationZ: start.z,
   });
@@ -295,9 +305,12 @@ export function levelAchievements(s: CityState): LevelAchievement[] {
     label: goal.label,
     value: values[goal.metric],
     target: goal.target,
-    done: goal.maximum
-      ? values[goal.metric] <= goal.target
-      : values[goal.metric] >= goal.target,
+    done:
+      goal.metric === "reused"
+        ? waterUsageReached(values[goal.metric], goal.target)
+        : goal.maximum
+          ? values[goal.metric] <= goal.target
+          : values[goal.metric] >= goal.target,
   }));
 }
 /** Start a fresh independent neighbourhood while retaining completed level IDs. */

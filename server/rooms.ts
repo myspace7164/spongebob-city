@@ -66,7 +66,8 @@ interface Member {
   seen: number;
   lastAction: number;
   source: number | null;
-  playtimeBuffer: number;
+  survivalRunId: string | null;
+  survivalPaused: boolean;
 }
 interface Room {
   code: string;
@@ -195,7 +196,8 @@ export class Rooms {
         seen: Date.now(),
         lastAction: 0,
         source: null,
-        playtimeBuffer: 0,
+        survivalRunId: null,
+        survivalPaused: false,
       });
       this.membership.set(account.id, room.code);
     }
@@ -221,7 +223,7 @@ export class Rooms {
     const room = this.room(id);
     if (!room) return;
     const member = room.members.get(id);
-    if (member) this.flushPlaytime(id, member, true);
+    if (member) this.pauseSurvival(id, member);
     room.members.delete(id);
     this.membership.delete(id);
     if (room.hostId === id)
@@ -229,11 +231,25 @@ export class Rooms {
     if (!room.members.size) this.rooms.delete(room.code);
     else room.revision++;
   }
-  private flushPlaytime(id: string, member: Member, final = false): void {
-    const seconds = Math.floor(member.playtimeBuffer + (final ? 0.5 : 0));
-    if (seconds <= 0) return;
-    member.playtimeBuffer -= seconds;
-    this.store.recordPlaytime(id, seconds);
+  private pauseSurvival(id: string, member: Member): void {
+    if (!member.survivalRunId || member.survivalPaused) return;
+    this.store.pauseSurvivalRun(id, member.survivalRunId);
+    member.survivalPaused = true;
+  }
+  private resumeSurvival(id: string, member: Member): void {
+    if (!member.survivalRunId) {
+      member.survivalRunId = this.store.startSurvivalRun(id, "multiplayer");
+      member.survivalPaused = false;
+    } else if (member.survivalPaused) {
+      this.store.resumeSurvivalRun(id, member.survivalRunId);
+      member.survivalPaused = false;
+    }
+  }
+  private finishSurvival(id: string, member: Member): void {
+    if (!member.survivalRunId) return;
+    this.store.finishSurvivalRun(id, member.survivalRunId);
+    member.survivalRunId = null;
+    member.survivalPaused = false;
   }
   command(id: string, command: OnlineCommand): void {
     const room = this.room(id),
@@ -246,11 +262,14 @@ export class Rooms {
       m.public.selected = command.selected;
     }
     if (typeof command.ready === "boolean") {
+      const wasReady = m.public.ready;
       m.public.ready = command.ready;
       if (!command.ready) {
         m.input.movement = idle();
         m.source = null;
-        this.flushPlaytime(id, m, true);
+        this.pauseSurvival(id, m);
+      } else if (!wasReady && room.city.outcome === "playing") {
+        this.resumeSurvival(id, m);
       }
     }
     if (command.movement) {
@@ -377,6 +396,7 @@ export class Rooms {
     assignElevations(room.city, ground);
     room.checkpoint = structuredClone(room.city);
     for (const m of room.members.values()) {
+      this.pauseSurvival(m.public.id, m);
       m.public.ready = false;
       m.input.movement = idle();
       m.source = null;
@@ -408,12 +428,9 @@ export class Rooms {
         if (now - m.seen > 2000) {
           m.input.movement = idle();
           m.public.ready = false;
+          this.pauseSurvival(id, m);
         }
         if (!m.public.ready) continue;
-        if (room.city.outcome === "playing") {
-          m.playtimeBuffer += dt;
-          this.flushPlaytime(id, m);
-        }
         active = true;
         collisionWorld.setDynamic([
           ...gameplayColliders(room.city, ground, this.buildings.length === 0),
@@ -497,9 +514,9 @@ export class Rooms {
           for (const id of room.members.keys())
             this.store.reward(id, `${room.run}:win:${id}`, 0, 1);
       }
-      if (room.city.outcome !== "playing")
+      if (room.city.outcome === "lost")
         for (const [id, member] of room.members)
-          this.flushPlaytime(id, member, true);
+          this.finishSurvival(id, member);
       room.revision++;
     }
   }

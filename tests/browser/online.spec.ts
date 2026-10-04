@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-test("username cookie, duplicate rejection, two-browser co-op and persisted playtime ranking", async ({
+test("username cookie, duplicate rejection, two-browser co-op and persisted survival ranking", async ({
   browser,
 }) => {
   test.setTimeout(150000);
@@ -93,15 +93,32 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted play
         ).player.emote?.id;
       })
       .toBe("dab");
-    // Give the authoritative simulation at least one full second to record
-    // playtime; the leaderboard intentionally stores whole seconds.
+    // A scored run uses server timestamps; clients never submit a duration.
+    const run = await contextA.request.post("/api/runs/start", {
+      data: { mode: "practice" },
+    });
+    const { runId } = await run.json();
     await a.waitForTimeout(1200);
+    const finished = await contextA.request.post("/api/runs/finish", {
+      data: { runId, survivalTimeMs: 999999999 },
+    });
+    expect((await finished.json()).survivalTimeMs).toBeLessThan(5000);
+    const otherRun = await contextB.request.post("/api/runs/start", {
+      data: { mode: "solo" },
+    });
+    const { runId: otherRunId } = await otherRun.json();
+    await b.waitForTimeout(1500);
+    await contextB.request.post("/api/runs/finish", {
+      data: { runId: otherRunId },
+    });
     await a.keyboard.press("Escape");
     await a.locator("#online-toggle").click();
     await expect(a.locator("#leaderboard-rows")).toContainText(username);
-    await expect(a.locator("#leaderboard-rows")).toContainText(
-      /\d+(?:h \d+m|m \d+s|s)/,
+    await expect(a.locator("#leaderboard-rows")).toContainText(`${username}_B`);
+    await expect(a.locator("#leaderboard-rows tr").first()).toContainText(
+      `${username}_B`,
     );
+    await expect(a.locator("#leaderboard-rows")).toContainText(/\d+:\d\d/);
     await a.screenshot({ path: "/tmp/sponge-online-leaderboard.png" });
     await a.reload();
     await expect(a.locator("#online-toggle")).toContainText(username);

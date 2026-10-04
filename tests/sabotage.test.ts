@@ -13,6 +13,12 @@ import {
   startNextCampaignLevel,
 } from "../src/game/campaign.ts";
 import { updateSaboteur } from "../src/game/sabotage.ts";
+import { activeBetonTargets } from "../src/game/sabotage.ts";
+import { cityLevels } from "../config/levels.ts";
+import {
+  activeLevelBounds,
+  isInsideActiveLevel,
+} from "../src/game/active-level-area.ts";
 import { cityConfig as c } from "../config/city.ts";
 import { circleCollider, CollisionWorld } from "../src/game/collisions.ts";
 import type { CityState } from "../src/interfaces.ts";
@@ -89,6 +95,38 @@ test("Dr. Beton is blocked by solid footprints instead of phasing through them",
   assert.ok(
     s.saboteur.x < 2.2,
     "vehicle stops before the solid tree footprint",
+  );
+});
+
+test("Dr. Beton targets only permeable plots inside the active level", () => {
+  const s = createCampaign();
+  const area = activeLevelBounds(s);
+  const active = { ...s.plots[0]!, id: 0, kind: "soil" as const };
+  const nearerInactiveLevel = {
+    ...active,
+    id: 1,
+    levelId: cityLevels[1]!.id,
+  };
+  const outsideBoundary = {
+    ...active,
+    id: 2,
+    x: area.minX - 1,
+  };
+  s.plots = [active, nearerInactiveLevel, outsideBoundary];
+  assert.deepEqual(
+    activeBetonTargets(s).map((plot) => plot.id),
+    [0],
+  );
+
+  s.saboteur.x = area.minX - 2;
+  s.saboteur.z = (area.minZ + area.maxZ) / 2;
+  s.saboteur.levelId = area.levelId;
+  s.sabotageIn = 0;
+  for (let i = 0; i < 20; i++) updateSaboteur(s, 0.1);
+  assert.ok(isInsideActiveLevel(area, s.saboteur, 1.8));
+  assert.ok(
+    !s.saboteur.targetId || s.saboteur.targetId === active.id,
+    "only the active level's permeable plot may be targeted",
   );
 });
 
