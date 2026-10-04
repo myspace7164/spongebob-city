@@ -11,9 +11,13 @@ The multiplier affects warming only, so cooling keeps its full strength.
 is derived from 27°C to the 60°C game-over point so existing mission goals
 remain comparable.
 
-SpongeBob's existing Dry morph begins blending at 30°C with a subtle initial
-influence, then replaces WaterFull progressively until it reaches full Dry at
-45°C. Fires begin above 40°C, spawn on staggered temperature-based
+SpongeBob's Dry and WaterFull morphs also follow the shared stored-water
+amount: zero litres is fully Dry, half capacity is the normal midpoint, and
+full capacity is fully WaterFull. The body morphs and blue irises ease toward
+the latest water/temperature state instead of snapping; low water darkens the
+irises, and the Dry shape provides the dehydrated facial/body silhouette. Heat
+still begins adding Dry influence at 30°C and reaches full Dry at 45°C. Fires
+begin above 40°C, spawn on staggered temperature-based
 timers, and grow more quickly as the city warms. A fire is tied to a plot; the
 existing spray action consumes stored sponge water to lower its intensity.
 Temperatures over 60°C lose the current level once with an overheating reason.

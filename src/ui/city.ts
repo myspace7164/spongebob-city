@@ -8,6 +8,10 @@ import { cityMetrics, spongeCapacity, weather } from "../game/city.ts";
 import { levelAchievements } from "../game/campaign.ts";
 import { fundingConfig } from "../../config/funding.ts";
 import { activeModifier } from "../game/level-modifiers.ts";
+import {
+  waterUsageDisplayValue,
+  waterUsageReached,
+} from "../game/water-goals.ts";
 import type { CityPlot, CityState, CityTool } from "../interfaces.ts";
 
 const element = (id: string) => document.getElementById(id)!;
@@ -204,7 +208,7 @@ export class CityUI {
             goal.done,
             goal.metric === "stormCompleted"
               ? "Survive a full storm"
-              : `${goal.label}: ${number(goal.value)} / ${number(goal.target)}`,
+              : `${goal.label}: ${number(goal.metric === "reused" ? waterUsageDisplayValue(goal.value, goal.target) : goal.value)} / ${number(goal.target)}`,
           ])
       : [
           [
@@ -216,8 +220,8 @@ export class CityUI {
             `${m.healthyTrees}/${c.goals.trees} healthy, watered trees`,
           ],
           [
-            s.reused >= c.goals.reused,
-            `${number(s.reused)}/${number(c.goals.reused)} L usefully delivered`,
+            waterUsageReached(s.reused, c.goals.reused),
+            `${number(waterUsageDisplayValue(s.reused, c.goals.reused))}/${number(c.goals.reused)} L usefully delivered`,
           ],
           [
             s.heat <= c.goals.heat && s.flood <= c.goals.flood,
@@ -295,7 +299,7 @@ export class CityUI {
           : (s.lossReason ??
             "Flood danger stayed critical for too long. Try more rain gardens and storage before the storm.");
       element("result-metrics").innerHTML =
-        `<div><strong>${m.temperature.toFixed(1)} °C</strong><span>city temperature</span></div><div><strong>${number(m.retained)} L</strong><span>rainwater retained now</span></div><div><strong>${m.trees}</strong><span>new trees (${m.healthyTrees} healthy)</span></div><div><strong>${m.unsealedArea} m²</strong><span>unsealed ground</span></div><div><strong>${number(s.reused)} L</strong><span>usefully delivered</span></div><div><strong>${number(s.infiltrated)} L</strong><span>infiltrated to deeper soil</span></div>`;
+        `<div><strong>${m.temperature.toFixed(1)} °C</strong><span>city temperature</span></div><div><strong>${number(m.retained)} L</strong><span>rainwater retained now</span></div><div><strong>${m.trees}</strong><span>new trees (${m.healthyTrees} healthy)</span></div><div><strong>${m.unsealedArea} m²</strong><span>unsealed ground</span></div><div><strong>${number(waterUsageDisplayValue(s.reused))} L</strong><span>usefully delivered</span></div><div><strong>${number(s.infiltrated)} L</strong><span>infiltrated to deeper soil</span></div>`;
     }
   }
 }

@@ -50,9 +50,10 @@ import {
 } from "./game/powerups.ts";
 import { createPowerupView } from "./game/powerup-view.ts";
 import { PowerupUI } from "./ui/powerups.ts";
-import { OnlineConnection } from "./game/network.ts";
+import { OnlineConnection, onlineRequest } from "./game/network.ts";
 import { createRemotePlayers } from "./game/remote-players.ts";
 import { OnlineUI } from "./ui/online.ts";
+import { SurvivalRunTracker } from "./game/survival-run.ts";
 import type {
   RoomSnapshot,
   CityAction,
@@ -117,7 +118,12 @@ function startGame(): void {
     soundToggle.setAttribute("aria-pressed", String(muted));
   });
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) audio.update(false, false);
+    if (document.hidden) {
+      audio.update(false, false);
+      if (!network.room) survivalRun.pause();
+    } else if (input.active && !network.room && city.outcome === "playing") {
+      survivalRun.start(city.campaign?.endlessRound ? "practice" : "solo");
+    }
   });
   let city = createCampaign();
   world.equipHat(city.campaign?.equippedHat ?? null);
@@ -260,6 +266,20 @@ function startGame(): void {
     },
     (entries) => cityView.setLeaderboard(entries),
   );
+  let lossSubmissionRequested = false;
+  const survivalRun = new SurvivalRunTracker(
+    onlineRequest,
+    (result) =>
+      onlineUI.showSurvivalResult(
+        result.survivalTimeMs,
+        result.entries,
+        result.improved,
+      ),
+    (error) => {
+      document.getElementById("survival-record-status")!.textContent =
+        `Could not save this run: ${error}`;
+    },
+  );
   function receiveRoom(room: RoomSnapshot | null): void {
     onlineUI?.renderRoom(room);
     if (!room) {
@@ -269,6 +289,7 @@ function startGame(): void {
     const changedLevel =
       city.campaign!.level !== room.city.campaign!.level ||
       city.campaign!.endlessRound !== room.city.campaign!.endlessRound;
+    const previousOutcome = city.outcome;
     const freshRoom =
       receivedCode !== room.code ||
       room.city.elapsed + 1 < city.elapsed ||
@@ -278,6 +299,11 @@ function startGame(): void {
     const previousHat = city.campaign?.equippedHat ?? null;
     const previousOwnedHats = [...(city.campaign?.ownedHats ?? [])];
     city = room.city;
+    if (previousOutcome === "playing" && city.outcome === "lost")
+      void onlineUI.showLatestSurvivalResult().catch((error: unknown) => {
+        document.getElementById("survival-record-status")!.textContent =
+          error instanceof Error ? error.message : "Leaderboard unavailable.";
+      });
     const nextHat = city.campaign?.equippedHat ?? null;
     if (previousHat !== nextHat) {
       world.equipHat(nextHat);
@@ -396,6 +422,8 @@ function startGame(): void {
       void network.action({ action: "reset" });
       return;
     }
+    survivalRun.reset();
+    lossSubmissionRequested = false;
     audio.update(false, false);
     const ownedHats = [...(city.campaign?.ownedHats ?? [])];
     const equippedHat = city.campaign?.equippedHat ?? null;
@@ -467,6 +495,8 @@ function startGame(): void {
       if (network.room) void network.action({ ready: true });
       storyPending = false;
       campaignUI.hide();
+      if (!network.room)
+        survivalRun.start(city.campaign?.endlessRound ? "practice" : "solo");
     } catch {
       message.textContent =
         "Mouse capture was blocked. Open the game in its own browser tab and click I’M READY again.";
@@ -596,6 +626,7 @@ function startGame(): void {
     if (!input.active) {
       audio.update(false, false);
       if (network.room) void network.action({ ready: false });
+      else survivalRun.pause();
     }
     if (!input.active && city.campaign) city.campaign.connectFrom = null;
     menu.hidden =
@@ -873,6 +904,10 @@ function startGame(): void {
             collisions,
             groundAt,
           );
+          if (city.outcome === "lost" && !lossSubmissionRequested) {
+            lossSubmissionRequested = true;
+            survivalRun.finish();
+          }
           if (
             city.outcome === "lost" &&
             (hatBeforeUpdate !== null || ownedHatsBeforeUpdate.length > 0)
@@ -930,6 +965,7 @@ function startGame(): void {
           temperature: city.temperature,
           equippedHat: city.campaign?.equippedHat ?? null,
           visualScale: effectivePlayerVisualScale(city, powerVisualScale),
+          deltaSeconds: dt,
         },
       );
       const nextRemotePlayerCount = String(remoteCount);
@@ -961,6 +997,7 @@ function startGame(): void {
         city.sponge,
         spongeCapacity(city),
         city.temperature,
+        dt,
       );
     world.update(
       player,

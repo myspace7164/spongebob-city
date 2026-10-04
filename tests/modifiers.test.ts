@@ -76,11 +76,13 @@ test("one selected modifier starts only the next level and expires at its comple
   assert.equal(startNextCampaignLevel(state), true);
   assert.equal(state.campaign!.activeModifier, "miniSponge");
   assert.equal(state.campaign!.wheelPending, false);
-  assert.equal(modifierMultiplier(state, "playerScale"), 0.8);
-  assert.equal(modifierMultiplier(state, "waterCapacity"), 0.8);
-  assert.equal(spongeCapacity(state), c.capacity * 0.8);
-  assert.equal(effectivePlayerVisualScale(state), 0.8);
-  assert.equal(effectivePlayerVisualScale(state, 2.5), 0.8);
+  assert.equal(modifierMultiplier(state, "playerScale"), 0.2);
+  assert.equal(modifierMultiplier(state, "waterCapacity"), 1);
+  assert.equal(spongeCapacity(state), c.capacity);
+  assert.equal(effectivePlayerVisualScale(state), 0.2);
+  assert.equal(effectivePlayerVisualScale(state, 2.5), 0.2);
+  state.upgraded = true;
+  assert.equal(spongeCapacity(state), c.upgradedCapacity);
   satisfyCurrentLevel(state);
   assert.equal(advanceCampaign(state), true);
   assert.equal(state.campaign!.activeModifier, null);

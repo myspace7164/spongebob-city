@@ -15,7 +15,6 @@ interface Avatar {
   equipment: RemoteEquipment;
   label: THREE.Sprite;
   hat: THREE.Group | null;
-  lastWaterState: string;
 }
 
 /** Clone mesh buffers for limb-pivot setup, while sharing the source materials. */
@@ -122,6 +121,7 @@ export function createRemotePlayers(scene: THREE.Scene) {
         temperature: number;
         equippedHat: HatId | null;
         visualScale: number;
+        deltaSeconds?: number;
       },
     ) {
       const wanted = new Set(
@@ -152,7 +152,6 @@ export function createRemotePlayers(scene: THREE.Scene) {
             equipment,
             label,
             hat: null,
-            lastWaterState: "",
           };
           avatars.set(player.id, avatar);
           root.position.set(
@@ -181,15 +180,14 @@ export function createRemotePlayers(scene: THREE.Scene) {
         avatar.equipment.select(player.selected);
 
         if (appearance) {
-          const waterState = `${appearance.sponge}:${appearance.capacity}:${appearance.temperature}`;
-          if (waterState !== avatar.lastWaterState && imported) {
+          if (imported) {
             updateSpongeWaterState(
               avatar.model,
               appearance.sponge,
               appearance.capacity,
               appearance.temperature,
+              appearance.deltaSeconds,
             );
-            avatar.lastWaterState = waterState;
           }
           if ((avatar.hat?.userData.hatId ?? null) !== appearance.equippedHat) {
             if (avatar.hat) {

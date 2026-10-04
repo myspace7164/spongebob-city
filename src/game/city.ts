@@ -17,11 +17,13 @@ import {
   endlessIntensity,
 } from "./campaign.ts";
 import { cityConfig as c, cityTools } from "../../config/city.ts";
+import { betonConfig } from "../../config/beton.ts";
 import { siteTechniques } from "../../config/sites.ts";
 import { fundingConfig as funding } from "../../config/funding.ts";
 import { cityLevels } from "../../config/levels.ts";
 import { grantFunding } from "./funding.ts";
 import { updateSaboteur } from "./sabotage.ts";
+import { waterUsageDisplayValue, waterUsageReached } from "./water-goals.ts";
 import type { CollisionWorld } from "./collisions.ts";
 import { modifierMultiplier } from "./level-modifiers.ts";
 import type {
@@ -89,6 +91,9 @@ export function createCity(): CityState {
       phase: "roaming",
       targetId: null,
       sealTime: 0,
+      levelId: null,
+      lastValidX: c.machine.x,
+      lastValidZ: c.machine.z,
     },
     powerTime: 0,
     powerCooldown: 0,
@@ -223,7 +228,7 @@ function act(
 ): string {
   if (action === "power" || action === "maximum") {
     const maximum = action === "maximum";
-    if (maximum && s.reused < c.maximumUnlock)
+    if (maximum && !waterUsageReached(s.reused, c.maximumUnlock))
       return `Reuse ${c.maximumUnlock} L to unlock MAXIMUM SPONGE!`;
     const cooldown = maximum ? s.maximumCooldown : s.powerCooldown;
     if (cooldown > 0) return `Ability recharging: ${Math.ceil(cooldown)}s.`;
@@ -259,6 +264,25 @@ function act(
     grantFunding(s, "machine", funding.machine);
     return "KARATE! Asphaltinator disabled for 45 seconds. Protect the green plots!";
   }
+  if (
+    action === "spray" &&
+    s.saboteur.phase === "sealing" &&
+    distance(s.saboteur, position) <= betonConfig.playerWaterInterruptReach
+  ) {
+    if (s.sponge <= 0)
+      return "Your sponge is empty. Absorb water before stopping Dr. Beton!";
+    const used = Math.min(s.sponge, amount);
+    s.sponge -= used;
+    s.evaporated += used;
+    s.machineDisabled = Math.max(
+      s.machineDisabled,
+      betonConfig.waterInterruptSeconds,
+    );
+    s.saboteur.phase = "disabled";
+    s.saboteur.targetId = null;
+    s.saboteur.sealTime = 0;
+    return "Water blast! Dr. Beton's concrete pour is interrupted.";
+  }
   if (action === "patrick") {
     if (s.patrickCooldown > 0 && !isPowerupActive(s, "patrick"))
       return `Patrick is resting: ${Math.ceil(s.patrickCooldown)}s.`;
@@ -269,6 +293,7 @@ function act(
       return "Patrick: Bring me close to those boring asphalt stones!";
     plots.forEach((p) => {
       p.kind = "soil";
+      p.concretedByBeton = false;
       grantFunding(s, `build:${p.id}:soil`, funding.construction.soil);
     });
     s.patrickCooldown = c.patrickCooldown;
@@ -302,7 +327,7 @@ function act(
           : `Fire extinguished · ${Math.round(litres)} L water used!`
         : "Your sponge is empty. Absorb water before fighting the fire.";
     return litres > 0
-      ? `${bubbles ? "Bubble irrigation" : "Water delivered"} · ${Math.round(s.reused)} L reused. Every drop counts!`
+      ? `${bubbles ? "Bubble irrigation" : "Water delivered"} · ${waterUsageDisplayValue(s.reused)} L reused. Every drop counts!`
       : s.sponge <= 0
         ? "Your sponge is empty. Use 1 to collect surface water."
         : p.surface > 0
@@ -332,6 +357,7 @@ function act(
     return "Mr. Krabs: Not enough coins. Use Patrick to unseal for free.";
   s.budget -= tool.cost;
   p.kind = action === "karate" ? "soil" : action;
+  if (action === "karate") p.concretedByBeton = false;
   grantFunding(s, `build:${p.id}:${p.kind}`, funding.construction[p.kind]);
   return action === "tree"
     ? "Squidward: Finally, a tree. Now give it water so it can make shade!"
@@ -518,7 +544,7 @@ export function updateCity(
     s.stormSeen &&
     m.permeable >= goals.permeable &&
     m.healthyTrees >= goals.trees &&
-    s.reused >= goals.reused &&
+    waterUsageReached(s.reused, goals.reused) &&
     s.heat <= goals.heat &&
     s.flood <= goals.flood
   )

@@ -55,6 +55,10 @@ export function createOnlineServer(
           json(res, 200, { entries: store.leaderboard() });
           return true;
         }
+        if (path === "/api/runs/latest" && account) {
+          json(res, 200, store.latestSurvivalRun(account.id));
+          return true;
+        }
         if (!account) {
           json(res, 401, { error: "Create a username to play online." });
           return true;
@@ -137,7 +141,28 @@ export function createOnlineServer(
         json(res, 401, { error: "Create a username to play online." });
         return true;
       }
-      if (path === "/api/rooms")
+      if (path === "/api/runs/start") {
+        const mode = body.mode;
+        if (mode !== "solo" && mode !== "practice")
+          throw new Error("Choose a valid survival run mode.");
+        json(res, 201, {
+          runId: store.startSurvivalRun(account.id, mode),
+        });
+      } else if (path === "/api/runs/pause") {
+        if (typeof body.runId !== "string")
+          throw new Error("Survival run ID required.");
+        store.pauseSurvivalRun(account.id, body.runId);
+        json(res, 200, { ok: true });
+      } else if (path === "/api/runs/resume") {
+        if (typeof body.runId !== "string")
+          throw new Error("Survival run ID required.");
+        store.resumeSurvivalRun(account.id, body.runId);
+        json(res, 200, { ok: true });
+      } else if (path === "/api/runs/finish") {
+        if (typeof body.runId !== "string")
+          throw new Error("Survival run ID required.");
+        json(res, 200, store.finishSurvivalRun(account.id, body.runId));
+      } else if (path === "/api/rooms")
         json(res, 201, { room: rooms.create(account) });
       else if (path === "/api/join") {
         if (

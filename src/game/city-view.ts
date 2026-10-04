@@ -12,7 +12,7 @@ import type {
   LeaderboardEntry,
   PlayerState,
 } from "../interfaces.ts";
-import { formatPlaytime } from "./time-format.ts";
+import { formatSurvivalTime } from "./time-format.ts";
 import { cityMetrics, spongeCapacity } from "./city.ts";
 import { activeModifier } from "./level-modifiers.ts";
 import { currentLevel, landmarkPose, validDrain } from "./campaign.ts";
@@ -646,10 +646,10 @@ function createLeaderboardSign(parent: THREE.Group) {
     context.fillStyle = "#ffe542";
     context.font = "900 58px Trebuchet MS, Verdana, sans-serif";
     context.textAlign = "center";
-    context.fillText("TOP 5 CITY HEROES", 512, 76);
+    context.fillText("TOP 5 SURVIVORS", 512, 76);
     context.fillStyle = "#eaffff";
     context.font = "700 25px Trebuchet MS, Verdana, sans-serif";
-    context.fillText("LONGEST ACTIVE PLAYTIME", 512, 112);
+    context.fillText("LONGEST SURVIVAL", 512, 112);
 
     if (entries === null) {
       context.fillStyle = "#183e55";
@@ -678,7 +678,7 @@ function createLeaderboardSign(parent: THREE.Group) {
         context.textAlign = "right";
         context.fillStyle = "#875314";
         context.font = "900 29px Trebuchet MS, Verdana, sans-serif";
-        context.fillText(formatPlaytime(entry.playSeconds), 970, y + 66);
+        context.fillText(formatSurvivalTime(entry.survivalTimeMs), 970, y + 66);
       });
     }
     texture.needsUpdate = true;

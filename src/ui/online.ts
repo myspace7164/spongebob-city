@@ -1,6 +1,6 @@
 import { onlineRequest, OnlineConnection } from "../game/network.ts";
 import type { Account, RoomSnapshot, LeaderboardEntry } from "../interfaces.ts";
-import { formatPlaytime } from "../game/time-format.ts";
+import { formatSurvivalTime } from "../game/time-format.ts";
 const el = (id: string) => document.getElementById(id)!;
 export class OnlineUI {
   available = false;
@@ -161,29 +161,73 @@ export class OnlineUI {
       const { entries } = await onlineRequest<{ entries: LeaderboardEntry[] }>(
         "leaderboard",
       );
-      const topFive = entries.slice(0, 5);
-      el("leaderboard-rows").replaceChildren(
-        ...topFive.map((entry, i) => {
-          const row = document.createElement("tr");
-          for (const value of [
-            `${i + 1}`,
-            entry.username,
-            formatPlaytime(entry.playSeconds),
-          ]) {
-            const cell = document.createElement("td");
-            cell.textContent = value;
-            row.append(cell);
-          }
-          return row;
-        }),
-      );
-      el("leaderboard-empty").hidden = topFive.length > 0;
-      this.leaderboardUpdated(topFive);
+      this.renderLeaderboard(entries);
     } catch {
       this.leaderboardUpdated(null);
       el("leaderboard-empty").textContent =
         "Leaderboard unavailable. Reconnect to try again.";
     }
+  }
+  async refreshLeaderboard(): Promise<LeaderboardEntry[]> {
+    const { entries } = await onlineRequest<{ entries: LeaderboardEntry[] }>(
+      "leaderboard",
+    );
+    this.renderLeaderboard(entries);
+    return entries;
+  }
+  async showLatestSurvivalResult(): Promise<void> {
+    const [latest, entries] = await Promise.all([
+      onlineRequest<{
+        survivalTimeMs: number;
+        mode: LeaderboardEntry["mode"];
+      } | null>("runs/latest"),
+      this.refreshLeaderboard(),
+    ]);
+    if (latest) this.showSurvivalResult(latest.survivalTimeMs, entries, false);
+  }
+  showSurvivalResult(
+    survivalTimeMs: number,
+    entries: readonly LeaderboardEntry[],
+    improved: boolean,
+  ): void {
+    // The server response already contains the global top five. Reuse it for
+    // the menu and in-world sign instead of issuing another leaderboard query.
+    this.renderLeaderboard(entries);
+    const report = el("survival-report");
+    report.hidden = false;
+    el("survival-time").textContent = formatSurvivalTime(survivalTimeMs);
+    el("survival-record-status").textContent = improved
+      ? "NEW PERSONAL BEST!"
+      : "RUN RECORDED";
+    el("survival-top-five").replaceChildren(
+      ...entries.slice(0, 5).map((entry, index) => {
+        const row = document.createElement("li");
+        row.textContent = `${index + 1}. ${entry.username} · ${formatSurvivalTime(entry.survivalTimeMs)}`;
+        if (entry.playerId === this.connection.account?.id)
+          row.classList.add("current-player");
+        return row;
+      }),
+    );
+  }
+  private renderLeaderboard(entries: readonly LeaderboardEntry[]): void {
+    const topFive = entries.slice(0, 5);
+    el("leaderboard-rows").replaceChildren(
+      ...topFive.map((entry, i) => {
+        const row = document.createElement("tr");
+        for (const value of [
+          `${i + 1}`,
+          entry.username,
+          formatSurvivalTime(entry.survivalTimeMs),
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.append(cell);
+        }
+        return row;
+      }),
+    );
+    el("leaderboard-empty").hidden = topFive.length > 0;
+    this.leaderboardUpdated(topFive);
   }
   private async run(task: () => Promise<void>): Promise<void> {
     try {
