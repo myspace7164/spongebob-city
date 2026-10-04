@@ -275,14 +275,26 @@ test("level builder stays local and refuses to open in an online room", async ({
   await expect(page.locator("#level-builder")).toBeHidden();
 });
 
-test("drafts stay local until Apply and saved versions can be restored", async ({
+test("drafts stay local until saved to the library, then the lineup picks it", async ({
   page,
 }) => {
   await page.route("**/models/*.glb", (route) =>
     route.fulfill({ status: 404, body: "Use procedural fallback" }),
   );
-  let applied: { levelId: string; level: { location: string } } | undefined;
-  let restored: { levelId: string; versionId: string } | undefined;
+  type Saved = {
+    id: string;
+    author: string;
+    notes: string;
+    builtFor: string;
+    location: string;
+    savedAt: string;
+  };
+  let saved: Saved | undefined;
+  let restored: { id: string; versionId: string } | undefined;
+  let lineup = {
+    stages: {} as Record<string, string>,
+    endlessOff: [] as string[],
+  };
   await page.route("**/__level-builder/history**", (route) =>
     route.fulfill({
       json: {
@@ -291,20 +303,28 @@ test("drafts stay local until Apply and saved versions can be restored", async (
             id: "prior-version",
             savedAt: "2026-10-04T10:00:00.000Z",
             location: "Previous level",
+            author: "buddy",
           },
         ],
       },
     }),
   );
-  await page.route("**/__level-builder/apply", async (route) => {
-    const request = route.request().postDataJSON();
-    applied = request;
-    await route.fulfill({ json: { saved: request.levelId } });
+  await page.route("**/__level-builder/library", async (route) => {
+    if (route.request().method() === "GET")
+      return route.fulfill({ json: { levels: saved ? [saved] : [], lineup } });
+    saved = {
+      ...route.request().postDataJSON().level,
+      savedAt: "2026-10-04T11:00:00.000Z",
+    };
+    await route.fulfill({ json: { level: saved } });
   });
   await page.route("**/__level-builder/restore", async (route) => {
-    const request = route.request().postDataJSON();
-    restored = request;
-    await route.fulfill({ json: { saved: request.levelId } });
+    restored = route.request().postDataJSON();
+    await route.fulfill({ json: { level: saved } });
+  });
+  await page.route("**/__level-builder/lineup", async (route) => {
+    lineup = route.request().postDataJSON().lineup;
+    await route.fulfill({ json: { lineup } });
   });
   page.on("dialog", (dialog) => void dialog.accept());
 
@@ -312,6 +332,9 @@ test("drafts stay local until Apply and saved versions can be restored", async (
   await page.locator(".level-builder-open").click();
   const panel = page.locator("#level-builder");
   await expect(panel).toBeVisible();
+  await expect(panel.locator("#lb-editing")).toContainText(
+    "New level for Stage 1",
+  );
   const name = panel.locator("#lb-name");
   await name.fill("Saved draft");
   await panel.locator("#lb-save-draft").click();
@@ -319,14 +342,40 @@ test("drafts stay local until Apply and saved versions can be restored", async (
   await name.fill("Unsaved edit");
   await panel.locator("#lb-load-draft").click();
   await expect(name).toHaveValue("Saved draft");
-  expect(applied).toBeUndefined();
+  expect(saved).toBeUndefined();
 
-  await name.fill("Applied draft");
-  await panel.locator("#lb-apply").click();
-  await expect.poll(() => applied?.level.location).toBe("Applied draft");
+  // Saving needs a GitHub username; author and notes travel with the level.
+  await name.fill("Library level");
+  await panel.locator("#lb-author").fill("");
+  await panel.locator("#lb-save-library").click();
+  await expect(panel.locator("#lb-status")).toContainText("GitHub username");
+  expect(saved).toBeUndefined();
+  await panel.locator("#lb-author").fill("Giginio");
+  await panel.locator("#lb-notes").fill("Two swales by the tram stop.");
+  await panel.locator("#lb-save-library").click();
+  await expect.poll(() => saved?.location).toBe("Library level");
+  expect(saved!.author).toBe("Giginio");
+  expect(saved!.notes).toBe("Two swales by the tram stop.");
+  expect(saved!.builtFor).toBeTruthy();
+  await expect(panel.locator("#lb-editing")).toContainText("@Giginio");
   await expect(panel.locator("#lb-history")).toHaveValue("prior-version");
   await panel.locator("#lb-restore").click();
   await expect.poll(() => restored?.versionId).toBe("prior-version");
+
+  // The lineup assigns it to stage 1 and switches a built-in street off for endless.
+  await page.keyboard.press("l");
+  const screen = page.locator("#lb-lineup");
+  await expect(screen).toBeVisible();
+  await screen.locator("select[data-stage]").first().selectOption(saved!.id);
+  await expect.poll(() => lineup.stages[saved!.builtFor]).toBe(saved!.id);
+  const before = await screen.locator("#lb-endless-count").textContent();
+  await screen.locator("input[data-endless^='basel:']").first().uncheck();
+  await expect.poll(() => lineup.endlessOff.length).toBe(1);
+  await expect(screen.locator("#lb-endless-count")).not.toHaveText(before!);
+  await expect(screen.locator("#lb-level-list")).toContainText("Two swales");
+  await page.screenshot({ path: test.info().outputPath("lineup.png") });
+  await screen.locator("#lb-lineup-close").click();
+  await expect(screen).toBeHidden();
 });
 
 test("Test play does not write a saved level", async ({ page }) => {

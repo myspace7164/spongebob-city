@@ -1,7 +1,8 @@
 import {
-  baselLocations,
-  levelLocationPools,
-} from "../../config/level-locations.ts";
+  levelAtLocation,
+  pickEndlessEntry,
+  stageLocation,
+} from "./level-lineup.ts";
 import {
   campaignConfig as campaignTuning,
   cityLevels,
@@ -51,34 +52,22 @@ export function startEndless(
   return true;
 }
 
-/** Resolve the shared randomized map location without changing level goals or tool unlocks. */
+/** Resolve the stage's chosen place (lineup level or Basel street) without changing its goals or tool unlocks. */
 export function campaignLevel(
   s: CityState,
   index: number,
 ): CityLevel | undefined {
   const level = cityLevels[index];
   if (!level) return undefined;
-  // A builder draft or applied level owns its geography, including during Test play.
+  // A builder draft owns its geography, including during Test play.
   if (level.mapSite && level.mapSite === level.site) return level;
-  const candidate = baselLocations.find(
-    (site) => site.id === s.campaign?.locations?.[index],
-  );
-  return candidate
-    ? { ...level, location: candidate.name, mapSite: candidate.site }
-    : level;
+  return levelAtLocation(level, s.campaign?.locations?.[index]) ?? level;
 }
+/** One place per stage: the lineup's library level, else a random built-in street. */
 export function selectCampaignLocations(
   random: () => number = Math.random,
 ): string[] {
-  return levelLocationPools.map(
-    (pool) =>
-      pool[
-        Math.min(
-          pool.length - 1,
-          Math.max(0, Math.floor(random() * pool.length)),
-        )
-      ].id,
-  );
+  return cityLevels.map((_, index) => stageLocation(index, random));
 }
 /** Campaign remains optional so foundation/single-mission rules can be reused. */
 export function createCampaign(random: () => number = Math.random): CityState {
@@ -104,14 +93,15 @@ function startEndlessRound(
   random: () => number,
 ): void {
   const progress = s.campaign!;
+  // Endless plays any switched-on place under the rules of the stage it belongs to.
+  const entry = pickEndlessEntry(random);
+  const route = selectCampaignLocations(random);
+  route[entry.stageIndex] = entry.location;
   const next = {
     ...progress,
     endlessRound: round,
-    level: Math.min(
-      cityLevels.length - 1,
-      Math.max(0, Math.floor(random() * cityLevels.length)),
-    ),
-    locations: selectCampaignLocations(random),
+    level: entry.stageIndex,
+    locations: route,
     completed: [...progress.completed],
     stormCompleted: false,
     connectFrom: null,
@@ -178,10 +168,15 @@ export function landmarkPose(level: CityLevel | undefined, id: LandmarkId) {
   };
 }
 /** A fresh campaign that starts directly at a level (level builder "Test play"). */
-export function startCampaignAt(level: number): CityState {
+/** Start at a stage; given locations (e.g. a builder preview) replace the random route first. */
+export function startCampaignAt(
+  level: number,
+  locations?: string[],
+): CityState {
   const s = createCampaign();
   s.campaign!.level = level;
-  applyLayout(s, cityLevels[level]);
+  if (locations) s.campaign!.locations = [...locations];
+  applyLayout(s, currentLevel(s)!);
   return s;
 }
 /** Place local controls/NPCs at the active fictional neighbourhood. */

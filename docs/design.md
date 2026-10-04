@@ -6,7 +6,7 @@ A desktop 3D learning game about turning a sealed, hot square into a sponge city
 
 Short English briefings reveal at 300 words/minute with a bobbing SpongeBob and original wah-wah audio. Start, mute, hidden tabs and completed speech silence it. Reduced motion disables bobbing. Definitions in config/levels.ts hold story, weather, achievements and real map anchors; mission plots remain illustrative.
 
-Eight real map candidates form four increasing area-priority tiers. A new campaign picks one candidate per tier and stores the shared route for retries and multiplayer. Imported scenery and terrain transform together; whole building footprints intersecting the illustrative mission clearing are hidden, with matching shared collision bounds. See docs/level-geography.md for evidence and limits.
+Eight real map candidates form four increasing area-priority tiers. A new campaign picks one candidate per tier, or the library level the team's lineup assigns to that stage, and stores the shared route for retries and multiplayer. Imported scenery and terrain transform together; whole building footprints intersecting the illustrative mission clearing are hidden, with matching shared collision bounds. See docs/level-geography.md for evidence and limits.
 
 Level 1 teaches unsealing, water reuse and rain gardens; level 2 adds roots, level 3 roofs and shade, level 4 tanks and ponds. Every construction tool requires unsealed soil, including after sabotage. All current achievements must be satisfied together before advancement.
 
@@ -104,4 +104,4 @@ A procedural cartoon passerby uses the supplied visual reference for outfit prop
 
 ## Credits and endless mode
 
-After the normal campaign victory, skippable credits introduce four placeholder authors and thank the host. Credits lead to endless play: each completed round selects a random existing level with fresh plots and all tools unlocked. Rain and heat use the final campaign baseline, increasing by 20% each round. Retries preserve the round and location; co-op transitions remain authoritative and the leader starts endless mode.
+After the normal campaign victory, skippable credits introduce four placeholder authors and thank the host. Credits lead to endless play: each completed round selects a random switched-on place from the lineup (built-in streets play their tier's stage, library levels the stage they were built for) with fresh plots and all tools unlocked. Rain and heat use the final campaign baseline, increasing by 20% each round. Retries preserve the round and location; co-op transitions remain authoritative and the leader starts endless mode.

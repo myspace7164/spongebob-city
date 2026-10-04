@@ -5,7 +5,6 @@ import type {
   LevelSite,
   SiteType,
 } from "../src/interfaces.ts";
-import { builtLevels } from "./built-levels/index.ts";
 import { cityConfig } from "./city.ts";
 
 /** User-supplied story; all layouts and thresholds are illustrative; real map anchors use climate-risk area evidence. */
@@ -214,7 +213,10 @@ const storyLevels: readonly CityLevel[] = [
 ];
 
 /** A story level placed where a builder level says, under its new name. */
-function withBuilt(level: CityLevel, built: BuiltLevel | undefined): CityLevel {
+export function withBuilt(
+  level: CityLevel,
+  built: BuiltLevel | undefined,
+): CityLevel {
   return built
     ? {
         ...level,
@@ -227,10 +229,8 @@ function withBuilt(level: CityLevel, built: BuiltLevel | undefined): CityLevel {
     : level;
 }
 
-/** Levels saved from the dev-only level builder replace that level's place and spots. */
-export const cityLevels: readonly CityLevel[] = storyLevels.map((level) =>
-  withBuilt(level, builtLevels[level.id]),
-);
+/** The four story stages; which place each plays comes from the level lineup (src/game/level-lineup.ts). */
+export const cityLevels: readonly CityLevel[] = [...storyLevels];
 
 /** Level builder "Test play": use a draft for one level in memory, without saving it. */
 export function applyBuiltLevel(id: string, built: BuiltLevel): number {

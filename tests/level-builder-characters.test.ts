@@ -179,8 +179,8 @@ test("a level's own character positions move Sandy's workshop and Dr. Beton's st
 });
 
 test("without saved levels the game is unchanged: no spawn, facing or character overrides", async () => {
-  const { builtLevels } = await import("../config/built-levels/index.ts");
-  if (Object.keys(builtLevels).length) return; // a saved level changes its own level only
+  const { levelLineup } = await import("../config/built-levels/index.ts");
+  if (Object.keys(levelLineup.stages).length) return; // a lineup level brings its own places
   for (const level of cityLevels) {
     assert.equal(level.site?.start, undefined);
     assert.equal(level.site?.startYaw, undefined);

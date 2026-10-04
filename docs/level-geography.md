@@ -9,7 +9,7 @@ The campaign uses real map locations with illustrative mission plots. Scenery, t
 | 3 | Aeschenplatz / Johanniterstrasse | 0.4050 / 0.5395 |
 | 4 | Riehenring / St. Johanns-Ring | 0.5572 / 1.0000 |
 
-A fresh campaign randomly chooses one of two candidates in each tier, giving sixteen possible routes. Every route has four different locations with increasing composite urgency. The chosen route lives in campaign state: retries keep it, next-level resets preserve it, and co-op clients receive the room's authoritative selection. Story, scenery, terrain and collision clearings follow the chosen location; tasks and tool unlocks follow the level number. Restarting the campaign chooses a new route.
+A fresh campaign randomly chooses one of two candidates in each tier, giving sixteen possible routes; a stage the level lineup (`config/built-levels/lineup.json`) assigns to a library level plays that level instead. Every route has four different locations with increasing composite urgency. The chosen route lives in campaign state: retries keep it, next-level resets preserve it, and co-op clients receive the room's authoritative selection. Story, scenery, terrain and collision clearings follow the chosen location; tasks and tool unlocks follow the level number. Restarting the campaign chooses a new route.
 
 Eight candidate areas within the existing map coverage were compared and paired in priority order. These are relative sample rankings, not citywide risk categories.
 
