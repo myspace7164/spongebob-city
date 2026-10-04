@@ -1,9 +1,11 @@
+import { onlineConfig } from "../../config/online.ts";
 import { onlineRequest, OnlineConnection } from "../game/network.ts";
 import type { Account, RoomSnapshot, LeaderboardEntry } from "../interfaces.ts";
 import { formatSurvivalTime } from "../game/time-format.ts";
 const el = (id: string) => document.getElementById(id)!;
 export class OnlineUI {
   available = false;
+  private rosterKey = "";
   constructor(
     private connection: OnlineConnection,
     private joined: (room: RoomSnapshot) => void,
@@ -142,12 +144,18 @@ export class OnlineUI {
     el("room-info").hidden = !room;
     el("room-actions").hidden = !!room;
     el("room-label").textContent = room
-      ? `ROOM ${room.code} · ${room.players.length}/4 SPONGES`
+      ? `ROOM ${room.code} · ${room.players.length}/${onlineConfig.maxPlayers} SPONGES`
       : "";
     el("team-status").hidden = !room;
     el("team-status").textContent = room
-      ? `CO-OP ${room.code} · ${room.players.length}/4 · SHARED COINS + WATER`
+      ? `CO-OP ${room.code} · ${room.players.length}/${onlineConfig.maxPlayers} · SHARED COINS + WATER`
       : "";
+    const rosterKey = JSON.stringify([
+      room?.hostId,
+      room?.players.map((p) => [p.id, p.username, p.ready]),
+    ]);
+    if (rosterKey === this.rosterKey) return;
+    this.rosterKey = rosterKey;
     el("room-roster").replaceChildren(
       ...(room?.players ?? []).map((p) => {
         const item = document.createElement("li");

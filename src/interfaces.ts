@@ -334,6 +334,8 @@ export interface OnlinePlayer extends Account {
   player: PlayerState;
   selected: CityTool;
   ready: boolean;
+  /** Individual appearance; purchased hats remain in the shared room collection. */
+  equippedHat?: HatId | null;
 }
 export interface RoomSnapshot {
   code: string;

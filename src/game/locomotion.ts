@@ -57,7 +57,12 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
     rightArm: THREE.Group,
     leftLeg: THREE.Group,
     rightLeg: THREE.Group;
-  if (imported) {
+  if (model.userData.locomotionPrepared) {
+    rightArm = model.getObjectByName("right-arm") as THREE.Group;
+    leftArm = model.getObjectByName("left-arm") as THREE.Group;
+    rightLeg = model.getObjectByName("right-leg") as THREE.Group;
+    leftLeg = model.getObjectByName("left-leg") as THREE.Group;
+  } else if (imported) {
     const arm = model.getObjectByName("Cube_morph_export") as THREE.Mesh;
     const body = model.getObjectByName("Body_Cube_morph_export") as THREE.Mesh;
     if (!arm?.isMesh || !body?.isMesh)
@@ -216,7 +221,10 @@ export function createLocomotion(model: THREE.Group, imported: boolean) {
   }
   const rightShoulderRestX = rightArm.position.x;
   const leftShoulderRestX = leftArm.position.x;
-  const rightHand = new THREE.Group();
+  model.userData.locomotionPrepared = true;
+  const rightHand =
+    (model.getObjectByName("right-hand-equipment") as
+      THREE.Group | undefined) ?? new THREE.Group();
   rightHand.name = "right-hand-equipment";
   const hand = imported ? c.importedHand : c.fallbackHand;
   rightHand.position.set(hand[0], hand[1], hand[2]);

@@ -252,3 +252,96 @@ test("real GLB has relaxed moving limbs, white teeth, preserved water morphs and
     else Reflect.deleteProperty(globalThis, "getComputedStyle");
   }
 });
+
+test("63 remote SpongeBobs share prepared mesh buffers, animate independently and wear individual hats", async () => {
+  const doc = Object.getOwnPropertyDescriptor(globalThis, "document");
+  const style = Object.getOwnPropertyDescriptor(globalThis, "getComputedStyle");
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: {
+      documentElement: {},
+      createElement: () => ({
+        getContext: () => ({ fillRect() {}, fillText() {} }),
+      }),
+    },
+  });
+  Object.defineProperty(globalThis, "getComputedStyle", {
+    configurable: true,
+    value: () => ({ getPropertyValue: () => "#ffffff" }),
+  });
+  try {
+    const { createRemotePlayers } =
+      await import("../src/game/remote-players.ts");
+    const { createPlayer } = await import("../src/game/player.ts");
+    const bytes = readFileSync("public/models/spongebob.glb");
+    const { scene: model } = await new GLTFLoader().parseAsync(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+      "",
+    );
+    const scene = new THREE.Scene();
+    const remotes = createRemotePlayers(scene);
+    const players = Array.from({ length: 64 }, (_, i) => ({
+      id: `player-${i}`,
+      username: `Player${i}`,
+      player: createPlayer(),
+      selected: "absorb" as const,
+      ready: true,
+      equippedHat:
+        i === 1 ? ("wizard" as const) : i === 2 ? ("cowboy" as const) : null,
+    }));
+    // Lobby joins before model loading must be upgraded when the GLB arrives.
+    assert.equal(remotes.update(players, players[0].id, 0), 63);
+    remotes.setCharacterTemplate(model, true);
+    assert.equal(remotes.update(players, players[0].id, 0), 63);
+    assert.equal(remotes.assetKind, "blender");
+    const a = scene.getObjectByName("teammate-Player1")!;
+    const b = scene.getObjectByName("teammate-Player2")!;
+    const c = scene.getObjectByName("teammate-Player3")!;
+    assert.equal(a.getObjectByName("equipped-hat")!.userData.hatId, "wizard");
+    assert.equal(b.getObjectByName("equipped-hat")!.userData.hatId, "cowboy");
+    assert.equal(c.getObjectByName("equipped-hat"), undefined);
+    const bodyA = a.getObjectByName("Body_Cube_morph_export") as THREE.Mesh;
+    const bodyB = b.getObjectByName("Body_Cube_morph_export") as THREE.Mesh;
+    assert.equal(
+      bodyA.geometry,
+      bodyB.geometry,
+      "crowd shares the prepared mesh buffers",
+    );
+    assert.notEqual(bodyA.morphTargetInfluences, bodyB.morphTargetInfluences);
+    assert.notEqual(
+      a.getObjectByName("right-arm"),
+      b.getObjectByName("right-arm"),
+    );
+    players[1].player.velocity.z = 5;
+    players[1].equippedHat = null;
+    remotes.update(players, players[0].id, 0.2);
+    assert.notEqual(
+      a.getObjectByName("right-arm")!.rotation.x,
+      b.getObjectByName("right-arm")!.rotation.x,
+    );
+    assert.equal(a.getObjectByName("equipped-hat"), undefined);
+    assert.equal(b.getObjectByName("equipped-hat")!.userData.hatId, "cowboy");
+    let disposed = false;
+    bodyB.geometry.addEventListener("dispose", () => {
+      disposed = true;
+    });
+    remotes.update(
+      players.filter((p) => p.id !== players[1].id),
+      players[0].id,
+      0.3,
+    );
+    assert.equal(
+      disposed,
+      false,
+      "leaving does not dispose other players’ shared buffers",
+    );
+    assert.equal(scene.children.length, 62);
+    remotes.clear();
+    assert.equal(scene.children.length, 0);
+  } finally {
+    if (doc) Object.defineProperty(globalThis, "document", doc);
+    else Reflect.deleteProperty(globalThis, "document");
+    if (style) Object.defineProperty(globalThis, "getComputedStyle", style);
+    else Reflect.deleteProperty(globalThis, "getComputedStyle");
+  }
+});

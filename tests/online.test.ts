@@ -39,7 +39,7 @@ test("unique accounts and best survival scores survive reopening storage", () =>
     rmSync(dir, { recursive: true });
   }
 });
-test("co-op shares legal construction, refuses client scores/positions and limits rooms to four", () => {
+test("co-op shares legal construction, refuses client scores/positions and keeps individual hats", () => {
   const store = new AccountStore(":memory:");
   try {
     const rooms = new Rooms(store),
@@ -53,7 +53,20 @@ test("co-op shares legal construction, refuses client scores/positions and limit
     );
     assert.equal(new Set(first.city.campaign!.locations).size, 4);
     rooms.command(a.id, { equippedHat: "wizard" });
-    assert.equal(rooms.current(b.id)!.city.campaign!.equippedHat, "wizard");
+    assert.equal(
+      rooms.current(b.id)!.players.find((p) => p.id === a.id)!.equippedHat,
+      "wizard",
+    );
+    assert.equal(
+      rooms.current(b.id)!.players.find((p) => p.id === b.id)!.equippedHat,
+      null,
+    );
+    rooms.command(b.id, { equippedHat: "wizard" });
+    rooms.command(a.id, { equippedHat: null });
+    assert.equal(
+      rooms.current(b.id)!.players.find((p) => p.id === b.id)!.equippedHat,
+      "wizard",
+    );
     assert.throws(
       () => rooms.command(a.id, { equippedHat: "invalid" as never }),
       /Unknown hat/,
@@ -99,10 +112,7 @@ test("co-op shares legal construction, refuses client scores/positions and limit
     );
     rooms.join(store.create("GammaSponge").account, first.code);
     rooms.join(store.create("DeltaSponge").account, first.code);
-    assert.throws(
-      () => rooms.join(store.create("EpsilonSponge").account, first.code),
-      /full/,
-    );
+    rooms.join(store.create("EpsilonSponge").account, first.code);
     rooms.leave(a.id);
     assert.equal(rooms.current(b.id)!.hostId, b.id);
   } finally {
@@ -334,8 +344,11 @@ test("HTTP cookies restore identity, origin checks reject cross-site writes and 
       await fetch(`${base}/api/rooms`, { method: "POST", headers, body: "{}" })
     ).json();
     assert.equal(create.room.players[0].username, "CookieSponge");
-    const events = await fetch(`${base}/api/events`, { headers });
+    const events = await fetch(`${base}/api/events`, {
+      headers: { ...headers, "Accept-Encoding": "identity" },
+    });
     assert.match(events.headers.get("content-type")!, /event-stream/);
+    assert.equal(events.headers.get("content-encoding"), null);
     const reader = events.body!.getReader();
     const first = await reader.read();
     assert.match(new TextDecoder().decode(first.value), /CookieSponge/);
@@ -456,5 +469,166 @@ test("co-op applies one server-chosen modifier and advances every player togethe
     assert.ok(state.players.every((p) => !p.ready));
   } finally {
     store.close();
+  }
+});
+
+test("64 active players fit one room, move authoritatively, and free a slot on leaving", () => {
+  const store = new AccountStore(":memory:");
+  try {
+    const rooms = new Rooms(store);
+    const players = Array.from(
+      { length: 65 },
+      (_, i) => store.create(`Crowd${i}`).account,
+    );
+    const room = rooms.create(players[0]);
+    for (const player of players.slice(1, 64)) rooms.join(player, room.code);
+    const initial = rooms.current(players[0].id)!;
+    assert.equal(initial.players.length, 64);
+    assert.equal(
+      new Set(
+        initial.players.map(
+          (p) => `${p.player.position.x},${p.player.position.z}`,
+        ),
+      ).size,
+      64,
+    );
+    assert.throws(
+      () => rooms.join(players[64], room.code),
+      /full \(64 players\)/,
+    );
+    assert.equal(rooms.join(players[0], room.code).players.length, 64);
+    for (const player of players.slice(0, 64))
+      rooms.command(player.id, {
+        ready: true,
+        movement: { forward: 1, right: 0, run: false, jump: false },
+        yaw: 0,
+      });
+    for (let i = 0; i < 10; i++) rooms.tick(0.1);
+    const active = rooms.current(players[0].id)!;
+    assert.equal(active.players.filter((p) => p.ready).length, 64);
+    assert.ok(
+      active.players.every(
+        (p) =>
+          Number.isFinite(p.player.position.x) &&
+          Number.isFinite(p.player.position.z),
+      ),
+    );
+    assert.ok(
+      active.players.some(
+        (p, i) => p.player.position.z !== initial.players[i].player.position.z,
+      ),
+    );
+    rooms.leave(players[0].id);
+    const replaced = rooms.join(players[64], room.code);
+    assert.equal(replaced.players.length, 64);
+    assert.equal(replaced.hostId, players[1].id);
+  } finally {
+    store.close();
+  }
+});
+
+test("64 demo attendees register on one network and receive live room broadcasts", async () => {
+  const online = createOnlineServer(":memory:");
+  const server = createServer((req, res) => void online.handle(req, res));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const base = `http://127.0.0.1:${(server.address() as { port: number }).port}/api/`;
+  const controllers: AbortController[] = [];
+  try {
+    const cookies = await Promise.all(
+      Array.from({ length: 65 }, async (_, i) => {
+        const res = await fetch(base + "account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: `Audience${i}` }),
+        });
+        assert.equal(res.status, 201);
+        return res.headers.get("set-cookie")!.split(";")[0];
+      }),
+    );
+    const post = (cookie: string, path: string, data: unknown) =>
+      fetch(base + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", cookie },
+        body: JSON.stringify(data),
+      });
+    const { room } = await (await post(cookies[0], "rooms", {})).json();
+    await Promise.all(
+      cookies
+        .slice(1, 64)
+        .map(async (cookie) =>
+          assert.equal(
+            (await post(cookie, "join", { code: room.code })).status,
+            200,
+          ),
+        ),
+    );
+    assert.equal(
+      (await post(cookies[64], "join", { code: room.code })).status,
+      400,
+    );
+    const readers = await Promise.all(
+      cookies.slice(0, 64).map(async (cookie) => {
+        const controller = new AbortController();
+        controllers.push(controller);
+        const res = await fetch(base + "events", {
+          headers: { cookie },
+          signal: controller.signal,
+        });
+        assert.equal(res.headers.get("content-encoding"), "gzip");
+        return res.body!.getReader();
+      }),
+    );
+    const readSnapshot = async (
+      reader: ReadableStreamDefaultReader<Uint8Array>,
+    ) => {
+      let text = "";
+      while (!text.includes("\n\n")) {
+        const { value, done } = await reader.read();
+        assert.equal(done, false);
+        text += new TextDecoder().decode(value);
+      }
+      return JSON.parse(text.split("\n\n")[0].slice(6));
+    };
+    const first = await Promise.all(readers.map(readSnapshot));
+    assert.ok(first.every((snapshot) => snapshot.players.length === 64));
+    await Promise.all(
+      cookies.slice(0, 64).map(async (cookie) =>
+        assert.equal(
+          (
+            await post(cookie, "command", {
+              ready: true,
+              movement: { forward: 1, right: 0, run: false, jump: false },
+              yaw: 0,
+            })
+          ).status,
+          200,
+        ),
+      ),
+    );
+    await post(cookies[0], "command", { equippedHat: "wizard" });
+    const deadline = Date.now() + 5000;
+    await Promise.all(
+      readers.map(async (reader) => {
+        let snapshot;
+        do {
+          assert.ok(
+            Date.now() < deadline,
+            "all viewers receive the latest hat within five seconds",
+          );
+          snapshot = await readSnapshot(reader);
+        } while (snapshot.players[0].equippedHat !== "wizard");
+        assert.equal(snapshot.players.length, 64);
+        assert.ok(
+          snapshot.players
+            .slice(1)
+            .every((p: { equippedHat: unknown }) => p.equippedHat === null),
+        );
+      }),
+    );
+  } finally {
+    controllers.forEach((controller) => controller.abort());
+    online.close();
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });

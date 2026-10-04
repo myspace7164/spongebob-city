@@ -300,6 +300,11 @@ function startGame(): void {
     const previousHat = city.campaign?.equippedHat ?? null;
     const previousOwnedHats = [...(city.campaign?.ownedHats ?? [])];
     city = room.city;
+    // Project this player’s equipment into the local shop/view state.
+    if (city.campaign)
+      city.campaign.equippedHat =
+        room.players.find((p) => p.id === network.account?.id)?.equippedHat ??
+        null;
     if (previousOutcome === "playing" && city.outcome === "lost")
       void onlineUI.showLatestSurvivalResult().catch((error: unknown) => {
         document.getElementById("survival-record-status")!.textContent =
@@ -971,7 +976,6 @@ function startGame(): void {
           sponge: city.sponge,
           capacity: spongeCapacity(city),
           temperature: city.temperature,
-          equippedHat: city.campaign?.equippedHat ?? null,
           visualScale: effectivePlayerVisualScale(city, powerVisualScale),
           deltaSeconds: dt,
         },

@@ -1,8 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { createGzip, constants, type Gzip } from "node:zlib";
 import { AccountStore } from "./store.ts";
 import { Rooms } from "./rooms.ts";
+import { onlineConfig } from "../config/online.ts";
 import type { OnlineCommand } from "../src/interfaces.ts";
 export function createOnlineServer(
   database = process.env.DATABASE_PATH ?? "data/accounts.sqlite",
@@ -12,17 +14,26 @@ export function createOnlineServer(
   const store = new AccountStore(database),
     rooms = new Rooms(store);
   const streams = new Map<ServerResponse, string>();
+  const compressedStreams = new Map<ServerResponse, Gzip>();
   const limits = new Map<string, { time: number; count: number }>();
   const timer = setInterval(() => {
     rooms.tick(0.1);
+    // Serialize each room once, rather than cloning all 64 players for every viewer.
+    const messages = new Map<string, string>();
     for (const [res, id] of streams) {
-      const snapshot = rooms.current(id);
-      if (res.writableLength > 256000) {
+      const writer = compressedStreams.get(res) ?? res;
+      if (res.writableLength + writer.writableLength > 256000) {
         res.destroy();
         streams.delete(res);
         continue;
       }
-      res.write(`data: ${JSON.stringify(snapshot)}\n\n`);
+      const code = rooms.room(id)?.code ?? "";
+      let message = messages.get(code);
+      if (message === undefined) {
+        message = `data: ${JSON.stringify(rooms.current(id))}\n\n`;
+        messages.set(code, message);
+      }
+      writer.write(message);
     }
   }, 100);
   timer.unref();
@@ -72,18 +83,35 @@ export function createOnlineServer(
           // Replace an older stream for this account (one browser identity, one player).
           for (const [old, id] of streams)
             if (id === account.id) {
+              compressedStreams.get(old)?.destroy();
               old.end();
               streams.delete(old);
             }
+          const gzip = /\bgzip\b/.test(req.headers["accept-encoding"] ?? "")
+            ? createGzip({ flush: constants.Z_SYNC_FLUSH })
+            : null;
           res.writeHead(200, {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache, no-transform",
             Connection: "keep-alive",
             "X-Accel-Buffering": "no",
+            Vary: "Accept-Encoding",
+            ...(gzip ? { "Content-Encoding": "gzip" } : {}),
           });
-          res.write(`data: ${JSON.stringify(rooms.current(account.id))}\n\n`);
+          if (gzip) {
+            compressedStreams.set(res, gzip);
+            gzip.on("error", () => res.destroy());
+            gzip.pipe(res);
+          }
+          (gzip ?? res).write(
+            `data: ${JSON.stringify(rooms.current(account.id))}\n\n`,
+          );
           streams.set(res, account.id);
-          req.on("close", () => streams.delete(res));
+          res.on("close", () => {
+            streams.delete(res);
+            compressedStreams.delete(res);
+            gzip?.destroy();
+          });
           return true;
         }
       }
@@ -108,7 +136,9 @@ export function createOnlineServer(
       }
       limit.count++;
       limits.set(key, limit);
-      if (limit.count > (account ? 1800 : 20)) {
+      if (
+        limit.count > (account ? 1800 : onlineConfig.registrationsPerMinute)
+      ) {
         json(res, 429, { error: "Too many requests. Wait a minute." });
         return true;
       }
@@ -191,7 +221,10 @@ export function createOnlineServer(
     store,
     close() {
       clearInterval(timer);
-      for (const res of streams.keys()) res.end();
+      for (const res of streams.keys()) {
+        compressedStreams.get(res)?.destroy();
+        res.end();
+      }
       store.close();
     },
   };

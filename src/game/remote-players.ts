@@ -4,7 +4,7 @@ import { createLocomotion } from "./locomotion.ts";
 import { createHeldTools } from "./held-tools.ts";
 import { createHatModel, disposeHatModel, updateHatSparkles } from "./hats.ts";
 import { updateSpongeWaterState } from "./assets.ts";
-import type { HatId, OnlinePlayer } from "../interfaces.ts";
+import type { OnlinePlayer } from "../interfaces.ts";
 
 type RemoteRig = ReturnType<typeof createLocomotion>;
 type RemoteEquipment = ReturnType<typeof createHeldTools>;
@@ -37,6 +37,23 @@ export function createRemotePlayers(scene: THREE.Scene) {
   // This fallback is the same character factory used by the local player.
   let template = makeCharacter("sponge");
   let imported = false;
+  const sharedGeometries = new WeakSet<THREE.BufferGeometry>();
+  const prepareTemplate = () => {
+    createLocomotion(template, imported);
+    template.traverse((object) => {
+      if (object instanceof THREE.Mesh) sharedGeometries.add(object.geometry);
+    });
+  };
+  prepareTemplate();
+  const disposeOwnedGeometries = (root: THREE.Object3D) => {
+    root.traverse((object) => {
+      if (
+        object instanceof THREE.Mesh &&
+        !sharedGeometries.has(object.geometry)
+      )
+        object.geometry.dispose();
+    });
+  };
 
   const createLabel = (username: string): THREE.Sprite => {
     const canvas = document.createElement("canvas");
@@ -56,10 +73,11 @@ export function createRemotePlayers(scene: THREE.Scene) {
     const label = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: new THREE.CanvasTexture(canvas),
-        depthTest: false,
+        // Fixed screen size keeps nearby teammates' labels from covering the view.
+        sizeAttenuation: false,
       }),
     );
-    label.scale.set(2.5, 0.47, 1);
+    label.scale.set(0.24, 0.045, 1);
     label.position.y = 2.55;
     return label;
   };
@@ -72,8 +90,8 @@ export function createRemotePlayers(scene: THREE.Scene) {
       avatar.hat = null;
     }
     avatar.root.remove(previous);
-    disposeGeometries(previous);
-    const model = cloneCharacterVisual(template);
+    disposeOwnedGeometries(previous);
+    const model = template.clone(true);
     model.name = "SharedPlayerVisual";
     const rig = createLocomotion(model, imported);
     avatar.model = model;
@@ -89,12 +107,12 @@ export function createRemotePlayers(scene: THREE.Scene) {
       avatar.hat = null;
     }
     avatar.root.traverse((object) => {
-      if (object instanceof THREE.Mesh) object.geometry.dispose();
       if (object instanceof THREE.Sprite) {
         object.material.map?.dispose();
         object.material.dispose();
       }
     });
+    disposeOwnedGeometries(avatar.root);
     scene.remove(avatar.root);
   };
 
@@ -102,12 +120,13 @@ export function createRemotePlayers(scene: THREE.Scene) {
     get assetKind(): "blender" | "shared-fallback" {
       return imported ? "blender" : "shared-fallback";
     },
-    /** Snapshot a pristine template before local locomotion partitions its geometry. */
+    /** Prepare the same local character once; teammates share immutable mesh buffers. */
     setCharacterTemplate(source: THREE.Group, isImported = true): void {
       const next = cloneCharacterVisual(source);
       disposeGeometries(template);
       template = next;
       imported = isImported;
+      prepareTemplate();
       for (const avatar of avatars.values()) makeAvatarModel(avatar);
     },
     update(
@@ -119,7 +138,6 @@ export function createRemotePlayers(scene: THREE.Scene) {
         sponge: number;
         capacity: number;
         temperature: number;
-        equippedHat: HatId | null;
         visualScale: number;
         deltaSeconds?: number;
       },
@@ -138,7 +156,7 @@ export function createRemotePlayers(scene: THREE.Scene) {
         if (!avatar) {
           const root = new THREE.Group();
           root.name = `teammate-${player.username}`;
-          const model = cloneCharacterVisual(template);
+          const model = template.clone(true);
           model.name = "SharedPlayerVisual";
           const rig = createLocomotion(model, imported);
           const label = createLabel(player.username);
@@ -189,17 +207,18 @@ export function createRemotePlayers(scene: THREE.Scene) {
               appearance.deltaSeconds,
             );
           }
-          if ((avatar.hat?.userData.hatId ?? null) !== appearance.equippedHat) {
-            if (avatar.hat) {
-              avatar.root.remove(avatar.hat);
-              disposeHatModel(avatar.hat);
-              avatar.hat = null;
-            }
-            if (appearance.equippedHat) {
-              avatar.hat = createHatModel(appearance.equippedHat);
-              avatar.hat.name = "equipped-hat";
-              avatar.root.add(avatar.hat);
-            }
+        }
+        const equippedHat = player.equippedHat ?? null;
+        if ((avatar.hat?.userData.hatId ?? null) !== equippedHat) {
+          if (avatar.hat) {
+            avatar.root.remove(avatar.hat);
+            disposeHatModel(avatar.hat);
+            avatar.hat = null;
+          }
+          if (equippedHat) {
+            avatar.hat = createHatModel(equippedHat);
+            avatar.hat.name = "equipped-hat";
+            avatar.root.add(avatar.hat);
           }
         }
         updateHatSparkles(avatar.hat, elapsed);

@@ -15,6 +15,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { onlineConfig } from "../config/online.ts";
 import { gameConfig } from "../config/game.ts";
 import { purchaseHat } from "../src/game/hats.ts";
 import { hats } from "../config/hats.ts";
@@ -62,6 +63,7 @@ import type { AccountStore } from "./store.ts";
 const idle = () => ({ forward: 0, right: 0, run: false, jump: false });
 interface Member {
   public: OnlinePlayer;
+  spawnSlot: number;
   input: OnlineCommand;
   seen: number;
   lastAction: number;
@@ -181,17 +183,31 @@ export class Rooms {
     if (previous && previous !== room)
       throw new Error("Leave your current room first.");
     if (!room.members.has(account.id)) {
-      if (room.members.size >= 4)
-        throw new Error("This room is full (4 players).");
+      if (room.members.size >= onlineConfig.maxPlayers)
+        throw new Error(
+          `This room is full (${onlineConfig.maxPlayers} players).`,
+        );
+      const usedSlots = new Set(
+        [...room.members.values()].map((m) => m.spawnSlot),
+      );
+      let spawnSlot = 0;
+      while (usedSlots.has(spawnSlot)) spawnSlot++;
       const player = createPlayer();
       Object.assign(player.position, levelPosition(room.city, player.position));
-      player.position.x += room.members.size * 1.2;
+      this.placePlayer(player, spawnSlot);
       player.position.y = levelScenery(
         currentLevel(room.city),
         this.terrain,
       ).groundAt(player.position.x, player.position.z);
       room.members.set(account.id, {
-        public: { ...account, player, selected: "absorb", ready: false },
+        public: {
+          ...account,
+          player,
+          selected: "absorb",
+          ready: false,
+          equippedHat: null,
+        },
+        spawnSlot,
         input: { movement: idle(), yaw: 0 },
         seen: Date.now(),
         lastAction: 0,
@@ -311,6 +327,9 @@ export class Rooms {
         if (command.equippedHat === null) room.city.campaign.equippedHat = null;
         else if (!purchaseHat(room.city, command.equippedHat))
           throw new Error("Not enough coins for that hat.");
+        m.public.equippedHat = command.equippedHat;
+        // Ownership is shared; wearing a hat belongs to this player only.
+        room.city.campaign.equippedHat = null;
         room.checkpoint.budget = room.city.budget;
         if (room.checkpoint.campaign) {
           room.checkpoint.campaign.ownedHats = [
@@ -405,12 +424,20 @@ export class Rooms {
         m.public.player.position,
         levelPosition(room.city, m.public.player.position),
       );
+      this.placePlayer(m.public.player, m.spawnSlot);
       m.public.player.position.y = ground(
         m.public.player.position.x,
         m.public.player.position.z,
       );
     }
     room.revision++;
+  }
+  private placePlayer(player: OnlinePlayer["player"], slot: number): void {
+    const column = slot % 8;
+    const x = column === 0 ? 0 : Math.ceil(column / 2) * (column % 2 ? 1 : -1);
+    player.position.x += x * 1.2;
+    // Spread the crowd ahead of the leader, clear of the initial follow camera.
+    player.position.z -= Math.floor(slot / 8) * 1.2;
   }
   tick(dt = 0.05): void {
     const now = Date.now();
@@ -423,6 +450,11 @@ export class Rooms {
         this.terrain,
       ).groundAt;
       const collisionWorld = this.staticWorld(room.city);
+      const props = gameplayColliders(
+        room.city,
+        ground,
+        this.buildings.length === 0,
+      );
       let active = false;
       for (const [id, m] of room.members) {
         if (now - m.seen > 2000) {
@@ -433,7 +465,7 @@ export class Rooms {
         if (!m.public.ready) continue;
         active = true;
         collisionWorld.setDynamic([
-          ...gameplayColliders(room.city, ground, this.buildings.length === 0),
+          ...props,
           ...[...room.members.entries()]
             .filter(([otherId]) => otherId !== id)
             .map(([, other]) => {
@@ -476,7 +508,7 @@ export class Rooms {
         const level = room.city.campaign!.level;
         const endlessRound = room.city.campaign!.endlessRound;
         collisionWorld.setDynamic([
-          ...gameplayColliders(room.city, ground, this.buildings.length === 0),
+          ...props,
           ...[...room.members.values()].map((member) => {
             const point = member.public.player.position;
             return circleCollider(
@@ -515,8 +547,10 @@ export class Rooms {
             this.store.reward(id, `${room.run}:win:${id}`, 0, 1);
       }
       if (room.city.outcome === "lost")
-        for (const [id, member] of room.members)
+        for (const [id, member] of room.members) {
+          member.public.equippedHat = null;
           this.finishSurvival(id, member);
+        }
       room.revision++;
     }
   }

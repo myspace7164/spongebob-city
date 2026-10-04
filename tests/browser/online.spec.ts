@@ -37,14 +37,14 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted surv
     await a.locator("#online-toggle").click();
     await b.locator("#online-toggle").click();
     await a.locator("#create-room").click();
-    await expect(a.locator("#team-status")).toContainText("1/4");
+    await expect(a.locator("#team-status")).toContainText("1/64");
     const code = (await a.locator("#team-status").textContent())!.match(
       /CO-OP ([A-F0-9]{6})/,
     )![1];
     await b.locator("#room-code").fill(code);
     await b.locator("#join-room-form button").click();
-    await expect(a.locator("#team-status")).toContainText("2/4");
-    await expect(b.locator("#team-status")).toContainText("2/4");
+    await expect(a.locator("#team-status")).toContainText("2/64");
+    await expect(b.locator("#team-status")).toContainText("2/64");
     // Start only A: the authoritative server receives real movement input. Both browsers see its build.
     await a.locator("#story-start").click();
     await expect(a.locator("#crosshair")).toBeVisible();
@@ -127,7 +127,7 @@ test("username cookie, duplicate rejection, two-browser co-op and persisted surv
     await expect(a.locator("#room-roster")).toContainText(`${username}_B`);
     await b.locator("#online-toggle").click();
     await b.locator("#leave-room").click();
-    await expect(a.locator("#team-status")).toContainText("1/4");
+    await expect(a.locator("#team-status")).toContainText("1/64");
   } finally {
     await contextA.close();
     await contextB.close();
@@ -152,4 +152,111 @@ test("an empty account API response reports a useful message instead of JSON.par
   await expect(page.locator("#name-status")).toContainText(
     "Online server unavailable",
   );
+});
+
+test("a full 64-player lobby renders 63 imported SpongeBobs and keeps hats individual", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(150000);
+  const base = testInfo.project.use.baseURL!;
+  const prefix = `Crowd_${crypto.randomUUID().replaceAll("-", "").slice(0, 8)}`;
+  await page.route("**/models/basel-city.glb", (route) =>
+    route.fulfill({
+      status: 404,
+      body: "Fallback scenery for crowd rendering check",
+    }),
+  );
+  const registration = await page.request.post("/api/account", {
+    data: { username: `${prefix}_Host` },
+  });
+  expect(registration.status()).toBe(201);
+  const { room } = await (
+    await page.request.post("/api/rooms", { data: {} })
+  ).json();
+  const cookies = await Promise.all(
+    Array.from({ length: 63 }, async (_, i) => {
+      const response = await fetch(`${base}/api/account`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: `${prefix}_${i}` }),
+      });
+      expect(response.status).toBe(201);
+      return response.headers.get("set-cookie")!.split(";")[0];
+    }),
+  );
+  const post = (cookie: string, path: string, data: unknown) =>
+    fetch(`${base}/api/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", cookie },
+      body: JSON.stringify(data),
+    });
+  try {
+    await Promise.all(
+      cookies.map(async (cookie) =>
+        expect((await post(cookie, "join", { code: room.code })).status).toBe(
+          200,
+        ),
+      ),
+    );
+    expect(
+      (await post(cookies[0], "command", { equippedHat: "wizard" })).status,
+    ).toBe(200);
+    expect(
+      (await post(cookies[1], "command", { equippedHat: "cowboy" })).status,
+    ).toBe(200);
+    await page.goto("/");
+    await expect(page.locator("#team-status")).toContainText("64/64");
+    await expect(page.locator("#game")).toHaveAttribute(
+      "data-character",
+      "loaded",
+      { timeout: 60000 },
+    );
+    await expect(page.locator("#game")).toHaveAttribute(
+      "data-remote-character-asset",
+      "blender",
+      { timeout: 60000 },
+    );
+    await expect(page.locator("#game")).toHaveAttribute(
+      "data-remote-player-count",
+      "63",
+      { timeout: 60000 },
+    );
+    await expect(page.locator("#game")).toHaveAttribute(
+      "data-equipped-hat",
+      "none",
+    );
+    expect(
+      (
+        await page.request.post("/api/command", {
+          data: { equippedHat: "wizard" },
+        })
+      ).status(),
+    ).toBe(200);
+    await expect(page.locator("#game")).toHaveAttribute(
+      "data-equipped-hat",
+      "wizard",
+    );
+    await post(cookies[0], "command", { equippedHat: null });
+    await expect(page.locator("#game")).toHaveAttribute(
+      "data-equipped-hat",
+      "wizard",
+    );
+    const snapshot = await (await page.request.get("/api/room")).json();
+    expect(
+      snapshot.room.players.filter(
+        (p: { equippedHat: string | null }) => p.equippedHat === "wizard",
+      ),
+    ).toHaveLength(1);
+    expect(
+      snapshot.room.players.filter(
+        (p: { equippedHat: string | null }) => p.equippedHat === "cowboy",
+      ),
+    ).toHaveLength(1);
+    await page.locator("#story-start").click();
+    await expect(page.locator("#crosshair")).toBeVisible();
+    await page.screenshot({ path: "/tmp/sponge-64-player-lobby.png" });
+  } finally {
+    await Promise.all(cookies.map((cookie) => post(cookie, "leave", {})));
+    await page.request.post("/api/leave", { data: {} });
+  }
 });
