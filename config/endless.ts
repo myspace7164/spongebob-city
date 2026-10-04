@@ -5,7 +5,20 @@ export const endlessConfig = {
 };
 
 export const credits = {
-  authors: ["author1", "author2", "author3", "author4"],
-  description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+  authors: [
+    {
+      name: "Lexus Flexus",
+      quote: "I never thought I could Vibe-Code an entire Game.",
+    },
+    {
+      name: "Giginius Spongius",
+      quote: "I didn't read a single file written",
+    },
+    {
+      name: "SpiOngBiob SuciKopFen",
+      quote: "sorry for the water usage",
+    },
+    { name: "Squidviviward", quote: "MORE DOPAMINE!" },
+  ],
   thanks: "Special thanks to ton, our gracious host",
 };

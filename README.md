@@ -4,6 +4,10 @@ A playable four-level 3D sponge-city campaign across eight Basel location candid
 
 Built on Three.js, TypeScript and Vite. See [the design](docs/design.md) for gameplay, scope and limits.
 
+## Presentation
+
+Open [the animated presentation](public/presentation.html) directly in a browser or visit `/presentation.html` while the game server runs. The deck includes speaker notes and a printable sources appendix; see [presenting instructions](docs/pitch.md).
+
 ## Run
 
 Requires Node.js 24+.

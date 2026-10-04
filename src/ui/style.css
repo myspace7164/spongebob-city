@@ -2918,8 +2918,19 @@ body.building #game {
 .credits-roll {
   animation: credits-roll var(--credits-duration) linear both;
 }
-#credits-authors > div {
+#credits-authors > .credits-author {
   margin-block: var(--space);
+}
+.credits-author-name {
+  margin: 0;
+  font-size: clamp(1.2rem, 3vw, 1.65rem);
+}
+.credits-author-quote {
+  max-width: 42ch;
+  margin: 0.25rem auto 0;
+  font-size: clamp(0.9rem, 2.2vw, 1.05rem);
+  font-style: italic;
+  opacity: 0.86;
 }
 #credits-skip {
   flex-shrink: 0;

@@ -14,10 +14,13 @@ export class CreditsUI {
     const list = document.getElementById("credits-authors")!;
     for (const author of credits.authors) {
       const row = document.createElement("div");
+      row.className = "credits-author";
       const name = document.createElement("h2");
-      name.textContent = author;
+      name.className = "credits-author-name";
+      name.textContent = author.name;
       const description = document.createElement("p");
-      description.textContent = credits.description;
+      description.className = "credits-author-quote";
+      description.textContent = `"${author.quote}"`;
       row.append(name, description);
       list.append(row);
     }
