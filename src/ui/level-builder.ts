@@ -46,6 +46,10 @@ import { levelLocalGroundAt, levelScenery } from "../game/terrain";
 import { areaCorners, openAreaMap, type AreaOutline } from "./level-area-map";
 
 /** What the builder needs from the running game. */
+/** Rotate buttons turn by this much; small enough to line spots up with streets. */
+const ROTATION_STEP_DEGREES = 5;
+const ROTATION_STEP = (ROTATION_STEP_DEGREES * Math.PI) / 180;
+
 export interface BuilderHost {
   scenery: THREE.Object3D;
   camera: THREE.PerspectiveCamera;
@@ -336,8 +340,8 @@ export function createLevelBuilder(host: BuilderHost) {
           .join("")}</div>
         <fieldset id="lb-rotation"><legend id="lb-rotation-label">Next spot</legend>
           <div class="lb-actions">
-            <button type="button" id="lb-rotate-left">Rotate left 15°</button>
-            <button type="button" id="lb-rotate-right">Rotate right 15°</button>
+            <button type="button" id="lb-rotate-left">Rotate left ${ROTATION_STEP_DEGREES}°</button>
+            <button type="button" id="lb-rotate-right">Rotate right ${ROTATION_STEP_DEGREES}°</button>
           </div>
           <label class="lb-row">Angle ° <input id="lb-angle" type="number" step="any" /></label>
           <button type="button" id="lb-new-spot">Place a new spot</button>
@@ -884,7 +888,7 @@ export function createLevelBuilder(host: BuilderHost) {
       objectBox.innerHTML =
         `<p class="small">${landmarkNames[selectedLandmark]}${chosen.moved ? "" : " (default place)"}</p>` +
         (selectedLandmark === "leaderboard"
-          ? `<div class="lb-actions"><button type="button" data-turn="1">Rotate left 15°</button><button type="button" data-turn="-1">Rotate right 15°</button></div>` +
+          ? `<div class="lb-actions"><button type="button" data-turn="1">Rotate left ${ROTATION_STEP_DEGREES}°</button><button type="button" data-turn="-1">Rotate right ${ROTATION_STEP_DEGREES}°</button></div>` +
             `<label class="lb-row">Angle ° <input id="lb-landmark-angle" type="number" step="any" value="${degrees}" /></label>`
           : "") +
         (chosen.moved
@@ -1397,10 +1401,10 @@ export function createLevelBuilder(host: BuilderHost) {
       ? placementRotation
       : (state.spots[selected].rotationY ?? -draft().site.heading);
   $("lb-rotate-left").addEventListener("click", () =>
-    rotateSpot(currentRotation() + Math.PI / 12),
+    rotateSpot(currentRotation() + ROTATION_STEP),
   );
   $("lb-rotate-right").addEventListener("click", () =>
-    rotateSpot(currentRotation() - Math.PI / 12),
+    rotateSpot(currentRotation() - ROTATION_STEP),
   );
   $("lb-angle").addEventListener("change", () => {
     const degrees = $<HTMLInputElement>("lb-angle").valueAsNumber;
@@ -1435,7 +1439,7 @@ export function createLevelBuilder(host: BuilderHost) {
     if (target.dataset.turn)
       turnLandmark(
         landmarkAt(selectedLandmark).rotationY +
-          (Number(target.dataset.turn) * Math.PI) / 12,
+          Number(target.dataset.turn) * ROTATION_STEP,
       );
     else if (target.id === "lb-landmark-reset") {
       remember();
