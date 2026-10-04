@@ -31,6 +31,51 @@ test("credits finish naturally, can be skipped with Escape and respect reduced m
     ui.show();
   });
   await expect(page.locator("#credits")).toBeVisible();
+  await expect(page.locator("#credits-authors h2")).toHaveText([
+    "Lexus Flexus",
+    "Giginius Spongius",
+    "SpiOngBiob SuciKopFen",
+    "Squidviviward",
+  ]);
+  await expect(page.locator("#credits-authors p")).toHaveText([
+    '"I never thought I could Vibe-Code an entire Game."',
+    '"I didn\'t read a single file written"',
+    '"sorry for the water usage"',
+    '"MORE DOPAMINE!"',
+  ]);
+  const desktopLayout = await page
+    .locator("#credits-authors > div")
+    .evaluateAll((rows) =>
+      rows.map((row) => {
+        const name = row.querySelector("h2")!.getBoundingClientRect();
+        const quote = row.querySelector("p")!.getBoundingClientRect();
+        const bounds = row.getBoundingClientRect();
+        return {
+          quoteBelowName: quote.top >= name.bottom,
+          insideViewport: bounds.left >= 0 && bounds.right <= window.innerWidth,
+        };
+      }),
+    );
+  expect(
+    desktopLayout.every((row) => row.quoteBelowName && row.insideViewport),
+  ).toBe(true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileLayout = await page
+    .locator("#credits-authors > div")
+    .evaluateAll((rows) =>
+      rows.map((row) => {
+        const name = row.querySelector("h2")!.getBoundingClientRect();
+        const quote = row.querySelector("p")!.getBoundingClientRect();
+        const bounds = row.getBoundingClientRect();
+        return {
+          quoteBelowName: quote.top >= name.bottom,
+          insideViewport: bounds.left >= 0 && bounds.right <= window.innerWidth,
+        };
+      }),
+    );
+  expect(
+    mobileLayout.every((row) => row.quoteBelowName && row.insideViewport),
+  ).toBe(true);
   await expect(page.locator(".credits-roll")).toHaveCSS(
     "animation-name",
     "none",

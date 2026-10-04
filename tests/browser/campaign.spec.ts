@@ -148,10 +148,16 @@ test("actual game loop automatically enters each next story and shows the ending
   await page.screenshot({ path: "/tmp/sponge-campaign-ending.png" });
   await expect(page.locator("#credits")).toBeVisible();
   await expect(page.locator("#credits-authors h2")).toHaveText([
-    "author1",
-    "author2",
-    "author3",
-    "author4",
+    "Lexus Flexus",
+    "Giginius Spongius",
+    "SpiOngBiob SuciKopFen",
+    "Squidviviward",
+  ]);
+  await expect(page.locator("#credits-authors p")).toHaveText([
+    '"I never thought I could Vibe-Code an entire Game."',
+    '"I didn\'t read a single file written"',
+    '"sorry for the water usage"',
+    '"MORE DOPAMINE!"',
   ]);
   await expect(page.locator("#credits-thanks")).toHaveText(
     "Special thanks to ton, our gracious host",
