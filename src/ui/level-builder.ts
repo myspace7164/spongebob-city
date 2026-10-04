@@ -414,9 +414,7 @@ export function createLevelBuilder(host: BuilderHost) {
     `spongebob-city:level-builder:draft:${editing ? libraryLocation(editing.id) : cityLevels[levelIndex].id}`;
   const authorInput = $<HTMLInputElement>("lb-author");
   const notesInput = $<HTMLTextAreaElement>("lb-notes");
-  const builderNameKey = ["spongebob-city", "level-builder", "author"].join(
-    ":",
-  );
+  const builderNameKey = "spongebob-city:level-builder:author";
   try {
     authorInput.value = localStorage.getItem(builderNameKey) ?? "";
   } catch {
