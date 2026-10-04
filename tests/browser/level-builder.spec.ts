@@ -219,7 +219,7 @@ test("builder markers align with the campaign map and default to the game camera
   expect(result.placedAngle).toBeCloseTo(45, 2);
   expect(result.countAfterPlacement).toBe(16);
   expect(result.playedAngle).toBeCloseTo(Math.PI / 4, 3);
-  expect(result.steppedAngle).toBeCloseTo(15, 2);
+  expect(result.steppedAngle).toBeCloseTo(5, 2);
   expect(result.undoneAngle).toBeCloseTo(0, 2);
   expect(result.worldAngle).toBeCloseTo(Math.PI / 4, 3);
   expect(result.movedDistance).toBeCloseTo(0, 5);
