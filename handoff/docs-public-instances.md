@@ -1,9 +1,9 @@
 # Public instance list and history privacy cleanup
 
-State: README complete; shared-history cleanup awaiting coordination.
+State: done; history cleanup cancelled.
 
-Done: Added the public instance and invited volunteer hosts to contact the authors through GitHub issues.
+Done: Added the public instance and invited volunteer hosts to contact the authors through GitHub issues. At the user's request, discarded the temporary cleaned-history copy and its validation artifacts. Shared history was never rewritten.
 
-Next: Confirm that every contributor has saved their work and agreed to re-clone after a history rewrite. The repository currently prohibits force-pushing; publishing rewritten shared history needs an explicit exception or a new clean repository. Keep original history backups private.
+Next: None. Keep the public instance list; do not resume history cleanup unless requested.
 
 Privacy: Earlier commits contain personal email addresses in author/committer metadata. Do not copy those addresses into shared documentation.
