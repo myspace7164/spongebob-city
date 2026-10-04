@@ -37,3 +37,5 @@ Living reference: `docs/design/style-sample.html`, served locally by Vite at `/d
 Current HUD: compact colorful gauges with labels and values inside; a readable gold wallet and brief three-coin funding receipt. Avoid continuous flashing or motion. Account/lobby/leaderboard copy is English; usernames are inserted as text.
 
 Ground boosts use original miniature props with gentle bobbing. One slot distinguishes gray empty, gold held and mint active states. Q activates once; H also offers activation. New drops are sparse. Locked inventory tiles are gray with a lock and remaining-level count; only available tools are introduced as usable. Sealed plots are dark with pale markings; open plots have bright green edges.
+
+The offline presentation in public/presentation.html uses a scoped inline theme: aqua, sponge yellow, dark ink and green; original SVG city diagrams, cropped gameplay clips from public/presentation-media/, and large readable type. It supports reduced motion and landscape print export using gameplay stills.

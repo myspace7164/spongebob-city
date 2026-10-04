@@ -95,6 +95,7 @@ temp/
 # ---------- Large or personal media (screen recordings, exports) ----------
 *.mov
 *.mp4
+!public/presentation-media/*.mp4
 
 # ---------- Package managers ----------
 .pixi/
