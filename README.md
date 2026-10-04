@@ -4,6 +4,12 @@ A playable four-level 3D sponge-city campaign across eight Basel location candid
 
 Built on Three.js, TypeScript and Vite. See [the design](docs/design.md) for gameplay, scope and limits.
 
+## Public instances
+
+- [spongecity.brexit.ch](https://spongecity.brexit.ch) — a public instance of Sponge City.
+
+Want to volunteer to host a public instance? Let the authors know through [a GitHub issue](https://github.com/myspace7164/spongebob-city/issues), including its URL, and they will add it to this list.
+
 ## Presentation
 
 Open [the animated presentation](public/presentation.html) directly in a browser or visit `/presentation.html` while the game server runs. The deck includes speaker notes and a printable sources appendix; see [presenting instructions](docs/pitch.md).
