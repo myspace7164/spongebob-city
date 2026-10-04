@@ -220,6 +220,7 @@ function withBuilt(level: CityLevel, built: BuiltLevel | undefined): CityLevel {
         ...level,
         location: built.location,
         site: built.site,
+        mapSite: built.site,
         layout: built.spots,
         origin: { x: 0, z: 0 },
       }

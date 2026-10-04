@@ -4,7 +4,7 @@ import { cast } from "../../config/characters.ts";
 import { castPosition } from "./cast.ts";
 import { cityConfig } from "../../config/city.ts";
 import type { CityState } from "../interfaces.ts";
-import { currentLevel } from "./campaign.ts";
+import { currentLevel, landmarkPose } from "./campaign.ts";
 import {
   boxCollider,
   circleCollider,
@@ -43,6 +43,7 @@ export function gameplayColliders(
           1.45,
           y,
           y + 2.7,
+          plot.rotationY ?? 0,
         ),
       );
     else if (plot.kind === "pond")
@@ -72,8 +73,8 @@ export function gameplayColliders(
         solids.push(
           circleCollider(
             `shade-post-${plot.id}-${side}`,
-            plot.x + side * 1.5,
-            plot.z,
+            plot.x + side * 1.5 * Math.cos(plot.rotationY ?? 0),
+            plot.z - side * 1.5 * Math.sin(plot.rotationY ?? 0),
             0.12,
             y,
             y + 2.6,
@@ -88,6 +89,7 @@ export function gameplayColliders(
           0.35,
           y + 0.45,
           y + 0.78,
+          plot.rotationY ?? 0,
         ),
       );
     }
@@ -95,9 +97,9 @@ export function gameplayColliders(
   // Match the in-world TopFiveLeaderboardSign transform in city-view.ts.
   // The board, posts and feet form one narrow physical footprint so players
   // can read it from the front and walk around either side.
-  const start = level?.site?.start ?? [0, 0];
-  const signX = origin.x + start[0] - 4;
-  const signZ = origin.z + start[1] + 1;
+  const board = landmarkPose(level, "leaderboard");
+  const signX = origin.x + board.x;
+  const signZ = origin.z + board.z;
   const signGround = groundAt(signX, signZ);
   solids.push(
     boxCollider(
@@ -108,7 +110,7 @@ export function gameplayColliders(
       0.3,
       signGround,
       signGround + 3.96,
-      Math.atan2(4, -1),
+      board.rotationY,
       "environment",
     ),
   );

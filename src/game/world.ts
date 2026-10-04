@@ -13,9 +13,14 @@ export function createWorld(scene: THREE.Scene) {
   const color = (name: string) =>
     new THREE.Color(style.getPropertyValue(name).trim());
   scene.background = color("--sky");
-  scene.fog = new THREE.Fog(color("--sky"), 35, 100);
-  scene.add(new THREE.HemisphereLight(0xffffff, color("--ink"), 2.4));
+  const { fog } = gameConfig.weatherVisuals;
+  scene.fog = new THREE.Fog(color("--sky"), fog.dry.near, fog.dry.far);
+  const skylight = new THREE.HemisphereLight(0xffffff, color("--ink"), 2.4);
+  skylight.name = "skylight";
+  scene.add(skylight);
+  // The weather view tints and dims these by heat and rain.
   const sunlight = new THREE.DirectionalLight(0xffffff, 2.5);
+  sunlight.name = "sunlight";
   sunlight.position.set(8, 14, 6);
   scene.add(sunlight);
 

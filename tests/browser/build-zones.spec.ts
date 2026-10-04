@@ -141,6 +141,24 @@ test("build zones blend with terrain, preview placements and disappear under fin
         await new Promise<void>((resolve) =>
           requestAnimationFrame(() => resolve()),
         );
+      state.plots[0].rotationY = Math.PI / 4;
+      view.update(state, player, 0, 7);
+      if (
+        Math.abs(surface.parent.rotation.y - Math.PI / 4) > 1e-8 ||
+        Math.abs(preview.rotation.y - Math.PI / 4) > 1e-8
+      )
+        throw new Error("Plot and preview rotations differ");
+      scene.updateMatrixWorld(true);
+      const rotatedPositions = surface.geometry.getAttribute("position");
+      for (let i = 0; i < rotatedPositions.count; i++) {
+        const point = new THREE.Vector3().fromBufferAttribute(
+          rotatedPositions,
+          i,
+        );
+        surface.localToWorld(point);
+        if (Math.abs(point.y - ground(point.x, point.z) - 0.018) > 1e-5)
+          throw new Error("Rotated field no longer conforms to terrain");
+      }
       state.plots[0].kind = "pond";
       view.update(state, player, 0, 7);
       reports.push({

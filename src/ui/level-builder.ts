@@ -1,15 +1,19 @@
 import * as THREE from "three";
 import { cityLevels } from "../../config/levels";
 import { groundStyle } from "../../config/ground";
+import { gameConfig } from "../../config/game";
 import type {
   BuiltLevel,
   CityTool,
+  CityLevel,
+  LandmarkId,
   LevelSite,
   LevelSpot,
   NpcId,
   SiteType,
   TerrainGrid,
 } from "../interfaces";
+import { landmarkPose } from "../game/campaign";
 import { label } from "../game/characters";
 import {
   categoryAt,
@@ -24,6 +28,8 @@ import {
   buildTools,
   checkCharacters,
   checkLayout,
+  landmarkIds,
+  landmarkNames,
   mapToPlay,
   mapToWorld,
   npcIds,
@@ -32,6 +38,7 @@ import {
   siteFromView,
   siteTypes,
   spotBuilds,
+  spotLocal,
   unionBounds,
 } from "../game/level-builder";
 import { playToMap, worldToMap } from "../game/streets";
@@ -44,6 +51,9 @@ export interface BuilderHost {
   camera: THREE.PerspectiveCamera;
   canvas: HTMLCanvasElement;
   levelIndex: () => number;
+  level: (index: number) => CityLevel;
+  selectLevel: (index: number) => void;
+  normalView: () => { x: number; z: number; yaw: number; pitch: number };
   terrain: () => TerrainGrid | null;
   groundAt: (x: number, z: number) => number;
   /** Play the draft of a level right away (in memory, not saved). */
@@ -53,14 +63,20 @@ export interface BuilderHost {
   /** Hide the mission's own plots/characters and ghost the trees while building. */
   showGameScene: (visible: boolean) => void;
 }
-type Tool = "spots" | "spawn" | "npcs";
+type Tool = "spots" | "spawn" | "npcs" | "objects";
 type Point = [number, number];
 /** A spot while building, in map-local metres (stable across level poses). */
 interface DraftSpot {
+  rotationY?: number;
   x: number;
   z: number;
   site: SiteType;
   builds?: CityTool[];
+}
+/** A moved world object in map-local metres; the angle is map-local too. */
+interface DraftLandmark {
+  at: Point;
+  rotationY?: number;
 }
 /** Everything undo restores. */
 interface Snapshot {
@@ -72,6 +88,8 @@ interface Snapshot {
   spawn: Point;
   facing: Point;
   npcs: Partial<Record<NpcId, Point>>;
+  /** Only moved objects; the others stay at their defaults. */
+  landmarks: Partial<Record<LandmarkId, DraftLandmark>>;
 }
 interface SavedVersion {
   id: string;
@@ -104,10 +122,17 @@ const npcColours: Record<NpcId, string> = {
   squidward: "#8fd1b5",
   beton: "#6b6f75",
 };
+const landmarkColours: Record<LandmarkId, string> = {
+  leaderboard: "#1d6fd8",
+  buddy: "#c79a5b",
+  powerup: "#b14fff",
+  streetSign: "#2e8b57",
+};
 const toolNames: Record<Tool, string> = {
   spots: "Spots",
   spawn: "Spawn",
   npcs: "Characters",
+  objects: "Objects",
 };
 const escape = (text: string) =>
   text.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -125,6 +150,8 @@ export function createLevelBuilder(host: BuilderHost) {
   let tool: Tool = "spots";
   let type: SiteType = "verge";
   let selected: number | null = null;
+  let selectedLandmark: LandmarkId | null = null;
+  let placementRotation = 0;
   let state: Snapshot = {
     spots: [],
     origin: [0, 0],
@@ -134,6 +161,7 @@ export function createLevelBuilder(host: BuilderHost) {
     spawn: [0, 0],
     facing: [0, -1],
     npcs: {},
+    landmarks: {},
   };
   let npcsTouched = false;
   let loaded = false;
@@ -144,11 +172,23 @@ export function createLevelBuilder(host: BuilderHost) {
   };
 
   // ---- Editor camera (focus in map-local metres) ----
-  const view = { focus: [0, 0] as Point, yaw: 0, pitch: 0.9, distance: 45 };
+  const view = {
+    focus: [0, 0] as Point,
+    yaw: 0,
+    pitch: 0.28,
+    distance: gameConfig.cameraDistance,
+    targetHeight: gameConfig.cameraTargetHeight,
+  };
+  let overview = false;
+  let renderedTerrain: TerrainGrid | null = null;
   const held = new Set<string>();
   let versions: SavedVersion[] = [];
-  const pose = () =>
-    levelScenery(cityLevels[host.levelIndex()], host.terrain());
+  const pose = () => ({
+    rotationY: host.scenery.rotation.y,
+    x: host.scenery.position.x,
+    y: host.scenery.position.y,
+    z: host.scenery.position.z,
+  });
   const groundMap = (x: number, z: number) => {
     return levelLocalGroundAt(pose(), x, z, host.groundAt);
   };
@@ -159,6 +199,7 @@ export function createLevelBuilder(host: BuilderHost) {
     view.focus = worldToMap(p, wx + dx, wz + dz);
   }
   function updateCamera(dt: number) {
+    if (renderedTerrain !== host.terrain()) render();
     const step = view.distance * 0.9 * dt;
     const fx = -Math.sin(view.yaw),
       fz = -Math.cos(view.yaw);
@@ -176,7 +217,7 @@ export function createLevelBuilder(host: BuilderHost) {
     if (held.has("KeyQ")) view.yaw += 1.6 * dt;
     if (held.has("KeyE")) view.yaw -= 1.6 * dt;
     const [wx, wz] = mapToWorld(pose(), ...view.focus);
-    const wy = host.groundAt(wx, wz);
+    const wy = host.groundAt(wx, wz) + view.targetHeight;
     const horizontal = Math.cos(view.pitch) * view.distance;
     host.camera.position.set(
       wx + Math.sin(view.yaw) * horizontal,
@@ -189,7 +230,27 @@ export function createLevelBuilder(host: BuilderHost) {
     const eye = host.camera.position;
     const at = new THREE.Vector3();
     for (const tag of tags)
-      tag.visible = tag.getWorldPosition(at).distanceTo(eye) > 6;
+      tag.visible = tag.getWorldPosition(at).distanceTo(eye) > 2;
+  }
+
+  function normalView() {
+    const normal = host.normalView();
+    overview = false;
+    view.focus = worldToMap(pose(), normal.x, normal.z);
+    view.yaw = normal.yaw;
+    view.pitch = normal.pitch;
+    view.distance = gameConfig.cameraDistance;
+    view.targetHeight = gameConfig.cameraTargetHeight;
+    render();
+  }
+
+  function overviewView() {
+    overview = true;
+    view.focus = state.spawn;
+    view.pitch = 0.9;
+    view.distance = Math.min(90, Math.max(35, state.area.length * 0.5));
+    view.targetHeight = 0;
+    render();
   }
 
   // ---- Land cover for character placement (tiles decoded on demand) ----
@@ -223,6 +284,7 @@ export function createLevelBuilder(host: BuilderHost) {
 
   // ---- Scene markers (children of the scenery group, so map-local) ----
   const markers = new THREE.Group();
+  markers.name = "level-builder-markers";
   host.scenery.add(markers);
   markers.visible = false;
   const tags: THREE.Sprite[] = [];
@@ -244,6 +306,11 @@ export function createLevelBuilder(host: BuilderHost) {
   panel.hidden = true;
   panel.innerHTML = `
     <div class="lb-title"><span aria-hidden="true">🛠</span> Level builder</div>
+    <p class="small">Game paused · left-click to select or place · right-drag to look · WASD to move the view.</p>
+    <div class="lb-actions">
+      <button type="button" id="lb-normal-view">Normal view</button>
+      <button type="button" id="lb-overview">Overview</button>
+    </div>
     <label class="lb-row">Level <select id="lb-level"></select></label>
     <section>
       <h3>1 · Area &amp; name</h3>
@@ -257,14 +324,24 @@ export function createLevelBuilder(host: BuilderHost) {
         <button type="button" data-tool="spots"><kbd>T</kbd> Spots</button>
         <button type="button" data-tool="spawn"><kbd>P</kbd> Spawn</button>
         <button type="button" data-tool="npcs"><kbd>C</kbd> Characters</button>
+        <button type="button" data-tool="objects"><kbd>O</kbd> Objects</button>
       </div>
       <div id="lb-tool-spots">
+        <p class="small">Click a coloured spot to select it, drag to move it, or delete it to place a replacement.</p>
         <div id="lb-types">${siteTypes
           .map(
             (t, i) =>
               `<button type="button" data-type="${t}"><span class="swatch" style="background:${typeColours[t]}"></span><kbd>${i + 1}</kbd> ${typeNames[t]}</button>`,
           )
           .join("")}</div>
+        <fieldset id="lb-rotation"><legend id="lb-rotation-label">Next spot</legend>
+          <div class="lb-actions">
+            <button type="button" id="lb-rotate-left">Rotate left 15°</button>
+            <button type="button" id="lb-rotate-right">Rotate right 15°</button>
+          </div>
+          <label class="lb-row">Angle ° <input id="lb-angle" type="number" step="any" /></label>
+          <button type="button" id="lb-new-spot">Place a new spot</button>
+        </fieldset>
         <fieldset id="lb-techniques"><legend>Selected spot</legend><div></div></fieldset>
         <p class="small">All spots (click to select and fly there):</p>
         <ol id="lb-spots"></ol>
@@ -273,6 +350,11 @@ export function createLevelBuilder(host: BuilderHost) {
       <div id="lb-tool-npcs">
         <p class="small">Drag a character to move it. Sandy should stay close to the spawn: she sells the upgrade.</p>
         <button type="button" id="lb-auto" class="lb-wide">✨ Auto-place characters</button>
+      </div>
+      <div id="lb-tool-objects">
+        <p class="small">Drag an object to move it. Faded objects use their default place (the leaderboard follows the spawn).</p>
+        <ol id="lb-landmarks"></ol>
+        <fieldset id="lb-landmark"><legend>Selected object</legend><div></div></fieldset>
       </div>
     </section>
     <section>
@@ -293,7 +375,7 @@ export function createLevelBuilder(host: BuilderHost) {
     <details class="small"><summary>Mouse &amp; keys</summary>
       Left-click: use the tool · drag: move · right-click: delete spot ·
       right-drag: rotate view · Shift+drag or middle-drag: move view · wheel: zoom ·
-      WASD/arrows: move view · Q/E: rotate · F: focus selection · Home: focus spawn ·
+      WASD/arrows: move view · Q/E: rotate · F: focus selection · Home: focus spawn · O: objects ·
       Delete: remove selected spot · N: close
     </details>`;
   document.body.append(panel);
@@ -331,15 +413,24 @@ export function createLevelBuilder(host: BuilderHost) {
           (spot) =>
             Number.isFinite(spot.x) &&
             Number.isFinite(spot.z) &&
-            siteTypes.includes(spot.site),
+            siteTypes.includes(spot.site) &&
+            (spot.rotationY === undefined || Number.isFinite(spot.rotationY)),
         ) ||
         !draft.npcs ||
         !Object.entries(draft.npcs).every(
           ([id, at]) => npcIds.includes(id as NpcId) && isPoint(at),
+        ) ||
+        // Drafts saved before objects were editable have no landmarks.
+        !Object.entries(draft.landmarks ?? {}).every(
+          ([id, placed]) =>
+            landmarkIds.includes(id as LandmarkId) &&
+            isPoint(placed?.at) &&
+            (placed.rotationY === undefined ||
+              Number.isFinite(placed.rotationY)),
         )
       )
         return;
-      return structuredClone(draft);
+      return { ...structuredClone(draft), landmarks: draft.landmarks ?? {} };
     } catch {
       return;
     }
@@ -367,6 +458,7 @@ export function createLevelBuilder(host: BuilderHost) {
     state = saved;
     npcsTouched = true;
     selected = null;
+    selectedLandmark = null;
     view.focus = state.spawn;
     render();
     status(
@@ -376,10 +468,11 @@ export function createLevelBuilder(host: BuilderHost) {
 
   // ---- Model ↔ level ----
   function load(index: number) {
+    host.selectLevel(index);
     levelIndex = index;
     loaded = true;
-    const level = cityLevels[index];
-    const p = levelScenery(level, host.terrain());
+    const level = host.level(index);
+    const p = pose();
     const o = level.origin ?? { x: 0, z: 0 };
     const local = (x: number, z: number) => worldToMap(p, o.x + x, o.z + z);
     const [sx, sz] = level.site?.start ?? [0, 0];
@@ -391,6 +484,17 @@ export function createLevelBuilder(host: BuilderHost) {
     for (const id of npcIds) {
       const at = level.site?.npcs?.[id];
       if (at) npcs[id] = local(...at);
+    }
+    const landmarks: Partial<Record<LandmarkId, DraftLandmark>> = {};
+    for (const id of landmarkIds) {
+      const placed = level.site?.landmarks?.[id];
+      if (placed)
+        landmarks[id] = {
+          at: local(...placed.at),
+          ...(placed.rotationY !== undefined
+            ? { rotationY: placed.rotationY - p.rotationY }
+            : {}),
+        };
     }
     state = {
       origin,
@@ -407,18 +511,21 @@ export function createLevelBuilder(host: BuilderHost) {
           x,
           z,
           site: s.site ?? "verge",
+          rotationY: (s.rotationY ?? 0) - p.rotationY,
           ...(s.builds ? { builds: [...s.builds] } : {}),
         };
       }),
       npcs,
+      landmarks,
     };
     npcsTouched = Object.keys(npcs).length > 0;
     undoStack.length = 0;
     // Load the land cover for this area now, so auto-placing is instant later.
     void ensureGround([origin, spawn, ...Object.values(npcs)]);
     selected = null;
-    view.focus = spawn;
-    render();
+    selectedLandmark = null;
+    placementRotation = -draft().site.heading;
+    normalView();
     void refreshVersions();
   }
 
@@ -432,7 +539,13 @@ export function createLevelBuilder(host: BuilderHost) {
     const toPlay = ([x, z]: Point) => mapToPlay(site, x, z);
     const spots: LevelSpot[] = state.spots.map((s) => {
       const [x, z] = toPlay([s.x, s.z]);
-      return { x, z, site: s.site, ...(s.builds ? { builds: s.builds } : {}) };
+      return {
+        x,
+        z,
+        rotationY: (s.rotationY ?? -site.heading) + site.heading,
+        site: s.site,
+        ...(s.builds ? { builds: s.builds } : {}),
+      };
     });
     const start = toPlay(state.spawn);
     const [lx, lz] = sub(
@@ -450,7 +563,22 @@ export function createLevelBuilder(host: BuilderHost) {
       if (at) npcs[id] = toPlay(at);
     }
     site.npcs = npcs;
-    const extra = [start, ...Object.values(npcs)].map(([x, z]) => ({
+    site.landmarks = {};
+    for (const id of landmarkIds) {
+      const placed = state.landmarks[id];
+      if (!placed) continue;
+      site.landmarks[id] = {
+        at: toPlay(placed.at),
+        ...(placed.rotationY !== undefined
+          ? { rotationY: placed.rotationY + site.heading }
+          : {}),
+      };
+    }
+    const extra = [
+      start,
+      ...Object.values(npcs),
+      ...Object.values(site.landmarks).map((placed) => placed.at),
+    ].map(([x, z]) => ({
       x,
       z,
       site: "verge" as const,
@@ -463,6 +591,26 @@ export function createLevelBuilder(host: BuilderHost) {
       autoBounds(extra, start, 2),
     );
     return { location: state.name, site, spots };
+  }
+
+  /** Where an object stands in map-local metres: moved, or its default. */
+  function landmarkAt(
+    id: LandmarkId,
+    site = draft().site,
+  ): DraftLandmark & { moved: boolean; rotationY: number } {
+    const placed = state.landmarks[id];
+    if (placed)
+      return {
+        at: placed.at,
+        rotationY: placed.rotationY ?? -site.heading,
+        moved: true,
+      };
+    const fallback = landmarkPose({ site } as CityLevel, id);
+    return {
+      at: playToMap(site, fallback.x, fallback.z),
+      rotationY: fallback.rotationY - site.heading,
+      moved: false,
+    };
   }
 
   async function autoPlace(reason: string) {
@@ -496,7 +644,8 @@ export function createLevelBuilder(host: BuilderHost) {
   }
 
   function outlines(): AreaOutline[] {
-    return cityLevels.map((level, i) => {
+    return cityLevels.map((_, i) => {
+      const level = host.level(i);
       const p = levelScenery(level, host.terrain());
       const o = level.origin ?? { x: 0, z: 0 };
       const b = level.site?.bounds ?? {
@@ -523,6 +672,7 @@ export function createLevelBuilder(host: BuilderHost) {
 
   // ---- Rendering ----
   function render() {
+    renderedTerrain = host.terrain();
     markers.clear();
     tags.length = 0;
     const level = draft();
@@ -544,8 +694,10 @@ export function createLevelBuilder(host: BuilderHost) {
           color: i === selected ? "#ffffff" : typeColours[s.site],
         }),
       );
+      tile.name = `builder-spot-${i + 1}`;
       tile.position.set(s.x, y(s.x, s.z) + 0.2, s.z);
-      tile.rotation.y = -level.site.heading;
+      tile.rotation.y = s.rotationY ?? -level.site.heading;
+      tile.userData.spotIndex = i;
       markers.add(tile);
       tag(`#${i + 1} ${typeNames[s.site]}`, s.x, s.z, 2.2);
     });
@@ -571,6 +723,7 @@ export function createLevelBuilder(host: BuilderHost) {
       new THREE.RingGeometry(0.9, 1.3, 32),
       new THREE.MeshBasicMaterial({ color: "#000000", side: THREE.DoubleSide }),
     );
+    ring.name = "builder-spawn";
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(sx, y(sx, sz) + 0.12, sz);
     const n = len(state.facing) || 1;
@@ -608,11 +761,63 @@ export function createLevelBuilder(host: BuilderHost) {
       markers.add(body);
       tag(npcNames[id], at[0], at[1], 2.6);
     }
+    for (const id of landmarkIds) {
+      const { at, rotationY, moved } = landmarkAt(id, level.site);
+      const material = new THREE.MeshBasicMaterial({
+        color: id === selectedLandmark ? "#ffffff" : landmarkColours[id],
+        transparent: !moved,
+        opacity: moved ? 1 : 0.45,
+      });
+      const ground = y(...at);
+      const object = new THREE.Group();
+      object.name = `builder-object-${id}`;
+      object.userData.landmark = id;
+      object.position.set(at[0], ground, at[1]);
+      object.rotation.y = rotationY;
+      if (id === "leaderboard") {
+        const board = new THREE.Mesh(
+          new THREE.BoxGeometry(3.3, 2, 0.25),
+          material,
+        );
+        board.position.y = 2.6;
+        const post = new THREE.Mesh(
+          new THREE.BoxGeometry(0.2, 1.6, 0.2),
+          material,
+        );
+        post.position.y = 0.8;
+        object.add(board, post);
+      } else if (id === "streetSign") {
+        const pole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.1, 0.1, 6, 8),
+          material,
+        );
+        pole.position.y = 3;
+        const plate = new THREE.Mesh(
+          new THREE.BoxGeometry(2.6, 0.8, 0.15),
+          material,
+        );
+        plate.position.y = 6;
+        object.add(pole, plate);
+      } else if (id === "buddy") {
+        const body = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.5, 0.5, 1.7, 14),
+          material,
+        );
+        body.position.y = 0.85;
+        object.add(body);
+      } else {
+        const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.6), material);
+        gem.position.y = 0.9;
+        object.add(gem);
+      }
+      markers.add(object);
+      tag(landmarkNames[id], at[0], at[1], id === "streetSign" ? 7 : 3.4);
+    }
     // Panel and banner.
     $<HTMLSelectElement>("lb-level").innerHTML = cityLevels
       .map(
         (l, i) =>
-          `<option value="${i}" ${i === levelIndex ? "selected" : ""}>${i + 1} · ${escape(i === levelIndex ? state.name : l.location)}</option>`,
+          `<option value="${i}" ${i === levelIndex ? "selected" : ""}>${i + 1} · ${escape(i === levelIndex ? state.name : host.level(i).location)}</option>`,
       )
       .join("");
     if (document.activeElement !== nameInput) nameInput.value = state.name;
@@ -623,7 +828,7 @@ export function createLevelBuilder(host: BuilderHost) {
       .forEach((b) =>
         b.setAttribute("aria-pressed", String(b.dataset.tool === tool)),
       );
-    for (const t of ["spots", "spawn", "npcs"] as Tool[])
+    for (const t of ["spots", "spawn", "npcs", "objects"] as Tool[])
       $(`lb-tool-${t}`).hidden = t !== tool;
     panel
       .querySelectorAll<HTMLButtonElement>("#lb-types button")
@@ -636,6 +841,21 @@ export function createLevelBuilder(host: BuilderHost) {
           `<li><button type="button" data-spot="${i}" aria-pressed="${i === selected}"><span class="swatch" style="background:${typeColours[s.site]}"></span>#${i + 1} ${typeNames[s.site]}</button></li>`,
       )
       .join("");
+    $("lb-rotation-label").textContent =
+      selected === null ? "Next spot" : `Selected spot #${selected + 1}`;
+    const angleInput = $<HTMLInputElement>("lb-angle");
+    if (document.activeElement !== angleInput)
+      angleInput.value = String(
+        Math.round(
+          ((((selected === null
+            ? placementRotation
+            : (state.spots[selected].rotationY ?? -level.site.heading)) +
+            level.site.heading) *
+            180) /
+            Math.PI) *
+            1000,
+        ) / 1000,
+      );
     const box = $("lb-techniques").querySelector("div")!;
     const spot = selected === null ? undefined : state.spots[selected];
     box.innerHTML = spot
@@ -648,8 +868,32 @@ export function createLevelBuilder(host: BuilderHost) {
         `<button type="button" id="lb-reset">Reset to ${typeNames[spot.site]}</button>` +
         `<button type="button" id="lb-delete" class="lb-danger">🗑 Delete spot #${selected! + 1}</button>`
       : `<p class="small">Click a spot to select it. Unsealing always works.</p>`;
+    $("lb-landmarks").innerHTML = landmarkIds
+      .map(
+        (id) =>
+          `<li><button type="button" data-landmark="${id}" aria-pressed="${id === selectedLandmark}"><span class="swatch" style="background:${landmarkColours[id]}"></span>${landmarkNames[id]}${state.landmarks[id] ? "" : " · default"}</button></li>`,
+      )
+      .join("");
+    const objectBox = $("lb-landmark").querySelector("div")!;
+    if (selectedLandmark) {
+      const chosen = landmarkAt(selectedLandmark, level.site);
+      const degrees =
+        Math.round(
+          (((chosen.rotationY + level.site.heading) * 180) / Math.PI) * 1000,
+        ) / 1000;
+      objectBox.innerHTML =
+        `<p class="small">${landmarkNames[selectedLandmark]}${chosen.moved ? "" : " (default place)"}</p>` +
+        (selectedLandmark === "leaderboard"
+          ? `<div class="lb-actions"><button type="button" data-turn="1">Rotate left 15°</button><button type="button" data-turn="-1">Rotate right 15°</button></div>` +
+            `<label class="lb-row">Angle ° <input id="lb-landmark-angle" type="number" step="any" value="${degrees}" /></label>`
+          : "") +
+        (chosen.moved
+          ? `<button type="button" id="lb-landmark-reset">Reset to default place</button>`
+          : "");
+    } else
+      objectBox.innerHTML = `<p class="small">Click an object in the list or in the view to select it.</p>`;
     const problems = [
-      ...checkLayout(state.spots, cityLevels[levelIndex].goals),
+      ...checkLayout(level.spots, cityLevels[levelIndex].goals),
       ...checkCharacters(level.site, level.spots),
     ];
     $("lb-problems").innerHTML = problems.length
@@ -658,6 +902,8 @@ export function createLevelBuilder(host: BuilderHost) {
     banner.textContent = `🛠 LEVEL BUILDER · Level ${levelIndex + 1} · ${state.name} · tool: ${toolNames[tool]}${tool === "spots" ? ` (${typeNames[type]})` : ""} · ${state.spots.length}/16 spots · N: close`;
     document.body.style.setProperty("--builder-type", typeColours[type]);
     $<HTMLButtonElement>("lb-undo").disabled = undoStack.length === 0;
+    $("lb-normal-view").setAttribute("aria-pressed", String(!overview));
+    $("lb-overview").setAttribute("aria-pressed", String(overview));
     $<HTMLButtonElement>("lb-load-draft").disabled = !storedDraft();
     const historySelect = $<HTMLSelectElement>("lb-history");
     const chosenVersion = historySelect.value;
@@ -673,7 +919,7 @@ export function createLevelBuilder(host: BuilderHost) {
   }
 
   // ---- Mouse picking ----
-  function pick(event: MouseEvent): Point | null {
+  function mouseRay(event: MouseEvent): THREE.Raycaster {
     const rect = host.canvas.getBoundingClientRect();
     const ndc = new THREE.Vector2(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -681,6 +927,28 @@ export function createLevelBuilder(host: BuilderHost) {
     );
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, host.camera);
+    return ray;
+  }
+  function meshSpotAt(event: MouseEvent): number {
+    markers.updateWorldMatrix(true, true);
+    const tiles = markers.children.filter(
+      (o) => o.userData.spotIndex !== undefined,
+    );
+    return (
+      mouseRay(event).intersectObjects(tiles, false)[0]?.object.userData
+        .spotIndex ?? -1
+    );
+  }
+  /** The object whose marker is under the mouse, else the nearest on the ground. */
+  function landmarkUnder(event: MouseEvent, at: Point | null) {
+    markers.updateWorldMatrix(true, true);
+    const objects = markers.children.filter((o) => o.userData.landmark);
+    const hit = mouseRay(event).intersectObjects(objects, true)[0]?.object;
+    const id = hit?.parent?.userData.landmark as LandmarkId | undefined;
+    return id ?? (at ? landmarkHit(at) : undefined);
+  }
+  function pick(event: MouseEvent): Point | null {
+    const ray = mouseRay(event);
     const p = new THREE.Vector3();
     const step = Math.max(0.25, view.distance / 200);
     for (let t = 0.5; t < 800; t += step) {
@@ -692,15 +960,42 @@ export function createLevelBuilder(host: BuilderHost) {
   const spotAt = (at: Point) =>
     state.spots.findIndex((s) => {
       const [w, d] = plotFootprint(s.site);
-      return Math.abs(s.x - at[0]) <= w / 2 && Math.abs(s.z - at[1]) <= d / 2;
+      const [x, z] = spotLocal(
+        { ...s, rotationY: s.rotationY ?? -draft().site.heading },
+        ...at,
+      );
+      return Math.abs(x) <= w / 2 && Math.abs(z) <= d / 2;
     });
   const npcAt = (at: Point) =>
     npcIds.find((id) => state.npcs[id] && len(sub(state.npcs[id]!, at)) < 1.4);
+  const landmarkHit = (at: Point) => {
+    const site = draft().site;
+    return landmarkIds.find(
+      (id) =>
+        len(sub(landmarkAt(id, site).at, at)) <
+        (id === "leaderboard" ? 2 : 1.4),
+    );
+  };
 
   let drag:
-    | { kind: "spot"; index: number; offset: Point }
+    | {
+        kind: "spot";
+        index: number;
+        offset: Point;
+        x: number;
+        y: number;
+        moved: boolean;
+      }
     | { kind: "spawn" }
     | { kind: "npc"; id: NpcId }
+    | {
+        kind: "landmark";
+        id: LandmarkId;
+        offset: Point;
+        x: number;
+        y: number;
+        moved: boolean;
+      }
     | { kind: "rotate" | "pan"; x: number; y: number; moved: boolean }
     | null = null;
   const canvas = host.canvas;
@@ -718,7 +1013,16 @@ export function createLevelBuilder(host: BuilderHost) {
       drag = { kind: "pan", x: e.clientX, y: e.clientY, moved: false };
       return;
     }
-    const at = pick(e);
+    const meshHit = tool === "spots" ? meshSpotAt(e) : -1;
+    const ground = pick(e);
+    const objectHit = tool === "objects" ? landmarkUnder(e, ground) : undefined;
+    const at =
+      ground ??
+      (meshHit >= 0
+        ? ([state.spots[meshHit].x, state.spots[meshHit].z] as Point)
+        : objectHit
+          ? landmarkAt(objectHit).at
+          : null);
     if (!at) {
       status(
         "That click didn't hit the ground. Zoom in (wheel) or turn the view (right-drag).",
@@ -726,13 +1030,15 @@ export function createLevelBuilder(host: BuilderHost) {
       return;
     }
     if (tool === "spots") {
-      const hit = spotAt(at);
+      const hit = meshHit;
       if (hit >= 0) {
-        remember();
         selected = hit;
         drag = {
           kind: "spot",
           index: hit,
+          x: e.clientX,
+          y: e.clientY,
+          moved: false,
           offset: sub([state.spots[hit].x, state.spots[hit].z], at),
         };
         status(
@@ -740,9 +1046,21 @@ export function createLevelBuilder(host: BuilderHost) {
         );
       } else if (state.spots.length < 16) {
         remember();
-        state.spots.push({ x: at[0], z: at[1], site: type });
+        state.spots.push({
+          x: at[0],
+          z: at[1],
+          site: type,
+          rotationY: placementRotation,
+        });
         selected = state.spots.length - 1;
-        drag = { kind: "spot", index: selected, offset: [0, 0] };
+        drag = {
+          kind: "spot",
+          index: selected,
+          offset: [0, 0],
+          x: e.clientX,
+          y: e.clientY,
+          moved: true,
+        };
         status(
           `Spot #${selected + 1} placed (${typeNames[type]}). ${16 - state.spots.length} left to place.`,
         );
@@ -754,6 +1072,20 @@ export function createLevelBuilder(host: BuilderHost) {
       remember();
       state.spawn = at;
       drag = { kind: "spawn" };
+    } else if (tool === "objects") {
+      const id = objectHit;
+      selectedLandmark = id ?? null;
+      if (id) {
+        drag = {
+          kind: "landmark",
+          id,
+          offset: sub(landmarkAt(id).at, at),
+          x: e.clientX,
+          y: e.clientY,
+          moved: false,
+        };
+        status(`${landmarkNames[id]} selected: drag to move it.`);
+      }
     } else {
       const id = npcAt(at);
       if (id) {
@@ -787,6 +1119,11 @@ export function createLevelBuilder(host: BuilderHost) {
     const at = pick(e);
     if (!at) return;
     if (drag?.kind === "spot") {
+      if (!drag.moved) {
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return;
+        remember();
+        drag.moved = true;
+      }
       state.spots[drag.index].x = at[0] + drag.offset[0];
       state.spots[drag.index].z = at[1] + drag.offset[1];
       render();
@@ -798,12 +1135,25 @@ export function createLevelBuilder(host: BuilderHost) {
       state.npcs[drag.id] = at;
       npcsTouched = true;
       render();
+    } else if (drag?.kind === "landmark") {
+      if (!drag.moved) {
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return;
+        remember();
+        drag.moved = true;
+      }
+      // Keep the current facing so a first move doesn't turn the sign.
+      const { rotationY } = landmarkAt(drag.id);
+      state.landmarks[drag.id] = {
+        at: [at[0] + drag.offset[0], at[1] + drag.offset[1]],
+        ...(drag.id === "leaderboard" ? { rotationY } : {}),
+      };
+      render();
     }
     ghost.visible = tool === "spots" && !drag && spotAt(at) < 0;
     if (ghost.visible) {
       const [w, d] = plotFootprint(type);
       ghost.scale.set(w, 1, d);
-      ghost.rotation.y = -draft().site.heading;
+      ghost.rotation.y = placementRotation;
       ghost.position.set(at[0], groundMap(...at) + 0.25, at[1]);
       (ghost.material as THREE.MeshBasicMaterial).color.set(typeColours[type]);
     }
@@ -814,8 +1164,7 @@ export function createLevelBuilder(host: BuilderHost) {
     drag = null;
     if (ended.kind === "rotate" && !ended.moved && tool === "spots") {
       // A right-click without dragging deletes the spot under the mouse.
-      const at = pick(e);
-      const hit = at ? spotAt(at) : -1;
+      const hit = meshSpotAt(e);
       if (hit >= 0) {
         remember();
         state.spots.splice(hit, 1);
@@ -870,6 +1219,7 @@ export function createLevelBuilder(host: BuilderHost) {
     } else if (e.code === "KeyT") setTool("spots");
     else if (e.code === "KeyP") setTool("spawn");
     else if (e.code === "KeyC") setTool("npcs");
+    else if (e.code === "KeyO") setTool("objects");
     else if (
       (e.code === "Delete" || e.code === "Backspace") &&
       selected !== null
@@ -878,7 +1228,9 @@ export function createLevelBuilder(host: BuilderHost) {
       state.spots.splice(selected, 1);
       selected = null;
       render();
-    } else if (e.code === "KeyF" && selected !== null)
+    } else if (e.code === "KeyF" && tool === "objects" && selectedLandmark)
+      view.focus = landmarkAt(selectedLandmark).at;
+    else if (e.code === "KeyF" && selected !== null)
       view.focus = [state.spots[selected].x, state.spots[selected].z];
     else if (e.code === "Home") view.focus = state.spawn;
     else if (e.code === "KeyN") host.backToGame();
@@ -906,6 +1258,7 @@ export function createLevelBuilder(host: BuilderHost) {
     if (!previous) return status("Nothing to undo.");
     state = previous;
     selected = null;
+    selectedLandmark = null;
     status("Undone.");
     render();
   }
@@ -926,7 +1279,7 @@ export function createLevelBuilder(host: BuilderHost) {
     }
   }
   async function applyDraft() {
-    const problems = checkLayout(state.spots, []);
+    const problems = checkLayout(draft().spots, []);
     if (problems.length) return status(`Not applied: ${problems.join(" ")}`);
     if (
       !window.confirm(
@@ -1029,7 +1382,78 @@ export function createLevelBuilder(host: BuilderHost) {
     delete state.spots[selected].builds;
     render();
   });
+  function rotateSpot(radians: number) {
+    if (!Number.isFinite(radians)) return;
+    if (selected === null) placementRotation = radians;
+    else {
+      remember();
+      state.spots[selected].rotationY = radians;
+    }
+    ghost.rotation.y = radians;
+    render();
+  }
+  const currentRotation = () =>
+    selected === null
+      ? placementRotation
+      : (state.spots[selected].rotationY ?? -draft().site.heading);
+  $("lb-rotate-left").addEventListener("click", () =>
+    rotateSpot(currentRotation() + Math.PI / 12),
+  );
+  $("lb-rotate-right").addEventListener("click", () =>
+    rotateSpot(currentRotation() - Math.PI / 12),
+  );
+  $("lb-angle").addEventListener("change", () => {
+    const degrees = $<HTMLInputElement>("lb-angle").valueAsNumber;
+    rotateSpot((degrees * Math.PI) / 180 - draft().site.heading);
+  });
+  $("lb-new-spot").addEventListener("click", () => {
+    placementRotation = currentRotation();
+    selected = null;
+    status("Click free ground to place a spot with this angle.");
+    render();
+  });
+  $("lb-landmarks").addEventListener("click", (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>("button");
+    if (!b?.dataset.landmark) return;
+    selectedLandmark = b.dataset.landmark as LandmarkId;
+    view.focus = landmarkAt(selectedLandmark).at;
+    status(`${landmarkNames[selectedLandmark]} selected: the view flew there.`);
+    render();
+  });
+  function turnLandmark(radians: number) {
+    if (!selectedLandmark || !Number.isFinite(radians)) return;
+    remember();
+    state.landmarks[selectedLandmark] = {
+      at: landmarkAt(selectedLandmark).at,
+      rotationY: radians,
+    };
+    render();
+  }
+  $("lb-landmark").addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    if (!selectedLandmark) return;
+    if (target.dataset.turn)
+      turnLandmark(
+        landmarkAt(selectedLandmark).rotationY +
+          (Number(target.dataset.turn) * Math.PI) / 12,
+      );
+    else if (target.id === "lb-landmark-reset") {
+      remember();
+      delete state.landmarks[selectedLandmark];
+      status(
+        `${landmarkNames[selectedLandmark]} is back at its default place.`,
+      );
+      render();
+    }
+  });
+  $("lb-landmark").addEventListener("change", (e) => {
+    const input = e.target as HTMLInputElement;
+    if (input.id !== "lb-landmark-angle") return;
+    turnLandmark((input.valueAsNumber * Math.PI) / 180 - draft().site.heading);
+  });
   $("lb-auto").addEventListener("click", () => void autoPlace("on request"));
+  $("lb-normal-view").addEventListener("click", normalView);
+  $("lb-overview").addEventListener("click", overviewView);
   $("lb-undo").addEventListener("click", undo);
   $("lb-save-draft").addEventListener("click", saveDraft);
   $("lb-load-draft").addEventListener("click", loadDraft);
@@ -1037,7 +1461,7 @@ export function createLevelBuilder(host: BuilderHost) {
   $("lb-restore").addEventListener("click", () => void restoreVersion());
   $("lb-exit").addEventListener("click", () => host.backToGame());
   $("lb-test").addEventListener("click", () => {
-    const problems = checkLayout(state.spots, []);
+    const problems = checkLayout(draft().spots, []);
     if (problems.length)
       return status(`Cannot test yet: ${problems.join(" ")}`);
     host.testPlay(cityLevels[levelIndex].id, draft());
@@ -1079,10 +1503,15 @@ export function createLevelBuilder(host: BuilderHost) {
         state.spawn = choice.start;
         state.facing = choice.forward;
         state.area = { width: choice.width, length: choice.length };
+        // Objects placed for the old area would end up far away.
+        state.landmarks = {};
+        selectedLandmark = null;
         state.name = choice.name.trim() || state.name;
         selected = null;
         view.focus = choice.start;
-        view.distance = Math.max(40, choice.length * 0.7);
+        view.distance = overview
+          ? Math.min(90, Math.max(40, choice.length * 0.7))
+          : gameConfig.cameraDistance;
         render();
         void autoPlace("for the new area");
       },
@@ -1108,7 +1537,7 @@ export function createLevelBuilder(host: BuilderHost) {
       if (active) {
         if (!loaded || levelIndex !== host.levelIndex())
           load(host.levelIndex());
-        else render();
+        else normalView();
       }
     },
     updateCamera,

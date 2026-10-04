@@ -4,6 +4,8 @@ import { siteTechniques } from "../../config/sites";
 import type {
   BuiltLevel,
   CityTool,
+  LandmarkId,
+  LandmarkPlacement,
   LevelGoal,
   LevelSite,
   LevelSpot,
@@ -21,6 +23,42 @@ export const plotFootprint = (_site?: SiteType): [number, number] => [
   spotSize,
   spotSize,
 ];
+
+/** Point expressed along a field's own axes. */
+export function spotLocal(
+  spot: LevelSpot,
+  x: number,
+  z: number,
+): [number, number] {
+  const c = Math.cos(spot.rotationY ?? 0),
+    s = Math.sin(spot.rotationY ?? 0);
+  const dx = x - spot.x,
+    dz = z - spot.z;
+  return [c * dx - s * dz, s * dx + c * dz];
+}
+
+/** Separating-axis check for oriented field squares; touching edges are allowed. */
+function spotsOverlap(a: LevelSpot, b: LevelSpot): boolean {
+  const angles = [a.rotationY ?? 0, b.rotationY ?? 0];
+  for (const angle of angles)
+    for (const axis of [angle, angle + Math.PI / 2]) {
+      const ux = Math.cos(axis),
+        uz = -Math.sin(axis);
+      const radius = (spot: LevelSpot) => {
+        const [w, d] = plotFootprint(spot.site);
+        const delta = (spot.rotationY ?? 0) - axis;
+        return (
+          (w * Math.abs(Math.cos(delta)) + d * Math.abs(Math.sin(delta))) / 2
+        );
+      };
+      if (
+        Math.abs((b.x - a.x) * ux + (b.z - a.z) * uz) >=
+        radius(a) + radius(b) - 1e-8
+      )
+        return false;
+    }
+  return true;
+}
 
 export const siteTypes: readonly SiteType[] = [
   "parking",
@@ -82,8 +120,12 @@ export function autoBounds(
     zs = [start[1]];
   for (const spot of spots) {
     const [w, d] = plotFootprint(spot.site);
-    xs.push(spot.x - w / 2, spot.x + w / 2);
-    zs.push(spot.z - d / 2, spot.z + d / 2);
+    const c = Math.abs(Math.cos(spot.rotationY ?? 0)),
+      s = Math.abs(Math.sin(spot.rotationY ?? 0));
+    const hx = (w * c + d * s) / 2,
+      hz = (w * s + d * c) / 2;
+    xs.push(spot.x - hx, spot.x + hx);
+    zs.push(spot.z - hz, spot.z + hz);
   }
   return {
     minX: round(Math.min(...xs) - margin),
@@ -130,12 +172,7 @@ export function checkLayout(
   if (missing < 0) problems.push(`Remove ${-missing} spot(s).`);
   spots.forEach((a, i) =>
     spots.slice(i + 1).forEach((b, k) => {
-      const [aw, ad] = plotFootprint(a.site),
-        [bw, bd] = plotFootprint(b.site);
-      if (
-        Math.abs(a.x - b.x) < (aw + bw) / 2 &&
-        Math.abs(a.z - b.z) < (ad + bd) / 2
-      )
+      if (spotsOverlap(a, b))
         problems.push(`Spots #${i + 1} and #${i + k + 2} overlap.`);
     }),
   );
@@ -209,12 +246,15 @@ export function validateBuiltLevel(
   const spots = level.spots.map((spot) => {
     if (!finite(spot.x) || !finite(spot.z) || !siteTypes.includes(spot.site!))
       throw new Error("Invalid spot");
+    if (spot.rotationY !== undefined && !finite(spot.rotationY))
+      throw new Error("Invalid spot rotation");
     if (spot.builds && !spot.builds.every((t) => buildTools.includes(t)))
       throw new Error("Unknown technique");
     return {
       x: round(spot.x),
       z: round(spot.z),
       site: spot.site,
+      ...(spot.rotationY !== undefined ? { rotationY: spot.rotationY } : {}),
       ...(spot.builds ? { builds: [...spot.builds] } : {}),
     };
   });
@@ -237,6 +277,28 @@ export function validateBuiltLevel(
       throw new Error(`${id} stands outside the level area`);
     npcs[id as NpcId] = [round(at[0]), round(at[1])];
   }
+  const landmarks: Partial<Record<LandmarkId, LandmarkPlacement>> = {};
+  for (const [id, placement] of Object.entries(site.landmarks ?? {})) {
+    const at = placement?.at;
+    if (
+      !landmarkIds.includes(id as LandmarkId) ||
+      !Array.isArray(at) ||
+      at.length !== 2 ||
+      !at.every(finite) ||
+      (placement.rotationY !== undefined && !finite(placement.rotationY))
+    )
+      throw new Error("Invalid object position");
+    if (!inside(at))
+      throw new Error(
+        `${landmarkNames[id as LandmarkId]} lies outside the level area`,
+      );
+    landmarks[id as LandmarkId] = {
+      at: [round(at[0]), round(at[1])],
+      ...(placement.rotationY !== undefined
+        ? { rotationY: Math.round(placement.rotationY * 1e4) / 1e4 }
+        : {}),
+    };
+  }
   if (!inside(site.start as [number, number]))
     throw new Error("The spawn lies outside the level area");
   return {
@@ -246,6 +308,7 @@ export function validateBuiltLevel(
         ? { startYaw: Math.round(site.startYaw * 1e4) / 1e4 }
         : {}),
       ...(Object.keys(npcs).length ? { npcs } : {}),
+      ...(Object.keys(landmarks).length ? { landmarks } : {}),
       street: location,
       origin: [round(site.origin[0]), round(site.origin[1])],
       heading: site.heading,
@@ -255,6 +318,20 @@ export function validateBuiltLevel(
     spots,
   };
 }
+
+/** World objects the builder can move (defaults: config/city.ts). */
+export const landmarkIds: readonly LandmarkId[] = [
+  "leaderboard",
+  "buddy",
+  "powerup",
+  "streetSign",
+];
+export const landmarkNames: Record<LandmarkId, string> = {
+  leaderboard: "Leaderboard sign",
+  buddy: "Riverside buddy",
+  powerup: "First power-up",
+  streetSign: "Street sign",
+};
 
 export const npcIds: readonly NpcId[] = [
   "sandy",
@@ -269,9 +346,10 @@ const walkable = new Set(["sidewalk", "paved", "green", "island", "other"]);
 /** Distance from a point to a spot's square (0 inside). */
 function toSquare(spot: LevelSpot, x: number, z: number): number {
   const [w, d] = plotFootprint(spot.site);
+  const [lx, lz] = spotLocal(spot, x, z);
   return Math.hypot(
-    Math.max(Math.abs(x - spot.x) - w / 2, 0),
-    Math.max(Math.abs(z - spot.z) - d / 2, 0),
+    Math.max(Math.abs(lx) - w / 2, 0),
+    Math.max(Math.abs(lz) - d / 2, 0),
   );
 }
 
@@ -384,6 +462,12 @@ export function checkCharacters(
       problems.push(`${id} stands on a spot.`);
     if (surface && !walkable.has(surface(at[0], at[1])))
       problems.push(`${id} stands on ${surface(at[0], at[1])}.`);
+  }
+  // The street sign floats overhead, so only grounded objects can block a spot.
+  for (const id of ["leaderboard", "buddy", "powerup"] as const) {
+    const at = site.landmarks?.[id]?.at;
+    if (at && spots.some((s) => toSquare(s, at[0], at[1]) === 0))
+      problems.push(`${landmarkNames[id]} stands on a spot.`);
   }
   const sandy = site.npcs?.sandy;
   if (sandy && Math.hypot(sandy[0] - sx, sandy[1] - sz) > 12)

@@ -5,7 +5,7 @@ import {
   baselLocations,
   levelLocationPools,
 } from "../config/level-locations.ts";
-import { cityLevels } from "../config/levels.ts";
+import { applyBuiltLevel, cityLevels } from "../config/levels.ts";
 import { cityConfig } from "../config/city.ts";
 import { levelLocalGroundAt, levelScenery } from "../src/game/terrain.ts";
 import { mapToWorld, worldToMap } from "../src/game/streets.ts";
@@ -70,6 +70,25 @@ test("builder markers sample terrain through the rotated and shifted scenery pos
     pose.groundAt(marker[0], marker[1]),
     pose.groundAt(worldX, worldZ),
   );
+});
+
+test("Test play and applied builder levels retain their chosen map geography", () => {
+  const original = cityLevels[0];
+  const site = { ...baselLocations[0].site, start: [0, 0] as [number, number] };
+  try {
+    applyBuiltLevel(original.id, {
+      location: "Builder's chosen location",
+      site,
+      spots: [...original.layout],
+    });
+    const state = createCampaign(() => 0.999);
+    const level = currentLevel(state)!;
+    assert.equal(level.location, "Builder's chosen location");
+    assert.equal(level.mapSite, site);
+    assert.equal(levelScenery(level, null).rotationY, site.heading);
+  } finally {
+    (cityLevels as (typeof original)[])[0] = original;
+  }
 });
 
 test("all sixteen randomized routes have four different sites with increasing urgency", () => {

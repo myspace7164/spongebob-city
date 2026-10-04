@@ -13,9 +13,9 @@ import type {
   PlayerState,
 } from "../interfaces.ts";
 import { formatSurvivalTime } from "./time-format.ts";
-import { cityMetrics, spongeCapacity, weather } from "./city.ts";
+import { cityMetrics, spongeCapacity } from "./city.ts";
 import { activeModifier } from "./level-modifiers.ts";
-import { currentLevel, validDrain } from "./campaign.ts";
+import { currentLevel, landmarkPose, validDrain } from "./campaign.ts";
 import { isToolAvailable } from "./progression.ts";
 import { siteTechniques } from "../../config/sites.ts";
 import {
@@ -28,6 +28,7 @@ import {
 } from "./characters.ts";
 import { betonConfig as betonTuning } from "../../config/beton.ts";
 import { createCityFireView } from "./city-fire-view.ts";
+import { createWeatherView } from "./weather-view.ts";
 import { gameplayColliders } from "./world-colliders.ts";
 import type { SolidCollider } from "./collisions.ts";
 
@@ -126,10 +127,15 @@ function conformToGround(
   lift: number,
 ): void {
   const positions = geometry.getAttribute("position");
+  const c = Math.cos(plot.rotationY ?? 0),
+    s = Math.sin(plot.rotationY ?? 0);
   for (let i = 0; i < positions.count; i++)
     positions.setY(
       i,
-      ground(plot.x + positions.getX(i), plot.z + positions.getZ(i)) -
+      ground(
+        plot.x + c * positions.getX(i) + s * positions.getZ(i),
+        plot.z - s * positions.getX(i) + c * positions.getZ(i),
+      ) -
         baseHeight +
         lift,
     );
@@ -685,12 +691,14 @@ function createLeaderboardSign(parent: THREE.Group) {
 export function createCityView(scene: THREE.Scene, state: CityState) {
   const root = new THREE.Group();
   scene.add(root);
+  const mission = new THREE.Group();
+  root.add(mission);
   const leaderboard = createLeaderboardSign(root);
-  const updateFireView = createCityFireView(root);
+  const updateFireView = createCityFireView(mission);
   const plotViews = state.plots.map((p) => {
     const tile = new THREE.Group();
     tile.position.set(p.x, 0, p.z);
-    root.add(tile);
+    mission.add(tile);
     const zoneMaterial = new THREE.MeshBasicMaterial({
       color: zoneGround(p),
       transparent: true,
@@ -762,11 +770,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   );
   border.name = "build-zone-hover-outline";
   border.renderOrder = 2;
-  root.add(border);
+  mission.add(border);
   const buildPreview = new THREE.Group();
   buildPreview.name = "build-structure-preview";
   buildPreview.visible = false;
-  root.add(buildPreview);
+  mission.add(buildPreview);
   let buildPreviewSignature = "";
   const architecture = new THREE.Group();
   root.add(architecture);
@@ -802,7 +810,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
   sign.position.set(0, 6, -27);
   root.add(sign);
   const routes = new THREE.Group();
-  root.add(routes);
+  mission.add(routes);
   let campaignSignature = "";
   let importedLevel = false;
   // World height of the terrain; flat until the Basel terrain has loaded.
@@ -817,7 +825,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     const npc = makeCharacter(actor.id);
     npc.name = "cast-" + actor.id;
     npc.position.set(actor.x, 0, actor.z);
-    root.add(npc);
+    mission.add(npc);
     const name = label(actor.text, true);
     name.name = "speech-" + actor.id;
     name.position.set(0, 3, 0);
@@ -826,18 +834,18 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     return { npc, limbs };
   });
   const buddy = createRiversideBuddy();
-  root.add(buddy.root);
+  mission.add(buddy.root);
   const machine = new THREE.Group();
   machine.name = "roaming-asphaltinator";
   machine.position.set(c.machine.x, 0, c.machine.z + 2);
   machine.userData.assetKind = "procedural-three-dimensional-boss-vehicle";
-  root.add(machine);
+  mission.add(machine);
   const vehicle = buildBetonVehicle(machine);
   const beton = makeCharacter("beton");
   beton.name = "dr-beton";
   // Sibling roots keep the character and vehicle independently visible and
   // controllable; the driver anchor links their positions during gameplay.
-  root.add(beton);
+  mission.add(beton);
   const betonName = label("Dr. Beton: CONCRETE! [E]", true);
   betonName.position.set(0, 3.05, 0);
   beton.add(betonName);
@@ -869,14 +877,14 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     }),
   );
   attackPath.frustumCulled = false;
-  root.add(attackPath);
+  mission.add(attackPath);
   let lastBetonPhase = "";
   let phaseStartedAt = 0;
   let sealingEndedAt = Number.NEGATIVE_INFINITY;
   let previousVehicleX = machine.position.x;
   let previousVehicleZ = machine.position.z;
   const residents = new THREE.Group();
-  root.add(residents);
+  mission.add(residents);
   for (let i = 0; i < 8; i++) {
     const person = new THREE.Group();
     box(person, [0.3, 0.65, 0.3], [0, 0.65, 0], i % 2 ? "coral" : "water");
@@ -886,7 +894,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     keepOnGround(person);
   }
   const birds = new THREE.Group();
-  root.add(birds);
+  mission.add(birds);
   keepOnGround(birds);
   for (let i = 0; i < 6; i++) {
     const bird = box(
@@ -897,27 +905,12 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
     );
     bird.rotation.z = i % 2 ? 0.3 : -0.3;
   }
-  const rainGeometry = new THREE.BufferGeometry();
-  const rainPositions = new Float32Array(180 * 3);
-  for (let i = 0; i < 180; i++) {
-    rainPositions[i * 3] = ((i * 13) % 37) - 18;
-    rainPositions[i * 3 + 1] = (i * 7) % 14;
-    rainPositions[i * 3 + 2] = -((i * 17) % 30);
-  }
-  rainGeometry.setAttribute(
-    "position",
-    new THREE.BufferAttribute(rainPositions, 3),
-  );
-  const rain = new THREE.Points(
-    rainGeometry,
-    new THREE.PointsMaterial({ color: themeColor("water"), size: 0.12 }),
-  );
-  root.add(rain);
+  const weatherView = createWeatherView(scene, mission);
   const ray = new THREE.Raycaster();
   const screenCenter = new THREE.Vector2();
   const droplets = new THREE.Group();
   for (let i = 0; i < 8; i++) ball(droplets, 0.12, [0, 0, 0], "water");
-  root.add(droplets);
+  mission.add(droplets);
   const point = new THREE.Vector3();
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   return {
@@ -926,9 +919,9 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       groundAt = ground;
       groundVersion++;
     },
-    /** Hide the mission's own plots and characters (the level builder draws its own). */
+    /** Hide mission markers and actors while keeping the scenery and street sign. */
     setVisible(visible: boolean) {
-      root.visible = visible;
+      mission.visible = visible;
     },
     useImportedLevel() {
       importedLevel = true;
@@ -972,15 +965,13 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       root.position.set(origin.x, 0, origin.z);
       root.updateWorldMatrix(true, false);
       const ground = (x: number, z: number) => groundAt(x, z);
-      const start = level?.site?.start ?? [0, 0];
-      const boardX = start[0] - 4;
-      const boardZ = start[1] + 1;
+      const board = landmarkPose(level, "leaderboard");
       leaderboard.root.position.set(
-        boardX,
-        ground(origin.x + boardX, origin.z + boardZ),
-        boardZ,
+        board.x,
+        ground(origin.x + board.x, origin.z + board.z),
+        board.z,
       );
-      leaderboard.root.rotation.y = Math.atan2(4, -1);
+      leaderboard.root.rotation.y = board.rotationY;
       playerGround = ground(player.position.x, player.position.z);
       const targetPlot = s.plots.find((p) => p.id === targetId);
       const buildKind = BUILD_KIND[s.selected];
@@ -1021,7 +1012,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
             (limb.name.startsWith("left") ? 1 : -1);
         });
       });
-      const nextSignature = `${level?.id}/${groundVersion}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
+      const signAt = landmarkPose(level, "streetSign");
+      const nextSignature = `${level?.id}/${signAt.x},${signAt.z}/${groundVersion}/${s.plots.map((p) => `${p.x},${p.z},${p.kind},${p.drainsTo}`).join(";")}`;
       if (campaignSignature !== nextSignature) {
         campaignSignature = nextSignature;
         dispose(routes);
@@ -1035,7 +1027,11 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
         );
         // The stand-in square would block a real street when the Basel model is missing.
         architecture.visible = !importedLevel && !level?.site;
-        sign.position.set(0, 6 + ground(origin.x, origin.z - 27), -27);
+        sign.position.set(
+          signAt.x,
+          6 + ground(origin.x + signAt.x, origin.z + signAt.z),
+          signAt.z,
+        );
         root.add(sign);
         for (const { object, base } of grounded)
           object.position.y =
@@ -1066,10 +1062,6 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           }
         }
       }
-      const rainy = weather(s).raining;
-      scene.background = themeColor(rainy ? "rain-sky" : "sky");
-      if (scene.fog instanceof THREE.Fog)
-        scene.fog.color.copy(scene.background);
       s.plots.forEach((p, i) => {
         const view = plotViews[i];
         const baseHeight = p.elevation ?? ground(p.x, p.z);
@@ -1079,7 +1071,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           view.baseGroundColor.copy(zoneGround(p));
         }
         view.tile.position.set(p.x - origin.x, baseHeight, p.z - origin.z);
-        const conformedSignature = `${p.x}/${p.z}/${baseHeight}/${groundVersion}`;
+        view.tile.rotation.y = p.rotationY ?? 0;
+        const conformedSignature = `${p.x}/${p.z}/${p.rotationY ?? 0}/${baseHeight}/${groundVersion}`;
         if (view.conformedSignature !== conformedSignature) {
           view.conformedSignature = conformedSignature;
           conformToGround(view.ground.geometry, p, baseHeight, ground, 0.018);
@@ -1131,6 +1124,8 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
           baseHeight,
           targetPlot.z - origin.z,
         );
+        border.rotation.y = targetPlot.rotationY ?? 0;
+        buildPreview.rotation.y = targetPlot.rotationY ?? 0;
         conformToGround(border.geometry, targetPlot, baseHeight, ground, 0.04);
         const nextPreviewSignature = buildKind
           ? `${targetPlot.id}/${s.selected}/${validBuild ? "valid" : "invalid"}`
@@ -1230,17 +1225,7 @@ export function createCityView(scene: THREE.Scene, state: CityState) {
       });
       birds.visible = healthy >= 2;
       birds.position.x = Math.sin(s.elapsed * 0.4) * 2;
-      rain.visible = rainy;
-      // Rain covers the area around the player, so it also falls further down a street.
-      rain.position.set(
-        player.position.x - origin.x,
-        playerGround,
-        player.position.z - origin.z + 15,
-      );
-      const attribute = rainGeometry.getAttribute("position");
-      for (let i = 0; i < 180; i++)
-        attribute.setY(i, (((i * 7 - s.elapsed * 9) % 14) + 14) % 14);
-      attribute.needsUpdate = true;
+      weatherView.update(s, player, origin, ground);
       const villain = s.saboteur;
       machine.position.set(
         villain.x - origin.x,
