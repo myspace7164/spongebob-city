@@ -77,6 +77,84 @@ npm run test:browser
 
 `playwright.config.ts` accepts `CHROMIUM_EXECUTABLE` for an existing browser and `SOFTWARE_WEBGL=1` for software rendering. The browser tests exercise the rendered city, construction, water reuse, powers, movement, pointer lock, pause and reset.
 
+## Nix flake and NixOS service
+
+The flake provides `packages.<system>.sponge-city` (also `default`), a runnable
+server app, `nixosModules.default`, and a development shell for `x86_64-linux`
+and `aarch64-linux`. Nix pins nixpkgs in `flake.lock` and uses the npm lockfile's
+integrity hashes for dependencies.
+
+Run or install from another Linux machine with flakes enabled:
+
+```sh
+nix run github:myspace7164/spongebob-city
+# Or install the sponge-city command:
+nix profile add github:myspace7164/spongebob-city
+```
+
+The default standalone run listens at `http://127.0.0.1:3000` and stores SQLite
+state in `${XDG_STATE_HOME:-$HOME/.local/state}/sponge-city/accounts.sqlite`.
+For public hosting, set `NODE_ENV=production`, `PUBLIC_ORIGIN` and the proxy
+variables described in [Online play and hosting](#online-play-and-hosting).
+`DATABASE_PATH` overrides the storage path. The command can run from any directory.
+
+To host on NixOS, add this input to your system flake:
+
+```nix
+inputs.sponge-city.url = "github:myspace7164/spongebob-city";
+```
+
+Include the module in your `nixpkgs.lib.nixosSystem` module list:
+
+```nix
+modules = [
+  sponge-city.nixosModules.default
+  ({ ... }: {
+    services.sponge-city = {
+      enable = true;
+      publicOrigin = "https://game.example.org";
+      nginx = {
+        enable = true;
+        domain = "game.example.org";
+      };
+    };
+    security.acme.acceptTerms = true;
+    security.acme.defaults.email = "admin@example.org";
+  })
+];
+```
+
+Here `sponge-city` is an argument in your flake's `outputs` function. Point the
+domain's DNS at your server, replace the example domain/contact, and run
+`sudo nixos-rebuild switch --flake .#your-host`. nginx obtains an ACME certificate,
+preserves the public Host header, and streams room events without buffering.
+For an existing HTTPS proxy, omit `nginx` and forward to the backend yourself.
+
+All options below live under `services.sponge-city`:
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `enable` | `false` | Start the production game service at boot. |
+| `package` | This flake's package | Override the server derivation. |
+| `host` / `port` | `127.0.0.1` / `3000` | Backend bind address and TCP port. |
+| `publicOrigin` | Required when enabled | Exact public HTTPS origin, without a trailing slash. |
+| `trustProxy` | `"loopback"` | Trust a loopback proxy's client IP header; `"none"` disables trust. |
+| `stateDirectory` | `"sponge-city"` | Persistent directory name under `/var/lib`; database is `accounts.sqlite`. |
+| `environment` | `{ }` | Additional non-secret variables; explicit service options take precedence. |
+| `environmentFile` | `null` | Absolute runtime path to a systemd environment file; can override variables. Keep secrets outside the Nix store. |
+| `openFirewall` | `false` | Open the backend port when deliberately exposing it to a separate proxy. |
+| `nginx.enable` / `nginx.domain` | `false` / `""` | Optional local HTTPS proxy; opens ports 80/443. |
+
+The service uses a dynamic unprivileged user, private persistent storage, filesystem
+restrictions, and automatic restart on failure. For resource limits use standard
+NixOS overrides, for example `systemd.services.sponge-city.serviceConfig.MemoryMax = "2G";`.
+Inspect it with `systemctl status sponge-city` and `journalctl -u sponge-city`.
+Back up SQLite using its backup mechanism; rebuilding keeps state, and live rooms
+are in memory and reset when the service restarts.
+
+For local development use `nix develop`, then the npm commands above. Run
+`nix build` to build the package and `nix flake check` for packaging/service checks.
+
 ## Extend
 
 The level builder is a local development tool. Run `npm run dev` and open `/?builder` to place an area's bounds, construction spots, player spawn and characters; press **N** to open or close it during play. It opens in the normal view behind SpongeBob with a free mouse; **Overview** switches to a wider camera. Right-drag looks around, WASD moves the view, and clicking a coloured spot selects it for dragging or deletion. Use **Rotate left/right** for 5° steps or enter an exact angle. These controls rotate the selected spot; **Place a new spot** sets the angle for the next placement. **Undo** (Ctrl+Z) restores rotation, movement, and deletion. The **Objects** tool (**O**) moves the leaderboard sign, the riverside buddy, the first power-up and the street-name sign; the leaderboard can also be turned, and **Reset to default place** restores an object's standard position. **Build for stage** starts a new level checked against that stage's goals; closing returns to the original game. **Test play** uses the draft only in memory and keeps its chosen map location. **Save draft** stores it in this browser. **💾 Save to library** (needs your GitHub username, optional notes) writes one file per level to `config/built-levels/library/`, so teammates can build different levels at the same time; **Save as new copy** keeps the original. Earlier states of a library level are kept in `config/built-levels/history/`; pick one under **Earlier versions** and choose **Restore**. **📚 Lineup & library** (**L**) picks the level for each of the four stages (a random built-in street, or any library level that reaches that stage's goals) and switches each built-in street and library level on or off for endless mode; new library levels start switched on. Choices save to `config/built-levels/lineup.json` immediately. Commit and push the files in `config/built-levels/` to share them; teammates get them with `git pull`. Ctrl+S saves a browser draft. It is disabled in production and cannot open after joining an online room.
