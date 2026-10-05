@@ -1,4 +1,4 @@
-spongecity.brexit.ch {
+game.example.org {
     request_body {
         max_size 4KB
     }

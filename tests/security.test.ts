@@ -130,7 +130,7 @@ test(
       join(directory, "secret.txt"),
       join(directory, "dist/leak.txt"),
     );
-    const origin = "https://spongecity.brexit.ch";
+    const origin = "https://game.example.org";
     const child = spawn(
       process.execPath,
       [
@@ -165,7 +165,7 @@ test(
         child.once("error", reject);
       });
       const base = `http://127.0.0.1:${port}`;
-      const headers = { Host: "spongecity.brexit.ch" };
+      const headers = { Host: "game.example.org" };
       const post = (body: string, extra = {}) =>
         httpFetch(base + "/api/account", {
           method: "POST",

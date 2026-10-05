@@ -208,7 +208,7 @@ Four levels on real Basel map scenery with illustrative mission topology. Cookie
 ```bash
 npm ci
 npm run build
-NODE_ENV=production PUBLIC_ORIGIN=https://spongecity.brexit.ch TRUST_PROXY=loopback npm start
+NODE_ENV=production PUBLIC_ORIGIN=https://game.example.org TRUST_PROXY=loopback npm start
 ```
 
 The Node server serves `dist/`, `/api/` and live room events together on `HOST` (default `127.0.0.1`) and `PORT` (default 3000). Put an HTTPS reverse proxy on the same host in front of it; [the Caddy example](deploy/Caddyfile) uses automatic TLS and immediate streaming. Preserve the public Host header. Expose only ports 80/443 publicly and keep 3000 private. `PUBLIC_ORIGIN` must match the HTTPS browser origin exactly, without a trailing slash; production POST requests require that Origin header. `TRUST_PROXY=loopback` trusts the last forwarded IP only when the immediate connection is loopback; the proxy must append or overwrite that header. Leave it unset for other proxy topologies until configured appropriately. Environment variables must be supplied by your service manager; `.env.example` is a reference and is not automatically loaded.

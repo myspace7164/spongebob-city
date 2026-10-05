@@ -222,9 +222,6 @@ function attachOnline(server: ViteDevServer | PreviewServer): void {
   server.httpServer?.once("close", () => online.close());
 }
 export default defineConfig({
-  server: {
-    allowedHosts: ["spongecity.brexit.ch"],
-  },
   plugins: [
     {
       name: "sponge-online",

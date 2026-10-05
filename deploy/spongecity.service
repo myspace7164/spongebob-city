@@ -8,7 +8,7 @@ User=spongecity
 Group=spongecity
 WorkingDirectory=/opt/spongecity
 Environment=NODE_ENV=production
-Environment=PUBLIC_ORIGIN=https://spongecity.brexit.ch
+Environment=PUBLIC_ORIGIN=https://game.example.org
 Environment=HOST=127.0.0.1
 Environment=PORT=3000
 Environment=TRUST_PROXY=loopback
